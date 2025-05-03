@@ -1,0 +1,17 @@
+{
+    "fileFormatVersion": "1",
+    "parameterSets": {
+        "New set 1": {
+            "customFilmFormatHeight": "20",
+            "customFilmFormatWidth": "20",
+            "filmFormat": "custom"
+        },
+        "New set 2": {
+            "customFilmFormatHeight": "36",
+            "customFilmFormatPegDistance": "36",
+            "customFilmFormatWidth": "24",
+            "filmFormat": "35mm",
+            "topOrBottom": "bottom"
+        }
+    }
+}

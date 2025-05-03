@@ -1,13 +1,8 @@
 include <BOSL2/std.scad>
 // Select the desired film format
-filmFormat = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x6", "6x7", "6x8", "6x9", "6x12", "6x17", "4x5", "custom"]
+filmFormat = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x6", "6x7", "6x8", "6x9", "custom"]
 topOrBottom = "bottom"; // ["top", "bottom"]
-// custom opening height
-customFilmFormatHeight = 36;
-// custom opening width
-customFilmFormatWidth = 24;
-// custom film format height (for peg distance)
-customFilmFormatPegDistance = 36;
+
 
 /* [Hidden] */
 // film sizes
@@ -26,10 +21,7 @@ mediumFormat6x7Length = 70;
 mediumFormat6x8Length = 77;
 // 6x9 film length
 mediumFormat6x9Length = 84;
-// 6x12 film length
-mediumFormat6x12Length = 118;
-// 6x17 film length
-mediumFormat6x17Length = 168;
+
 // 4x5 film height
 fourByFiveHeight = 127;
 // 4x5 film width
@@ -81,53 +73,60 @@ filmFormatHeight = filmFormat == "35mm" ? thirtyFiveFullHeight : filmFormat == "
 filmFormatWidth = filmFormat == "35mm" ? thirtyFiveStandardWidth : filmFormat == "35mm filed" ? thirtyFiveFiledWidth : filmFormat == "35mm full" ? thirtyFiveStandardWidth : filmFormat == "half frame" ? halfFrameWidth : filmFormat == "6x4.5" ? mediumFormatHeight : filmFormat == "6x6" ? mediumFormatHeight : filmFormat == "6x7" ? mediumFormatHeight : filmFormat == "6x8" ? mediumFormatHeight : filmFormat == "6x9" ? mediumFormatHeight : filmFormat == "6x12" ? mediumFormatHeight : filmFormat == "6x17" ? mediumFormatHeight : filmFormat == "4x5" ? fourByFiveWidth : filmFormat == "custom" ? customFilmFormatWidth : 130;
 filmFormatPegDistance = filmFormat == "35mm" ? thirtyFiveFullHeight : filmFormat == "35mm filed" ? thirtyFiveFullHeight : filmFormat == "35mm full" ? thirtyFiveFullHeight : filmFormat == "half frame" ? thirtyFiveFullHeight : filmFormat == "6x4.5" ? mediumFormatFullHeight : filmFormat == "6x6" ? mediumFormatFullHeight : filmFormat == "6x7" ? mediumFormatFullHeight : filmFormat == "6x8" ? mediumFormatFullHeight : filmFormat == "6x9" ? mediumFormatFullHeight : filmFormat == "6x12" ? mediumFormatFullHeight : filmFormat == "6x17" ? mediumFormatFullHeight : filmFormat == "4x5" ? mediumFormatFullHeight : filmFormat == "custom" ? customFilmFormatPegDistance : 130;
 
-if (topOrBottom == "bottom") {
-    union() {
-        difference() {
-            // Base shape
-            color("grey") union() {
-                cylinder(h=carrierHeight, r=carrierCircleDiameter/2, center = true);
-                translate([-carrierRectOffset, 0, 0]) cuboid([carrierLength, carrierWidth, carrierHeight], anchor = CENTER, rounding=3, edges=[[0,0,0,0], [0,0,0,0], [1,1,1,1]]);
-            }
-            // Film Opening
-            cuboid([filmFormatHeight, filmFormatWidth, carrierHeight + cutThroughExtension ], chamfer = .5, anchor = CENTER);
-            // Alignment Screw Holes
-            translate([alignmentScrewDistanceY/2, alignmentScrewDistanceX/2, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=alignmentScrewDiameter/2, center = true);
-            translate([-alignmentScrewDistanceY/2, alignmentScrewDistanceX/2, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=alignmentScrewDiameter/2, center = true);
-            translate([alignmentScrewDistanceY/2, -alignmentScrewDistanceX/2, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=alignmentScrewDiameter/2, center = true);
-            translate([-alignmentScrewDistanceY/2, -alignmentScrewDistanceX/2, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=alignmentScrewDiameter/2, center = true);
-            // Registration Holes
-            translate([regHoleDistance/2 + regHoleDiameter/2, -regHoleDistance/2, 0]) cuboid([regHoleDiameter, regHoleDiameter + regHoleSlotLengthExtension, carrierHeight + cutThroughExtension], anchor = CENTER);
-            translate([-regHoleDistance/2 - regHoleDiameter/2, -regHoleDistance/2, 0]) cuboid([regHoleDiameter, regHoleDiameter + regHoleSlotLengthExtension, carrierHeight + cutThroughExtension], anchor = CENTER);
-            translate([regHoleDistance/2 + regHoleDiameter/2, -regHoleDistance/2 + regHoleCylYOffset, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=regHoleDiameter/2, center = true);
-            translate([-regHoleDistance/2 - regHoleDiameter/2, -regHoleDistance/2 + regHoleCylYOffset, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=regHoleDiameter/2, center = true);
-        }
-        // Pegs
-        color("red") translate([filmFormatWidth/2 + pegDiameter/2, -filmFormatPegDistance/2 - pegDiameter/2, carrierHeight/2]) cylinder(h=pegHeight, r=pegDiameter/2, center = true);
-        color("red") translate([filmFormatWidth/2 + pegDiameter/2, filmFormatPegDistance/2 + pegDiameter/2, carrierHeight/2]) cylinder(h=pegHeight, r=pegDiameter/2, center = true);
-        color("red") translate([-filmFormatWidth/2 - pegDiameter/2, -filmFormatPegDistance/2 - pegDiameter/2, carrierHeight/2]) cylinder(h=pegHeight, r=pegDiameter/2, center = true);
-        color("red") translate([-filmFormatWidth/2 - pegDiameter/2, filmFormatPegDistance/2 + pegDiameter/2, carrierHeight/2]) cylinder(h=pegHeight, r=pegDiameter/2, center = true);
+// Calculate Z offset for pegs/holes based on topOrBottom
+pegZOffset = topOrBottom == "bottom" ? carrierHeight / 2 : carrierHeight - topPegHoleZOffset;
+
+module base_shape() {
+    color("grey") union() {
+        cylinder(h=carrierHeight, r=carrierCircleDiameter/2, center = true);
+        translate([-carrierRectOffset, 0, 0]) cuboid([carrierLength, carrierWidth, carrierHeight], anchor = CENTER, rounding=4, edges=[[0,0,0,0], [0,0,0,0], [1,1,1,1]]);
     }
 }
 
-if (topOrBottom == "top") {
-    difference() {
-        // Base shape
-        color("grey") union() {
-            cylinder(h=carrierHeight, r=carrierCircleDiameter/2, center = true);
-            translate([-carrierRectOffset, 0, 0]) cuboid([carrierLength, carrierWidth, carrierHeight], anchor = CENTER, rounding=3, edges=[[0,0,0,0], [0,0,0,0], [1,1,1,1]]);
+module film_opening() {
+    color("red") cuboid([filmFormatHeight, filmFormatWidth, carrierHeight + cutThroughExtension ], chamfer = .5, anchor = CENTER);
+}
+
+module alignment_screw_holes() {
+    color("red") translate([alignmentScrewDistanceY/2, alignmentScrewDistanceX/2, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=alignmentScrewDiameter/2, center = true);
+    color("red") translate([-alignmentScrewDistanceY/2, alignmentScrewDistanceX/2, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=alignmentScrewDiameter/2, center = true);
+    color("red") translate([alignmentScrewDistanceY/2, -alignmentScrewDistanceX/2, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=alignmentScrewDiameter/2, center = true);
+    color("red") translate([-alignmentScrewDistanceY/2, -alignmentScrewDistanceX/2, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=alignmentScrewDiameter/2, center = true);
+}
+
+module registration_holes() {
+    color("red") translate([regHoleDistance/2 + regHoleDiameter/2, -regHoleDistance/2, 0]) cuboid([regHoleDiameter, regHoleDiameter + regHoleSlotLengthExtension, carrierHeight + cutThroughExtension], anchor = CENTER);
+    color("red") translate([-regHoleDistance/2 - regHoleDiameter/2, -regHoleDistance/2, 0]) cuboid([regHoleDiameter, regHoleDiameter + regHoleSlotLengthExtension, carrierHeight + cutThroughExtension], anchor = CENTER);
+    color("red") translate([regHoleDistance/2 + regHoleDiameter/2, -regHoleDistance/2 + regHoleCylYOffset, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=regHoleDiameter/2, center = true);
+    color("red") translate([-regHoleDistance/2 - regHoleDiameter/2, -regHoleDistance/2 + regHoleCylYOffset, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=regHoleDiameter/2, center = true);
+}
+
+module pegs_feature(is_hole = false) {
+    radius = is_hole ? pegDiameter/2 + 0.25 : pegDiameter/2;
+    color("blue") {
+        translate([filmFormatWidth/2 + pegDiameter/2, -filmFormatPegDistance/2 - pegDiameter/2, pegZOffset]) cylinder(h=pegHeight, r=radius, center = true);
+        translate([filmFormatWidth/2 + pegDiameter/2, filmFormatPegDistance/2 + pegDiameter/2, pegZOffset]) cylinder(h=pegHeight, r=radius, center = true);
+        translate([-filmFormatWidth/2 - pegDiameter/2, -filmFormatPegDistance/2 - pegDiameter/2, pegZOffset]) cylinder(h=pegHeight, r=radius, center = true);
+        translate([-filmFormatWidth/2 - pegDiameter/2, filmFormatPegDistance/2 + pegDiameter/2, pegZOffset]) cylinder(h=pegHeight, r=radius, center = true);
+    }
+}
+
+// Main logic
+if (topOrBottom == "bottom") {
+    union() {
+        difference() {
+            base_shape();
+            film_opening();
+            registration_holes();
+            alignment_screw_holes();
         }
-        // Film Opening
-        cuboid([filmFormatHeight, filmFormatWidth, carrierHeight + cutThroughExtension ], chamfer = .5, anchor = CENTER);
-        // Peg Holes (inverted pegs)
-        color("red") translate([filmFormatWidth/2 + pegDiameter/2, -filmFormatPegDistance/2 - pegDiameter/2, carrierHeight - topPegHoleZOffset]) cylinder(h=pegHeight, r=pegDiameter/2, center = true);
-        color("red") translate([filmFormatWidth/2 + pegDiameter/2, filmFormatPegDistance/2 + pegDiameter/2, carrierHeight - topPegHoleZOffset]) cylinder(h=pegHeight, r=pegDiameter/2, center = true);
-        color("red") translate([-filmFormatWidth/2 - pegDiameter/2, -filmFormatPegDistance/2 - pegDiameter/2, carrierHeight - topPegHoleZOffset]) cylinder(h=pegHeight, r=pegDiameter/2, center = true);
-        color("red") translate([-filmFormatWidth/2 - pegDiameter/2, filmFormatPegDistance/2 + pegDiameter/2, carrierHeight - topPegHoleZOffset]) cylinder(h=pegHeight, r=pegDiameter/2, center = true);
-        // Registration Holes
-        translate([regHoleDistance/2 + regHoleDiameter/2, -regHoleDistance/2, 0]) cuboid([regHoleDiameter, regHoleDiameter + regHoleSlotLengthExtension, carrierHeight + cutThroughExtension], anchor = CENTER);
-        translate([-regHoleDistance/2 - regHoleDiameter/2, -regHoleDistance/2, 0]) cuboid([regHoleDiameter, regHoleDiameter + regHoleSlotLengthExtension, carrierHeight + cutThroughExtension], anchor = CENTER);
-        translate([regHoleDistance/2 + regHoleDiameter/2, -regHoleDistance/2 + regHoleCylYOffset, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=regHoleDiameter/2, center = true);
-        translate([-regHoleDistance/2 - regHoleDiameter/2, -regHoleDistance/2 + regHoleCylYOffset, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=regHoleDiameter/2, center = true);
+        pegs_feature(); // Add pegs
+    }
+} else { // topOrBottom == "top"
+    difference() {
+        base_shape();
+        film_opening();
+        registration_holes();
+        pegs_feature(is_hole = true); // Subtract holes
     }
 }
