@@ -24,7 +24,7 @@ customFilmFormatWidth = 24;
 // custom film format height (for peg distance)
 customFilmFormatPegDistance = 36;
 
-$fn=100;
+$fn=200;
 
 module alignment_circle() {
     // Major radius R = (OuterD/2 + InnerD/2) / 2 = (120/2 + 110/2) / 2 = (60 + 55) / 2 = 57.5
@@ -51,8 +51,9 @@ if (topOrBottom == "bottom") {
         difference() {
             base_shape();
             film_opening();
-            alignment_circle();
+            
         }
+        translate([0, 0, carrierHeight]) alignment_circle();
         pegs_feature();
         handle();
     }
