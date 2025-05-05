@@ -1,8 +1,17 @@
 include <BOSL2/std.scad>
-// Select the desired film format
+/* [Film Format] */
 filmFormat = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x6", "6x7", "6x8", "6x9", "custom"]
-topOrBottom = "bottom"; // ["top", "bottom"]
 
+/* [Customization] */
+// Name to etch on the carrier
+ownerName = "AFFORDS";
+// Type of film holder to etch on the carrier
+typeName = "FILED35";
+// Subtract to increase the gap between the pegs, add to decrease the gap. Default 1 allows for little wiggle.
+pegGap = 1; 
+
+/* [Top or Bottom] */
+topOrBottom = "bottom"; // ["top", "bottom", "frameAndPegTestBottom", "frameAndPegTestTop"]
 
 /* [Hidden] */
 // film sizes
@@ -76,6 +85,25 @@ filmFormatPegDistance = filmFormat == "35mm" ? thirtyFiveFullHeight : filmFormat
 // Calculate Z offset for pegs/holes based on topOrBottom
 pegZOffset = topOrBottom == "bottom" ? carrierHeight / 2 : carrierHeight - topPegHoleZOffset;
 
+module owner_name() {
+    // Extrude the text slightly to allow for subtraction
+    linear_extrude(height = 1) {
+        rotate([0, 0, 270])
+        translate([0, -100, carrierHeight/2]) // Position the text to cut into the top surface
+            text(ownerName, font = "Futura", size = 10, halign = "center", valign = "center");
+    }
+}
+
+module type_name() {
+    // Extrude the text slightly to allow for subtraction
+    linear_extrude(height = 1) {
+        rotate([0, 0, 270])
+        translate([-40, -100, carrierHeight/2]) // Position the text to cut into the top surface
+            text(typeName, font = "Futura", size = 10, halign = "center", valign = "center");
+    }
+}
+
+
 module base_shape() {
     color("grey") union() {
         cylinder(h=carrierHeight, r=carrierCircleDiameter/2, center = true);
@@ -103,11 +131,13 @@ module registration_holes() {
 
 module pegs_feature(is_hole = false) {
     radius = is_hole ? pegDiameter/2 + 0.25 : pegDiameter/2;
+    // Use correct z_offset based on whether it's top or bottom/test
+    z_offset = topOrBottom == "top" ? pegZOffset : carrierHeight / 2;
     color("blue") {
-        translate([filmFormatWidth/2 + pegDiameter/2, -filmFormatPegDistance/2 - pegDiameter/2, pegZOffset]) cylinder(h=pegHeight, r=radius, center = true);
-        translate([filmFormatWidth/2 + pegDiameter/2, filmFormatPegDistance/2 + pegDiameter/2, pegZOffset]) cylinder(h=pegHeight, r=radius, center = true);
-        translate([-filmFormatWidth/2 - pegDiameter/2, -filmFormatPegDistance/2 - pegDiameter/2, pegZOffset]) cylinder(h=pegHeight, r=radius, center = true);
-        translate([-filmFormatWidth/2 - pegDiameter/2, filmFormatPegDistance/2 + pegDiameter/2, pegZOffset]) cylinder(h=pegHeight, r=radius, center = true);
+        translate([filmFormatWidth/2 + pegDiameter/2, -filmFormatPegDistance/2 - pegDiameter/2 + pegGap, z_offset]) cylinder(h=pegHeight, r=radius, center = true);
+        translate([filmFormatWidth/2 + pegDiameter/2, filmFormatPegDistance/2 + pegDiameter/2 - pegGap, z_offset]) cylinder(h=pegHeight, r=radius, center = true);
+        translate([-filmFormatWidth/2 - pegDiameter/2, -filmFormatPegDistance/2 - pegDiameter/2 + pegGap, z_offset]) cylinder(h=pegHeight, r=radius, center = true);
+        translate([-filmFormatWidth/2 - pegDiameter/2, filmFormatPegDistance/2 + pegDiameter/2 - pegGap, z_offset]) cylinder(h=pegHeight, r=radius, center = true);
     }
 }
 
@@ -119,8 +149,29 @@ if (topOrBottom == "bottom") {
             film_opening();
             registration_holes();
             alignment_screw_holes();
+            translate([0, -35, 0]) owner_name();
+            translate([0, 0, 0]) type_name();
         }
         pegs_feature(); // Add pegs
+    }
+} else if (topOrBottom == "frameAndPegTestBottom" || topOrBottom == "frameAndPegTestTop") {
+    // Create a smaller base for the test piece, slightly larger than the film opening + pegs
+    testPiecePadding = 8; // Add padding around
+    testPieceWidth = filmFormatWidth + pegDiameter * 2 + testPiecePadding * 2;
+    testPieceHeight = filmFormatPegDistance + pegDiameter * 2 + testPiecePadding * 2;
+
+    difference() {
+        // Center the test piece
+        cuboid([testPieceHeight, testPieceWidth, carrierHeight], anchor = CENTER);
+        film_opening();
+        // Subtract holes if it's the top test piece
+        if (topOrBottom == "frameAndPegTestTop") {
+            pegs_feature(is_hole = true);
+        }
+    }
+    // Add pegs if it's the bottom test piece
+    if (topOrBottom == "frameAndPegTestBottom") {
+        pegs_feature();
     }
 } else { // topOrBottom == "top"
     difference() {
@@ -128,5 +179,7 @@ if (topOrBottom == "bottom") {
         film_opening();
         registration_holes();
         pegs_feature(is_hole = true); // Subtract holes
+        translate([0, -35, 0]) owner_name();
+        translate([0, 0, 0]) type_name();
     }
 }
