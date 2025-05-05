@@ -73,7 +73,7 @@ alignmentScrewDistanceY = 82;
 // General constants
 cutThroughExtension = 1; // ensures difference operations cut fully through
 regHoleSlotLengthExtension = 3; // extends the length of the reg hole slots
-regHoleCylYOffset = 4.5; // Y offset for the cylindrical part of the reg holes
+regHoleCylYOffset = 4.6; // Y offset for the cylindrical part of the reg holes
 topPegHoleZOffset = 2; // Z offset for the peg holes in the top carrier part
 
 $fn=100;
@@ -115,11 +115,20 @@ module film_opening() {
     color("red") cuboid([filmFormatHeight, filmFormatWidth, carrierHeight + cutThroughExtension ], chamfer = .5, anchor = CENTER);
 }
 
-module alignment_screw_holes() {
-    color("red") translate([alignmentScrewDistanceY/2, alignmentScrewDistanceX/2, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=alignmentScrewDiameter/2, center = true);
-    color("red") translate([-alignmentScrewDistanceY/2, alignmentScrewDistanceX/2, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=alignmentScrewDiameter/2, center = true);
-    color("red") translate([alignmentScrewDistanceY/2, -alignmentScrewDistanceX/2, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=alignmentScrewDiameter/2, center = true);
-    color("red") translate([-alignmentScrewDistanceY/2, -alignmentScrewDistanceX/2, 0]) cylinder(h=carrierHeight + cutThroughExtension, r=alignmentScrewDiameter/2, center = true);
+module alignment_screw_holes(is_dent = false, dent_depth = 1) {
+    hole_height = is_dent ? dent_depth : carrierHeight + cutThroughExtension;
+    z_pos = is_dent ? -carrierHeight / 2 : 0; // Start dents from the bottom, center through-holes
+    use_center = !is_dent; // Only center through-holes
+    hole_radius = is_dent ? alignmentScrewDiameter/2 + 0.25 : alignmentScrewDiameter/2;
+
+    color("red") translate([alignmentScrewDistanceY/2, alignmentScrewDistanceX/2, z_pos])
+        cylinder(h=hole_height, r=hole_radius, center = use_center);
+    color("red") translate([-alignmentScrewDistanceY/2, alignmentScrewDistanceX/2, z_pos])
+        cylinder(h=hole_height, r=hole_radius, center = use_center);
+    color("red") translate([alignmentScrewDistanceY/2, -alignmentScrewDistanceX/2, z_pos])
+        cylinder(h=hole_height, r=hole_radius, center = use_center);
+    color("red") translate([-alignmentScrewDistanceY/2, -alignmentScrewDistanceX/2, z_pos])
+        cylinder(h=hole_height, r=hole_radius, center = use_center);
 }
 
 module registration_holes() {
@@ -179,6 +188,7 @@ if (topOrBottom == "bottom") {
         film_opening();
         registration_holes();
         pegs_feature(is_hole = true); // Subtract holes
+        alignment_screw_holes(is_dent = true, dent_depth = 1); // Top part gets 1mm dents
         translate([0, -35, 0]) owner_name();
         translate([0, 0, 0]) type_name();
     }
