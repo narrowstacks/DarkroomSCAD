@@ -1,12 +1,18 @@
 include <BOSL2/std.scad>
 /* [Film Format] */
-filmFormat = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x6", "6x7", "6x8", "6x9", "custom"]
+filmFormat = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "custom"]
 
 /* [Customization] */
 // Name to etch on the carrier
 ownerName = "AFFORDS";
 // Type of film holder to etch on the carrier
-typeName = "FILED35";
+// typeNames = ["FILED35", "FILED645", "FILED66", "FILED67", "FILED68", "FILED69", "FILED612", "FILED617", "FILED45", "CUSTOM"]; // Removed: Use typeNameSource instead
+
+/* [Carrier Type Name Source] */
+typeNameSource = "Carrier Type"; // ["Carrier Type", "Custom"]
+
+// Custom type name
+customTypeName = "CUSTOM";
 // Subtract to increase the gap between the pegs, add to decrease the gap. Default 1 allows for little wiggle.
 pegGap = 1; 
 
@@ -20,16 +26,22 @@ mediumFormatFullHeight = 61;
 
 // 120/220 film height
 mediumFormatHeight = 56;
+mediumFormatFiledHeight = 58;
 // 6x4.5 film length
 mediumFormat6x45Length = 41.5;
+mediumFormat6x45FiledLength = 43.5;
 // 6x6 film length
 mediumFormat6x6Length = 56;
+mediumFormat6x6FiledLength = 58;
 // 6x7 film length
 mediumFormat6x7Length = 70;
+mediumFormat6x7FiledLength = 72;
 // 6x8 film length
 mediumFormat6x8Length = 77;
+mediumFormat6x8FiledLength = 79;
 // 6x9 film length
 mediumFormat6x9Length = 84;
+mediumFormat6x9FiledLength = 86;
 
 // 4x5 film height
 fourByFiveHeight = 127;
@@ -47,6 +59,11 @@ thirtyFiveFiledWidth = 27;
 halfFrameWidth = 24;
 // half frame height
 halfFrameHeight = 18;
+
+// Custom film format defaults (adjust as needed)
+customFilmFormatHeight = 50;
+customFilmFormatWidth = 50;
+customFilmFormatPegDistance = 61; // Defaulting to medium format height
 
 carrierLength = 202;
 carrierWidth = 139;
@@ -78,9 +95,83 @@ topPegHoleZOffset = 2; // Z offset for the peg holes in the top carrier part
 
 $fn=100;
 
-filmFormatHeight = filmFormat == "35mm" ? thirtyFiveFullHeight : filmFormat == "35mm filed" ? thirtyFiveFiledHeight : filmFormat == "35mm full" ? thirtyFiveStandardHeight : filmFormat == "half frame" ? halfFrameHeight : filmFormat == "6x4.5" ? mediumFormat6x45Length : filmFormat == "6x6" ? mediumFormat6x6Length : filmFormat == "6x7" ? mediumFormat6x7Length : filmFormat == "6x8" ? mediumFormat6x8Length : filmFormat == "6x9" ? mediumFormat6x9Length : filmFormat == "6x12" ? mediumFormat6x12Length : filmFormat == "6x17" ? mediumFormat6x17Length : filmFormat == "4x5" ? fourByFiveHeight : filmFormat == "custom" ? customFilmFormatHeight : 130;
-filmFormatWidth = filmFormat == "35mm" ? thirtyFiveStandardWidth : filmFormat == "35mm filed" ? thirtyFiveFiledWidth : filmFormat == "35mm full" ? thirtyFiveStandardWidth : filmFormat == "half frame" ? halfFrameWidth : filmFormat == "6x4.5" ? mediumFormatHeight : filmFormat == "6x6" ? mediumFormatHeight : filmFormat == "6x7" ? mediumFormatHeight : filmFormat == "6x8" ? mediumFormatHeight : filmFormat == "6x9" ? mediumFormatHeight : filmFormat == "6x12" ? mediumFormatHeight : filmFormat == "6x17" ? mediumFormatHeight : filmFormat == "4x5" ? fourByFiveWidth : filmFormat == "custom" ? customFilmFormatWidth : 130;
-filmFormatPegDistance = filmFormat == "35mm" ? thirtyFiveFullHeight : filmFormat == "35mm filed" ? thirtyFiveFullHeight : filmFormat == "35mm full" ? thirtyFiveFullHeight : filmFormat == "half frame" ? thirtyFiveFullHeight : filmFormat == "6x4.5" ? mediumFormatFullHeight : filmFormat == "6x6" ? mediumFormatFullHeight : filmFormat == "6x7" ? mediumFormatFullHeight : filmFormat == "6x8" ? mediumFormatFullHeight : filmFormat == "6x9" ? mediumFormatFullHeight : filmFormat == "6x12" ? mediumFormatFullHeight : filmFormat == "6x17" ? mediumFormatFullHeight : filmFormat == "4x5" ? mediumFormatFullHeight : filmFormat == "custom" ? customFilmFormatPegDistance : 130;
+filmFormatHeight = filmFormat == "35mm" ? thirtyFiveFullHeight :
+                   filmFormat == "35mm filed" ? thirtyFiveFiledHeight :
+                   filmFormat == "35mm full" ? thirtyFiveStandardHeight :
+                   filmFormat == "half frame" ? halfFrameHeight :
+                   filmFormat == "6x4.5" ? mediumFormat6x45Length :
+                   filmFormat == "6x4.5 filed" ? mediumFormat6x45FiledLength :
+                   filmFormat == "6x6" ? mediumFormat6x6Length :
+                   filmFormat == "6x6 filed" ? mediumFormat6x6FiledLength :
+                   filmFormat == "6x7" ? mediumFormat6x7Length :
+                   filmFormat == "6x7 filed" ? mediumFormat6x7FiledLength :
+                   filmFormat == "6x8" ? mediumFormat6x8Length :
+                   filmFormat == "6x8 filed" ? mediumFormat6x8FiledLength :
+                   filmFormat == "6x9" ? mediumFormat6x9Length :
+                   filmFormat == "6x9 filed" ? mediumFormat6x9FiledLength :
+                   filmFormat == "4x5" ? fourByFiveHeight :
+                   filmFormat == "custom" ? customFilmFormatHeight :
+                   130; // Default/fallback
+filmFormatWidth = filmFormat == "35mm" ? thirtyFiveStandardWidth :
+                  filmFormat == "35mm filed" ? thirtyFiveFiledWidth :
+                  filmFormat == "35mm full" ? thirtyFiveStandardWidth :
+                  filmFormat == "half frame" ? halfFrameWidth :
+                  filmFormat == "6x4.5" ? mediumFormatHeight :
+                  filmFormat == "6x4.5 filed" ? mediumFormatFiledHeight :
+                  filmFormat == "6x6" ? mediumFormatHeight :
+                  filmFormat == "6x6 filed" ? mediumFormatFiledHeight :
+                  filmFormat == "6x7" ? mediumFormatHeight :
+                  filmFormat == "6x7 filed" ? mediumFormatFiledHeight :
+                  filmFormat == "6x8" ? mediumFormatHeight :
+                  filmFormat == "6x8 filed" ? mediumFormatFiledHeight :
+                  filmFormat == "6x9" ? mediumFormatHeight :
+                  filmFormat == "6x9 filed" ? mediumFormatFiledHeight :
+                  filmFormat == "4x5" ? fourByFiveWidth :
+                  filmFormat == "custom" ? customFilmFormatWidth :
+                  130; // Default/fallback
+filmFormatPegDistance = filmFormat == "35mm" ? thirtyFiveFullHeight :
+                        filmFormat == "35mm filed" ? thirtyFiveFullHeight :
+                        filmFormat == "35mm full" ? thirtyFiveFullHeight :
+                        filmFormat == "half frame" ? thirtyFiveFullHeight :
+                        // For medium format, calculate distance based on desired inner edge spacing
+                        filmFormat == "6x4.5" ? mediumFormatFullHeight + 2*pegGap :
+                        filmFormat == "6x4.5 filed" ? mediumFormatFullHeight + 2*pegGap :
+                        filmFormat == "6x6" ? mediumFormatFullHeight + 2*pegGap :
+                        filmFormat == "6x6 filed" ? mediumFormatFullHeight + 2*pegGap :
+                        filmFormat == "6x7" ? mediumFormatFullHeight + 2*pegGap :
+                        filmFormat == "6x7 filed" ? mediumFormatFullHeight + 2*pegGap :
+                        filmFormat == "6x8" ? mediumFormatFullHeight + 2*pegGap :
+                        filmFormat == "6x8 filed" ? mediumFormatFullHeight + 2*pegGap :
+                        filmFormat == "6x9" ? mediumFormatFullHeight + 2*pegGap :
+                        filmFormat == "6x9 filed" ? mediumFormatFullHeight + 2*pegGap :
+                        filmFormat == "6x12" ? mediumFormatFullHeight + 2*pegGap :
+                        filmFormat == "6x17" ? mediumFormatFullHeight + 2*pegGap :
+                        filmFormat == "4x5" ? mediumFormatFullHeight + 2*pegGap : // Assuming 4x5 should also use this logic if pegGap is non-zero
+                        filmFormat == "custom" ? customFilmFormatPegDistance :
+                        130; // Default/fallback
+
+// Select the appropriate type name based on filmFormat and typeNameSource
+// selectedTypeName = filmFormat == "custom" ? customTypeName : filmFormat; // Old logic
+// selectedTypeName = typeNameSource == "Custom" ? customTypeName : filmFormat; // Previous logic
+selectedTypeName = typeNameSource == "Custom" ? customTypeName :
+                   filmFormat == "35mm" ? "35MM" :
+                   filmFormat == "35mm filed" ? "FILED35" :
+                   filmFormat == "35mm full" ? "FULL35" :
+                   filmFormat == "half frame" ? "HALF" :
+                   filmFormat == "6x4.5" ? "6X45" :
+                   filmFormat == "6x4.5 filed" ? "FILED645" :
+                   filmFormat == "6x6" ? "6X6" :
+                   filmFormat == "6x6 filed" ? "FILED66" :
+                   filmFormat == "6x7" ? "6X7" :
+                   filmFormat == "6x7 filed" ? "FILED67" :
+                   filmFormat == "6x8" ? "6X8" :
+                   filmFormat == "6x8 filed" ? "FILED68" :
+                   filmFormat == "6x9" ? "6X9" :
+                   filmFormat == "6x9 filed" ? "FILED69" :
+                   filmFormat == "6x12" ? "6X12" :
+                   filmFormat == "6x17" ? "6X17" :
+                   filmFormat == "4x5" ? "4X5" :
+                   filmFormat; // Fallback to original name if not mapped
 
 // Calculate Z offset for pegs/holes based on topOrBottom
 pegZOffset = topOrBottom == "bottom" ? carrierHeight / 2 : carrierHeight - topPegHoleZOffset;
@@ -99,7 +190,7 @@ module type_name() {
     linear_extrude(height = 1) {
         rotate([0, 0, 270])
         translate([-40, -100, carrierHeight/2]) // Position the text to cut into the top surface
-            text(typeName, font = "Futura", size = 10, halign = "center", valign = "center");
+            text(selectedTypeName, font = "Futura", size = 10, halign = "center", valign = "center");
     }
 }
 
