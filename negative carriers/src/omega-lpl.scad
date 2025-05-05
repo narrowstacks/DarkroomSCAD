@@ -10,11 +10,25 @@ ownerName = "AFFORDS";
 
 /* [Carrier Type Name Source] */
 typeNameSource = "Carrier Type"; // ["Carrier Type", "Custom"]
+orientation = "vertical"; // ["vertical", "horizontal"]
+
 
 // Custom type name
 customTypeName = "CUSTOM";
-// Subtract to increase the gap between the pegs, add to decrease the gap. Default 1 allows for little wiggle.
-pegGap = 1; 
+// Enter 0 for default gap. Add positive values to increase the gap between pegs and film edge, subtract (use negative values) to decrease it. Default 0 allows for little wiggle.
+pegGap = 0;
+
+/* [Orientation] */
+
+// Check if the selected format is a "filed" medium format
+isFiledMediumFormat = filmFormat == "6x4.5 filed" ||
+                      filmFormat == "6x6 filed" ||
+                      filmFormat == "6x7 filed" ||
+                      filmFormat == "6x8 filed" ||
+                      filmFormat == "6x9 filed";
+
+// Internal calculation based on user input, adjusted for filed formats
+calculatedInternalPegGap = isFiledMediumFormat ? (1 - pegGap) - 1 : (1 - pegGap);
 
 /* [Top or Bottom] */
 topOrBottom = "bottom"; // ["top", "bottom", "frameAndPegTestBottom", "frameAndPegTestTop"]
@@ -134,19 +148,19 @@ filmFormatPegDistance = filmFormat == "35mm" ? thirtyFiveFullHeight :
                         filmFormat == "35mm full" ? thirtyFiveFullHeight :
                         filmFormat == "half frame" ? thirtyFiveFullHeight :
                         // For medium format, calculate distance based on desired inner edge spacing
-                        filmFormat == "6x4.5" ? mediumFormatFullHeight + 2*pegGap :
-                        filmFormat == "6x4.5 filed" ? mediumFormatFullHeight + 2*pegGap :
-                        filmFormat == "6x6" ? mediumFormatFullHeight + 2*pegGap :
-                        filmFormat == "6x6 filed" ? mediumFormatFullHeight + 2*pegGap :
-                        filmFormat == "6x7" ? mediumFormatFullHeight + 2*pegGap :
-                        filmFormat == "6x7 filed" ? mediumFormatFullHeight + 2*pegGap :
-                        filmFormat == "6x8" ? mediumFormatFullHeight + 2*pegGap :
-                        filmFormat == "6x8 filed" ? mediumFormatFullHeight + 2*pegGap :
-                        filmFormat == "6x9" ? mediumFormatFullHeight + 2*pegGap :
-                        filmFormat == "6x9 filed" ? mediumFormatFullHeight + 2*pegGap :
-                        filmFormat == "6x12" ? mediumFormatFullHeight + 2*pegGap :
-                        filmFormat == "6x17" ? mediumFormatFullHeight + 2*pegGap :
-                        filmFormat == "4x5" ? mediumFormatFullHeight + 2*pegGap : // Assuming 4x5 should also use this logic if pegGap is non-zero
+                        filmFormat == "6x4.5" ? mediumFormatFullHeight :
+                        filmFormat == "6x4.5 filed" ? mediumFormatFullHeight :
+                        filmFormat == "6x6" ? mediumFormatFullHeight :
+                        filmFormat == "6x6 filed" ? mediumFormatFullHeight :
+                        filmFormat == "6x7" ? mediumFormatFullHeight :
+                        filmFormat == "6x7 filed" ? mediumFormatFullHeight :
+                        filmFormat == "6x8" ? mediumFormatFullHeight :
+                        filmFormat == "6x8 filed" ? mediumFormatFullHeight :
+                        filmFormat == "6x9" ? mediumFormatFullHeight :
+                        filmFormat == "6x9 filed" ? mediumFormatFullHeight :
+                        filmFormat == "6x12" ? mediumFormatFullHeight :
+                        filmFormat == "6x17" ? mediumFormatFullHeight :
+                        filmFormat == "4x5" ? mediumFormatFullHeight : // Use medium format height for 4x5 peg distance base
                         filmFormat == "custom" ? customFilmFormatPegDistance :
                         130; // Default/fallback
 
@@ -203,7 +217,9 @@ module base_shape() {
 }
 
 module film_opening() {
-    color("red") cuboid([filmFormatHeight, filmFormatWidth, carrierHeight + cutThroughExtension ], chamfer = .5, anchor = CENTER);
+    openingHeight = orientation == "vertical" ? filmFormatHeight : filmFormatWidth;
+    openingWidth = orientation == "vertical" ? filmFormatWidth : filmFormatHeight;
+    color("red") cuboid([openingHeight, openingWidth, carrierHeight + cutThroughExtension ], chamfer = .5, anchor = CENTER);
 }
 
 module alignment_screw_holes(is_dent = false, dent_depth = 1) {
@@ -233,11 +249,21 @@ module pegs_feature(is_hole = false) {
     radius = is_hole ? pegDiameter/2 + 0.25 : pegDiameter/2;
     // Use correct z_offset based on whether it's top or bottom/test
     z_offset = topOrBottom == "top" ? pegZOffset : carrierHeight / 2;
+
+    // Calculate peg positions based on orientation
+    pegPosX = orientation == "vertical" ?
+                (filmFormatWidth/2 + pegDiameter/2) :
+                (filmFormatPegDistance/2 + pegDiameter/2 - calculatedInternalPegGap); // Adjusted distance along X for horizontal
+
+    pegPosY = orientation == "vertical" ?
+                (filmFormatPegDistance/2 + pegDiameter/2 - calculatedInternalPegGap) : // Adjusted distance along Y for vertical
+                (filmFormatWidth/2 + pegDiameter/2); // Width along Y for horizontal
+
     color("blue") {
-        translate([filmFormatWidth/2 + pegDiameter/2, -filmFormatPegDistance/2 - pegDiameter/2 + pegGap, z_offset]) cylinder(h=pegHeight, r=radius, center = true);
-        translate([filmFormatWidth/2 + pegDiameter/2, filmFormatPegDistance/2 + pegDiameter/2 - pegGap, z_offset]) cylinder(h=pegHeight, r=radius, center = true);
-        translate([-filmFormatWidth/2 - pegDiameter/2, -filmFormatPegDistance/2 - pegDiameter/2 + pegGap, z_offset]) cylinder(h=pegHeight, r=radius, center = true);
-        translate([-filmFormatWidth/2 - pegDiameter/2, filmFormatPegDistance/2 + pegDiameter/2 - pegGap, z_offset]) cylinder(h=pegHeight, r=radius, center = true);
+        translate([pegPosX, pegPosY, z_offset]) cylinder(h=pegHeight, r=radius, center = true);
+        translate([pegPosX, -pegPosY, z_offset]) cylinder(h=pegHeight, r=radius, center = true);
+        translate([-pegPosX, pegPosY, z_offset]) cylinder(h=pegHeight, r=radius, center = true);
+        translate([-pegPosX, -pegPosY, z_offset]) cylinder(h=pegHeight, r=radius, center = true);
     }
 }
 
@@ -257,8 +283,18 @@ if (topOrBottom == "bottom") {
 } else if (topOrBottom == "frameAndPegTestBottom" || topOrBottom == "frameAndPegTestTop") {
     // Create a smaller base for the test piece, slightly larger than the film opening + pegs
     testPiecePadding = 8; // Add padding around
-    testPieceWidth = filmFormatWidth + pegDiameter * 2 + testPiecePadding * 2;
-    testPieceHeight = filmFormatPegDistance + pegDiameter * 2 + testPiecePadding * 2;
+
+    // Calculate required dimensions based on orientation
+    pegPosX_test = orientation == "vertical" ?
+                (filmFormatWidth/2 + pegDiameter/2) :
+                (filmFormatPegDistance/2 + pegDiameter/2 - calculatedInternalPegGap);
+    pegPosY_test = orientation == "vertical" ?
+                (filmFormatPegDistance/2 + pegDiameter/2 - calculatedInternalPegGap) :
+                (filmFormatWidth/2 + pegDiameter/2);
+
+    // Test piece dimensions based on max extent of pegs
+    testPieceWidth = 2 * pegPosY_test + testPiecePadding * 2;
+    testPieceHeight = 2 * pegPosX_test + testPiecePadding * 2;
 
     difference() {
         // Center the test piece
