@@ -45,3 +45,65 @@ customFilmFormatHeight = 50;
 customFilmFormatWidth = 50;
 customFilmFormatPegDistance = 62; // Defaulting to medium format height
 
+// Function to get the film format height based on the selected format string
+function get_film_format_height(format) =
+    format == "35mm" ? thirtyFiveFullHeight :
+    format == "35mm filed" ? thirtyFiveFiledHeight :
+    format == "35mm full" ? thirtyFiveStandardHeight :
+    format == "half frame" ? halfFrameHeight :
+    format == "6x4.5" ? mediumFormat6x45Length :
+    format == "6x4.5 filed" ? mediumFormat6x45FiledLength :
+    format == "6x6" ? mediumFormat6x6Length :
+    format == "6x6 filed" ? mediumFormat6x6FiledLength :
+    format == "6x7" ? mediumFormat6x7Length :
+    format == "6x7 filed" ? mediumFormat6x7FiledLength :
+    format == "6x8" ? mediumFormat6x8Length :
+    format == "6x8 filed" ? mediumFormat6x8FiledLength :
+    format == "6x9" ? mediumFormat6x9Length :
+    format == "6x9 filed" ? mediumFormat6x9FiledLength :
+    format == "4x5" ? fourByFiveHeight :
+    format == "custom" ? customFilmFormatHeight :
+                   undef; // Indicate error for unknown format
+
+// Function to get the film format width based on the selected format string
+function get_film_format_width(format) =
+    format == "35mm" ? thirtyFiveStandardWidth :
+    format == "35mm filed" ? thirtyFiveFiledWidth :
+    format == "35mm full" ? thirtyFiveStandardWidth :
+    format == "half frame" ? halfFrameWidth :
+    format == "6x4.5" ? mediumFormatHeight :
+    format == "6x4.5 filed" ? mediumFormatFiledHeight :
+    format == "6x6" ? mediumFormatHeight :
+    format == "6x6 filed" ? mediumFormatFiledHeight :
+    format == "6x7" ? mediumFormatHeight :
+    format == "6x7 filed" ? mediumFormatFiledHeight :
+    format == "6x8" ? mediumFormatHeight :
+    format == "6x8 filed" ? mediumFormatFiledHeight :
+    format == "6x9" ? mediumFormatHeight :
+    format == "6x9 filed" ? mediumFormatFiledHeight :
+    format == "4x5" ? fourByFiveWidth :
+    format == "custom" ? customFilmFormatWidth :
+                  undef; // Indicate error for unknown format
+
+// Function to get the peg distance based on the selected format string
+function get_film_format_peg_distance(format) =
+    format == "35mm" ? thirtyFiveFullHeight :
+    format == "35mm filed" ? thirtyFiveFullHeight :
+    format == "35mm full" ? thirtyFiveFullHeight :
+    format == "half frame" ? thirtyFiveFullHeight :
+    format == "6x4.5" ? mediumFormatFullHeight :
+    format == "6x4.5 filed" ? mediumFormatFullHeight :
+    format == "6x6" ? mediumFormatFullHeight :
+    format == "6x6 filed" ? mediumFormatFullHeight :
+    format == "6x7" ? mediumFormatFullHeight :
+    format == "6x7 filed" ? mediumFormatFullHeight :
+    format == "6x8" ? mediumFormatFullHeight :
+    format == "6x8 filed" ? mediumFormatFullHeight :
+    format == "6x9" ? mediumFormatFullHeight :
+    format == "6x9 filed" ? mediumFormatFullHeight :
+    format == "6x12" ? mediumFormatFullHeight : // Keep potential future formats
+    format == "6x17" ? mediumFormatFullHeight : // Keep potential future formats
+    format == "4x5" ? fourByFiveFullWidth : // Use film width for 4x5 peg distance base
+    format == "custom" ? customFilmFormatPegDistance :
+    undef; // Indicate error for unknown format
+

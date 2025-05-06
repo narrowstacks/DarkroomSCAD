@@ -1,9 +1,45 @@
+
 include <BOSL2/std.scad>
+include <film-sizes.scad> // Include the film size definitions
+
+/* [Carrier Options] */
+// Top or bottom of the carrier
+Top_or_Bottom = "bottom"; // ["top", "bottom", "frameAndPegTestBottom", "frameAndPegTestTop"]
+// Orientation of the film in the carrier
+Orientation = "vertical"; // ["vertical", "horizontal"]
+
+/* [Film Format Selection] */
+Film_Format = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "4x5", "custom"]
+
+/* [Customization] */
+// Enable or disable the owner name etching
+Enable_Owner_Name_Etch = true; // [true, false]
+// Name to etch on the carrier
+Owner_Name = "NAME";
 
 
-// Select the desired film format
-filmFormat = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x6", "6x7", "6x8", "6x9", "custom"]
-topOrBottom = "bottom"; // ["top", "bottom"]
+/* [Carrier Type Name Source] */
+// Enable or disable the type name etching
+Enable_Type_Name_Etch = true; // [true, false]
+Type_Name = "Carrier Type"; // ["Carrier Type", "Custom"]
+// Custom type name, if Type Name is "custom"
+Custom_Type_Name = "CUSTOM";
+
+/* [Adjustments] */
+// Leave at 0 for default gap. Measured in mm. Add positive values to increase the gap between pegs and film edge, subtract (use negative values) to decrease it. Default 0 allows for little wiggle.
+
+Peg_Gap = 0;
+// Leave at 0 for no adjustment. Measured in mm. Add positive values to increase the film width, subtract (use negative values) to decrease it.
+Adjust_Film_Width = 0;
+// Leave at 0 for no adjustment. Measured in mm. Add positive values to increase the film height, subtract (use negative values) to decrease it.
+Adjust_Film_Height = 0;
+
+/* [Carrier Etchings] */
+// Font to use for the etchings
+Fontface = "Futura";
+// Font size for etchings
+Font_Size = 10;
+
 
 
 /* [Hidden] */
