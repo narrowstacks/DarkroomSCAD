@@ -38,6 +38,21 @@ module pegs_feature(is_hole = false, peg_diameter, peg_height, peg_pos_x, peg_po
     }
 }
 
+// Creates holes specifically for M2 heat-set screws.
+// The locations are the same as pegs_feature.
+// Aims for a ~1.8mm final hole diameter for press-fitting M2 screws with heat.
+// The pegs_feature module adds 0.5mm to the diameter for holes (0.25mm to the radius).
+// Therefore, to achieve a 1.8mm final diameter, an input diameter of 1.3mm is used (1.8mm - 0.5mm = 1.3mm).
+module heat_set_pegs_holes(peg_height, peg_pos_x, peg_pos_y, z_offset) {
+    m2_heat_set_input_diameter = 1.6;
+    pegs_feature(is_hole = true, peg_diameter = m2_heat_set_input_diameter, peg_height = peg_height, peg_pos_x = peg_pos_x, peg_pos_y = peg_pos_y, z_offset = z_offset);
+}
+
+module heat_set_pegs_socket_head_opening(peg_height, peg_pos_x, peg_pos_y, z_offset) {
+    m2_heat_set_input_diameter = 3.8;
+    pegs_feature(is_hole = true, peg_diameter = m2_heat_set_input_diameter, peg_height = peg_height, peg_pos_x = peg_pos_x, peg_pos_y = peg_pos_y, z_offset = z_offset);
+}
+
 // Creates an extruded text shape for etching.
 // Assumes the caller will handle positioning (translate) and rotation.
 // Parameters:

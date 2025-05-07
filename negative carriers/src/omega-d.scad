@@ -3,12 +3,18 @@
 include <BOSL2/std.scad>
 include <film-sizes.scad> // Include the film size definitions
 include <common-carrier-features.scad> // Include common features
+include <omega-d-alignment-board.scad> // Include the alignment board
 
 /* [Carrier Options] */
 // Top or bottom of the carrier
 Top_or_Bottom = "bottom"; // ["top", "bottom", "frameAndPegTestBottom", "frameAndPegTestTop"]
 // Orientation of the film in the carrier
 Orientation = "vertical"; // ["vertical", "horizontal"]
+// Include the alignment board?
+Alignment_Board = true; // [true, false]
+
+// Printed or heat-set pegs? Heat set pegs recommended when including alignment board.
+Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
 
 /* [Film Format Selection] */
 Film_Format = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "4x5", "custom"]
@@ -48,7 +54,7 @@ OMEGA_D_CARRIER_WIDTH = 139;
 OMEGA_D_CARRIER_HEIGHT = 2;
 OMEGA_D_CARRIER_CIRCLE_DIAMETER = 168;
 OMEGA_D_CARRIER_RECT_OFFSET = 13.5;
-OMEGA_D_CARRIER_FILLET = 3;
+OMEGA_D_CARRIER_FILLET = 5;
 OMEGA_D_FRAME_FILLET = 0.5;
 
 // Pegs
@@ -58,8 +64,10 @@ OMEGA_D_PEG_HEIGHT = 4;
 // Registration holes
 OMEGA_D_REG_HOLE_DIAMETER = 6.2;
 OMEGA_D_REG_HOLE_DISTANCE = 130;
-OMEGA_D_REG_HOLE_X_LENGTH = 10;
+OMEGA_D_REG_HOLE_X_LENGTH = 5;
 OMEGA_D_REG_HOLE_OFFSET = 4.5;
+OMEGA_D_REG_HOLE_TOP_X_OFFSET = 5; // Added for top registration hole X offset
+OMEGA_D_REG_HOLE_BOTTOM_X_OFFSET = -7; // Added for bottom registration hole X offset
 
 // Alignment hole screws
 OMEGA_D_ALIGNMENT_SCREW_DIAMETER = 2;
@@ -68,8 +76,8 @@ OMEGA_D_ALIGNMENT_SCREW_DISTANCE_Y = 82;
 
 // General constants
 CUT_THROUGH_EXTENSION = 1; // ensures difference operations cut fully through
-OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION = 3; // extends the length of the reg hole slots
-OMEGA_D_REG_HOLE_CYL_Y_OFFSET = 4.6; // Y offset for the cylindrical part of the reg holes
+OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION = 0; // extends the length of the reg hole slots
+OMEGA_D_REG_HOLE_CYL_Y_OFFSET = 3.1; // Y offset for the cylindrical part of the reg holes
 OMEGA_D_TOP_PEG_HOLE_Z_OFFSET = 2; // Z offset for the peg holes in the top carrier part
 
 // Arrow dimensions for etching
@@ -111,12 +119,6 @@ PEG_Z_OFFSET = Top_or_Bottom == "bottom" ? OMEGA_D_CARRIER_HEIGHT / 2 : OMEGA_D_
 // Get text metrics
 owner_metrics = textmetrics(text=Owner_Name, font=Fontface, size=10, halign="center", valign="center");
 type_metrics = textmetrics(text=SELECTED_TYPE_NAME, font=Fontface, size=10, halign="center", valign="center");
-// echo(str("Owner Name Metrics: ", owner_metrics));
-// echo(str("Type Name Metrics (", SELECTED_TYPE_NAME, "): ", type_metrics));
-
-// Define Safe Area (based on the rectangular part of base_shape)
-// Rectangle Center: [-CARRIER_RECT_OFFSET, 0]
-// Rectangle Size: [OMEGA_D_CARRIER_LENGTH, OMEGA_D_CARRIER_WIDTH]
 safe_rect_center_x = -OMEGA_D_CARRIER_RECT_OFFSET;
 safe_rect_size_x = OMEGA_D_CARRIER_LENGTH;
 safe_rect_size_y = OMEGA_D_CARRIER_WIDTH;
@@ -124,16 +126,6 @@ safe_min_x = safe_rect_center_x - safe_rect_size_x / 2;
 safe_max_x = safe_rect_center_x + safe_rect_size_x / 2;
 safe_min_y = -safe_rect_size_y / 2;
 safe_max_y = safe_rect_size_y / 2;
-// echo(str("Safe Area X: [", safe_min_x, ", ", safe_max_x, "]"));
-// echo(str("Safe Area Y: [", safe_min_y, ", ", safe_max_y, "]"));
-
-// Calculate final bounding boxes (after rotation and translation)
-// Text is rotated 270 degrees, so original text width (size[0]) becomes Y extent,
-// and original text height (size[1]) becomes X extent.
-
-// Owner Name Module Transform: rotate([0, 0, 270]) translate([0, -100, ...]) -> Text Center at [-100, 0]
-// Instantiation Transform: translate([0, -35, 0])
-// Final Center: [-100, -35]
 owner_rotated_size_x = owner_metrics.size[1]; // text height
 owner_rotated_size_y = owner_metrics.size[0]; // text width
 owner_center_x = -100;
@@ -142,12 +134,6 @@ owner_min_x = owner_center_x - owner_rotated_size_x / 2;
 owner_max_x = owner_center_x + owner_rotated_size_x / 2;
 owner_min_y = owner_center_y - owner_rotated_size_y / 2;
 owner_max_y = owner_center_y + owner_rotated_size_y / 2;
-// echo(str("Owner Name Final BBox X: [", owner_min_x, ", ", owner_max_x, "]"));
-// echo(str("Owner Name Final BBox Y: [", owner_min_y, ", ", owner_max_y, "]"));
-
-// Type Name Module Transform: rotate([0, 0, 270]) translate([-40, -100, ...]) -> Text Center at [-100, 40]
-// Instantiation Transform: translate([0, 0, 0])
-// Final Center: [-100, 40]
 type_rotated_size_x = type_metrics.size[1]; // text height
 type_rotated_size_y = type_metrics.size[0]; // text width
 type_center_x = -100;
@@ -203,10 +189,16 @@ module alignment_screw_holes(is_dent = false, dent_depth = 1) {
 }
 
 module registration_holes() {
-    color("red") translate([OMEGA_D_REG_HOLE_DISTANCE/2 + OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2, 0]) cuboid([OMEGA_D_REG_HOLE_DIAMETER, OMEGA_D_REG_HOLE_DIAMETER + OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION, OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor = CENTER);
-    color("red") translate([-OMEGA_D_REG_HOLE_DISTANCE/2 - OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2, 0]) cuboid([OMEGA_D_REG_HOLE_DIAMETER, OMEGA_D_REG_HOLE_DIAMETER + OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION, OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor = CENTER);
-    color("red") translate([OMEGA_D_REG_HOLE_DISTANCE/2 + OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2 + OMEGA_D_REG_HOLE_CYL_Y_OFFSET, 0]) cylinder(h=OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=OMEGA_D_REG_HOLE_DIAMETER/2, center = true);
-    color("red") translate([-OMEGA_D_REG_HOLE_DISTANCE/2 - OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2 + OMEGA_D_REG_HOLE_CYL_Y_OFFSET, 0]) cylinder(h=OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=OMEGA_D_REG_HOLE_DIAMETER/2, center = true);
+    // top 
+    translate([0, -1.4, 0]) union() {
+        color("red") translate([OMEGA_D_REG_HOLE_TOP_X_OFFSET + (OMEGA_D_REG_HOLE_DISTANCE/2) + OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2, 0]) cuboid([OMEGA_D_REG_HOLE_DIAMETER, OMEGA_D_REG_HOLE_DIAMETER + OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION, OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor = CENTER);
+        color("red") translate([OMEGA_D_REG_HOLE_TOP_X_OFFSET + (OMEGA_D_REG_HOLE_DISTANCE/2) + OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2 + OMEGA_D_REG_HOLE_CYL_Y_OFFSET, 0]) cylinder(h=OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=OMEGA_D_REG_HOLE_DIAMETER/2, center = true);
+    }
+    // bottom
+    translate([0, -1.4, 0]) union() {
+        color("red") translate([OMEGA_D_REG_HOLE_BOTTOM_X_OFFSET - (OMEGA_D_REG_HOLE_DISTANCE/2) - OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2, 0]) cuboid([OMEGA_D_REG_HOLE_DIAMETER, OMEGA_D_REG_HOLE_DIAMETER + OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION, OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor = CENTER);
+        color("red") translate([OMEGA_D_REG_HOLE_BOTTOM_X_OFFSET - (OMEGA_D_REG_HOLE_DISTANCE/2) - OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2 + OMEGA_D_REG_HOLE_CYL_Y_OFFSET, 0]) cylinder(h=OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=OMEGA_D_REG_HOLE_DIAMETER/2, center = true);
+    }
 }
 
 // Module to create a left-pointing arrow shape for etching
@@ -257,6 +249,19 @@ type_etch_rot = [0, 0, 270]; // Rotation vector for rotate() before calling text
 // Main logic
 if (Top_or_Bottom == "bottom") {
     union() {
+        if (Alignment_Board) {
+            translate([0, 0, -2]) omega_d_alignment_board_no_screws();
+        }
+        else {
+            pegs_feature(
+                is_hole = false,
+                peg_diameter = OMEGA_D_PEG_DIAMETER,
+                peg_height = OMEGA_D_PEG_HEIGHT,
+                peg_pos_x = peg_pos_x_calc,
+                peg_pos_y = peg_pos_y_calc,
+                    z_offset = peg_z_offset_calc + 0.1 // Use calculated z_offset for bottom
+                );
+        }
         difference() {
             base_shape();
             // Use generic film_opening
@@ -268,7 +273,12 @@ if (Top_or_Bottom == "bottom") {
                 frame_fillet = OMEGA_D_FRAME_FILLET
             );
             registration_holes();
-            alignment_screw_holes();
+            if (!Alignment_Board) {
+                alignment_screw_holes();
+            }
+            if (Printed_or_Heat_Set_Pegs == "heat_set") {
+                heat_set_pegs_holes(peg_height = OMEGA_D_PEG_HEIGHT, peg_pos_x = peg_pos_x_calc, peg_pos_y = peg_pos_y_calc, z_offset = peg_z_offset_calc + 0.1);
+            }
             if (Enable_Owner_Name_Etch) {
                 // Use generic text_etch for owner name, applying transforms before the call
                 rotate(owner_etch_rot) translate(owner_etch_pos)
@@ -315,15 +325,7 @@ if (Top_or_Bottom == "bottom") {
                 }
             }
         }
-        // Use generic pegs_feature for pegs
-        pegs_feature(
-            is_hole = false,
-            peg_diameter = OMEGA_D_PEG_DIAMETER,
-            peg_height = OMEGA_D_PEG_HEIGHT,
-            peg_pos_x = peg_pos_x_calc,
-            peg_pos_y = peg_pos_y_calc,
-            z_offset = peg_z_offset_calc + 0.1 // Use calculated z_offset for bottom
-        );
+
     }
 } else if (Top_or_Bottom == "frameAndPegTestBottom" || Top_or_Bottom == "frameAndPegTestTop") {
     // Create a smaller base for the test piece, slightly larger than the film opening + pegs
@@ -384,15 +386,23 @@ if (Top_or_Bottom == "bottom") {
         );
         registration_holes();
         // Use generic pegs_feature for holes
-        pegs_feature(
-            is_hole = true,
-            peg_diameter = OMEGA_D_PEG_DIAMETER,
+        if (Printed_or_Heat_Set_Pegs == "heat_set") {
+            heat_set_pegs_socket_head_opening(peg_height = OMEGA_D_PEG_HEIGHT, peg_pos_x = peg_pos_x_calc, peg_pos_y = peg_pos_y_calc, z_offset = peg_z_offset_calc + 0.1);
+        }
+        else {
+            pegs_feature(
+                is_hole = true,
+                peg_diameter = OMEGA_D_PEG_DIAMETER,
             peg_height = OMEGA_D_PEG_HEIGHT,
             peg_pos_x = peg_pos_x_calc,
             peg_pos_y = peg_pos_y_calc,
             z_offset = peg_z_offset_calc // Use calculated z_offset for top
-        );
-        alignment_screw_holes(is_dent = true, dent_depth = 1); // Top part gets 1mm dents
+            );
+        }
+        if (!Alignment_Board) {
+            alignment_screw_holes(is_dent = true, dent_depth = 1); // Top part gets 1mm dents
+        }
+        
         if (Enable_Owner_Name_Etch) {
             // Use generic text_etch for owner name
             rotate(owner_etch_rot) translate(owner_etch_pos)
@@ -400,7 +410,7 @@ if (Top_or_Bottom == "bottom") {
                     text_string = Owner_Name,
                     font = Fontface,
                     size = Font_Size,
-                    etch_depth = owner_etch_depth,
+                    etch_depth = TEXT_ETCH_DEPTH,
                     halign = "right",
                     valign = "top"
                 );
@@ -412,7 +422,7 @@ if (Top_or_Bottom == "bottom") {
                     text_string = SELECTED_TYPE_NAME,
                     font = Fontface,
                     size = Font_Size,
-                    etch_depth = type_etch_depth,
+                    etch_depth = TEXT_ETCH_DEPTH,
                     halign = "left",
                     valign = "top"
                 );

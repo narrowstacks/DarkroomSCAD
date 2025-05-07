@@ -49,10 +49,23 @@ module board () {
     cuboid([BOARD_LENGTH_WIDTH, BOARD_LENGTH_WIDTH, BOARD_HEIGHT], anchor=CENTER, rounding=0.5);
 }
 
-difference() {
-    color("grey") board();
-    opening_cutout();
-    alignment_screw_holes();
-    big_alignment_screw_holes();
-    edge_cuts();
+module omega_d_alignment_board_screws () {
+    difference() {
+        color("grey") board();
+        opening_cutout();
+        alignment_screw_holes();
+        big_alignment_screw_holes();
+        edge_cuts();
+    }
 }
+
+module omega_d_alignment_board_no_screws () {
+    difference() {
+        color("grey") board();
+        opening_cutout();
+        edge_cuts();
+    }
+}
+
+// omega_d_alignment_board_screws();
+// // omega_d_alignment_board_no_screws();
