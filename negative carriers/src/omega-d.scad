@@ -1,13 +1,4 @@
-// !! READ ME BEFORE USING !!
-
-// - You MUST use the nightly build of OpenSCAD to use this file.
-//      The latest nightly build can be found further down the page at https://openscad.org/downloads.html
-// - This file is not compatible with the stable release of OpenSCAD.
-// - You also must have the BOSL2 library installed.
-//      The BOSL2 library can be found at https://github.com/revarbat/BOSL2
-// - You must also have the film-sizes.scad file installed in the same directory as this file.
-// - In the OpenSCAD preferences, under "Features", enable textmetrics.
-// - In the OpenSCAD preferences, change the 3D rendering engine to "Manifold (new/fast)" to greatly speed up the rendering of this file.
+// !! READ README.md BEFORE USING !!
 
 include <BOSL2/std.scad>
 include <film-sizes.scad> // Include the film size definitions
@@ -43,10 +34,6 @@ Font_Size = 10;
 // Depth for etching
 TEXT_ETCH_DEPTH = 1; 
 
-
-
-
-
 /* [Adjustments] */
 // Leave at 0 for default gap. Measured in mm. Add positive values to increase the gap between pegs and film edge, subtract (use negative values) to decrease it. Default 0 allows for little wiggle.
 Peg_Gap = 0;
@@ -54,8 +41,6 @@ Peg_Gap = 0;
 Adjust_Film_Width = 0;
 // Leave at 0 for no adjustment. Measured in mm. Add positive values to increase the film height, subtract (use negative values) to decrease it.
 Adjust_Film_Height = 0;
-
-
 
 /* [Hidden] */
 OMEGA_D_CARRIER_LENGTH = 202;
@@ -66,16 +51,17 @@ OMEGA_D_CARRIER_RECT_OFFSET = 13.5;
 OMEGA_D_CARRIER_FILLET = 3;
 OMEGA_D_FRAME_FILLET = 0.5;
 
+// Pegs
 OMEGA_D_PEG_DIAMETER = 5.6;
 OMEGA_D_PEG_HEIGHT = 4;
 
-// registration holes
+// Registration holes
 OMEGA_D_REG_HOLE_DIAMETER = 6.2;
 OMEGA_D_REG_HOLE_DISTANCE = 130;
 OMEGA_D_REG_HOLE_X_LENGTH = 10;
 OMEGA_D_REG_HOLE_OFFSET = 4.5;
 
-// alignment hole screws
+// Alignment hole screws
 OMEGA_D_ALIGNMENT_SCREW_DIAMETER = 2;
 OMEGA_D_ALIGNMENT_SCREW_DISTANCE_X = 113;
 OMEGA_D_ALIGNMENT_SCREW_DISTANCE_Y = 82;
@@ -115,33 +101,12 @@ assert(FILM_FORMAT_HEIGHT != undef, str("Unknown or unsupported Film_Format sele
 assert(FILM_FORMAT_WIDTH != undef, str("Unknown or unsupported Film_Format selected: ", Film_Format));
 assert(FILM_FORMAT_PEG_DISTANCE != undef, str("Unknown or unsupported Film_Format selected: ", Film_Format));
 
-// Select the appropriate type name based on Film_Format and typeNameSource
-// selectedTypeName = Film_Format == "custom" ? customTypeName : Film_Format; // Old logic
-// selectedTypeName = typeNameSource == "Custom" ? customTypeName : Film_Format; // Previous logic
-SELECTED_TYPE_NAME = Type_Name == "Custom" ? Custom_Type_Name :
-    Film_Format == "35mm" ? "35MM" :
-    Film_Format == "35mm filed" ? "FILED35" :
-    Film_Format == "35mm full" ? "FULL35" :
-    Film_Format == "half frame" ? "HALF" :
-    Film_Format == "6x4.5" ? "6x4.5" :
-    Film_Format == "6x4.5 filed" ? "F6x4.5" :
-    Film_Format == "6x6" ? "6x6" :
-    Film_Format == "6x6 filed" ? "F6x6" :
-    Film_Format == "6x7" ? "6x7" :
-    Film_Format == "6x7 filed" ? "F6x7" :
-    Film_Format == "6x8" ? "6x8" :
-    Film_Format == "6x8 filed" ? "F6x8" :
-    Film_Format == "6x9" ? "6x9" :
-    Film_Format == "6x9 filed" ? "F6x9" :
-    Film_Format == "4x5" ? "4X5" :
-    Film_Format; // Fallback to original name if not mapped
+SELECTED_TYPE_NAME = get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format);
 
 // Calculate Z offset for pegs/holes based on topOrBottom
 PEG_Z_OFFSET = Top_or_Bottom == "bottom" ? OMEGA_D_CARRIER_HEIGHT / 2 : OMEGA_D_CARRIER_HEIGHT - OMEGA_D_TOP_PEG_HOLE_Z_OFFSET;
 
 /* [Hidden] */
-// Calculate the actual type name string first
-// The following block defining _SELECTED_TYPE_NAME_FOR_METRICS is removed.
 
 // Get text metrics
 owner_metrics = textmetrics(text=Owner_Name, font=Fontface, size=10, halign="center", valign="center");

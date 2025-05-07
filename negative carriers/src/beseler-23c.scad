@@ -1,6 +1,8 @@
+// !! READ README.md BEFORE USING !!
 
 include <BOSL2/std.scad>
 include <film-sizes.scad> // Include the film size definitions
+include <common-carrier-features.scad> // Include common carrier features
 
 /* [Carrier Options] */
 // Top or bottom of the carrier
@@ -17,6 +19,11 @@ Enable_Owner_Name_Etch = true; // [true, false]
 // Name to etch on the carrier
 Owner_Name = "NAME";
 
+/* [Film Opening Parameters] */
+// Extra distance for the film opening cut to ensure it goes through the material.
+Film_Opening_Cut_Through_Extension = 1; // [mm]
+// Fillet radius for the film opening edges.
+Film_Opening_Frame_Fillet = 0.5; // [mm]
 
 /* [Carrier Type Name Source] */
 // Enable or disable the type name etching
@@ -40,8 +47,6 @@ Fontface = "Futura";
 // Font size for etchings
 Font_Size = 10;
 
-
-
 /* [Hidden] */
 carrierDiameter = 160;
 carrierHeight = 2;
@@ -60,6 +65,13 @@ customFilmFormatWidth = 24;
 // custom film format height (for peg distance)
 customFilmFormatPegDistance = 36;
 
+// Determine actual opening dimensions based on orientation
+opening_width_raw = get_film_format_width(Film_Format) + Adjust_Film_Width;
+opening_height_raw = get_film_format_height(Film_Format) + Adjust_Film_Height;
+
+opening_width_actual = Orientation == "vertical" ? opening_width_raw : opening_height_raw;
+opening_height_actual = Orientation == "vertical" ? opening_height_raw : opening_width_raw;
+
 $fn=200;
 
 module alignment_circle() {
@@ -72,32 +84,49 @@ module alignment_circle() {
 }
 
 module handle() {
-    translate([0, carrierDiameter/2, 0]) color("grey") cuboid([handleWidth, handleLength*1.5, carrierHeight], anchor = CENTER);
+    translate([0, carrierDiameter/2, 0]) color("grey") cuboid([handleWidth, handleLength*1.5, carrierHeight], anchor = CENTER, rounding = .5);
 }
 
 module base_shape() {
     color("grey") union() {
-        cylinder(h=carrierHeight, r=carrierDiameter/2, center = true);
+        cyl(h=carrierHeight, r=carrierDiameter/2, center = true, rounding = .5);
     }
 }
 
 // Main logic
-if (topOrBottom == "bottom") {
+if (Top_or_Bottom == "bottom") {
     union() {
         difference() {
             base_shape();
-            film_opening();
+            film_opening(
+                opening_height = opening_height_actual,
+                opening_width = opening_width_actual,
+                carrier_height = carrierHeight,
+                cut_through_extension = Film_Opening_Cut_Through_Extension,
+                frame_fillet = Film_Opening_Frame_Fillet
+            );
             
         }
-        translate([0, 0, carrierHeight]) alignment_circle();
-        pegs_feature();
+        difference() {
+            translate([0, 0, carrierHeight/2]) alignment_circle();
+            translate([0, 0, -2]) base_shape();
+            }
+
+        // pegs_feature();
+        
         handle();
     }
 } else { // topOrBottom == "top"
     difference() {
         base_shape();
-        film_opening();
-        pegs_feature(is_hole = true);
+        film_opening(
+            opening_height = opening_height_actual,
+            opening_width = opening_width_actual,
+            carrier_height = carrierHeight,
+            cut_through_extension = Film_Opening_Cut_Through_Extension,
+            frame_fillet = Film_Opening_Frame_Fillet
+        );
+        // pegs_feature(is_hole = true);
     }
     handle();
 }

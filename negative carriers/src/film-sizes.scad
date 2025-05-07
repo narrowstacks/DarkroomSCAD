@@ -107,3 +107,23 @@ function get_film_format_peg_distance(format) =
     format == "custom" ? customFilmFormatPegDistance :
     undef; // Indicate error for unknown format
 
+// Function to determine the selected type name for etching
+function get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format) =
+    Type_Name == "Custom" ? Custom_Type_Name :
+    Film_Format == "35mm" ? "35MM" :
+    Film_Format == "35mm filed" ? "FILED35" :
+    Film_Format == "35mm full" ? "FULL35" :
+    Film_Format == "half frame" ? "HALF" :
+    Film_Format == "6x4.5" ? "6x4.5" :
+    Film_Format == "6x4.5 filed" ? "F6x4.5" :
+    Film_Format == "6x6" ? "6x6" :
+    Film_Format == "6x6 filed" ? "F6x6" :
+    Film_Format == "6x7" ? "6x7" :
+    Film_Format == "6x7 filed" ? "F6x7" :
+    Film_Format == "6x8" ? "6x8" :
+    Film_Format == "6x8 filed" ? "F6x8" :
+    Film_Format == "6x9" ? "6x9" :
+    Film_Format == "6x9 filed" ? "F6x9" :
+    Film_Format == "4x5" ? "4X5" :
+    Film_Format; // Fallback to original name if not mapped
+
