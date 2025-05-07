@@ -322,7 +322,7 @@ if (Top_or_Bottom == "bottom") {
             peg_height = OMEGA_D_PEG_HEIGHT,
             peg_pos_x = peg_pos_x_calc,
             peg_pos_y = peg_pos_y_calc,
-            z_offset = peg_z_offset_calc // Use calculated z_offset for bottom
+            z_offset = peg_z_offset_calc + 0.1 // Use calculated z_offset for bottom
         );
     }
 } else if (Top_or_Bottom == "frameAndPegTestBottom" || Top_or_Bottom == "frameAndPegTestTop") {
