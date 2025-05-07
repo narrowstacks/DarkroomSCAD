@@ -17,7 +17,9 @@ Alignment_Board = true; // [true, false]
 Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
 
 /* [Film Format Selection] */
-Film_Format = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "4x5", "custom"]
+Film_Format = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "4x5"]
+// Custom_Film_Height = "20";
+// Custom_Film_Width = "20";
 
 /* [Customization] */
 // Enable or disable the owner name etching
