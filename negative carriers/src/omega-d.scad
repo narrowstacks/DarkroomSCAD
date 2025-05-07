@@ -13,7 +13,7 @@ Orientation = "vertical"; // ["vertical", "horizontal"]
 // Include the alignment board?
 Alignment_Board = true; // [true, false]
 
-// Printed or heat-set pegs? Heat set pegs recommended when including alignment board.
+// Printed or heat-set pegs? Heat set pegs required when including alignment board.
 Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
 
 /* [Film Format Selection] */
@@ -245,87 +245,131 @@ type_etch_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - (TEXT_ETCH_DEPTH + 0.1);
 type_etch_pos = [type_etch_top_position, -95, type_etch_z_pos];
 type_etch_rot = [0, 0, 270]; // Rotation vector for rotate() before calling text_etch
 
+// Module to encapsulate common subtractions for top and bottom pieces
+module common_subtractions(is_top_piece) {
+    film_opening(
+        opening_height = adjusted_opening_height,
+        opening_width = adjusted_opening_width,
+        carrier_height = OMEGA_D_CARRIER_HEIGHT,
+        cut_through_extension = CUT_THROUGH_EXTENSION,
+        frame_fillet = OMEGA_D_FRAME_FILLET
+    );
+    registration_holes();
+
+    if (!Alignment_Board) {
+        // For bottom piece (is_top_piece=false), is_dent will be false (default behavior of alignment_screw_holes).
+        // For top piece (is_top_piece=true), is_dent will be true.
+        // dent_depth is only used if is_dent is true.
+        alignment_screw_holes(is_dent = is_top_piece, dent_depth = 1);
+    }
+
+    if (Enable_Owner_Name_Etch) {
+        rotate(owner_etch_rot) translate(owner_etch_pos)
+            text_etch(
+                text_string = Owner_Name,
+                font = Fontface,
+                size = Font_Size,
+                etch_depth = TEXT_ETCH_DEPTH,
+                halign = "right",
+                valign = "top"
+            );
+    }
+    if (Enable_Type_Name_Etch) {
+        rotate(type_etch_rot) translate(type_etch_pos)
+            text_etch(
+                text_string = SELECTED_TYPE_NAME,
+                font = Fontface,
+                size = Font_Size,
+                etch_depth = TEXT_ETCH_DEPTH,
+                halign = "left",
+                valign = "top"
+            );
+    }
+}
 
 // Main logic
 if (Top_or_Bottom == "bottom") {
     union() {
+        // Positive Features for Bottom Piece
         if (Alignment_Board) {
             translate([0, 0, -2]) omega_d_alignment_board_no_screws();
-        }
-        else {
-            pegs_feature(
-                is_hole = false,
-                peg_diameter = OMEGA_D_PEG_DIAMETER,
-                peg_height = OMEGA_D_PEG_HEIGHT,
-                peg_pos_x = peg_pos_x_calc,
-                peg_pos_y = peg_pos_y_calc,
+        } else { // No Alignment Board
+            if (Printed_or_Heat_Set_Pegs == "printed") {
+                // Add printed pegs if no alignment board and printed pegs are selected
+                pegs_feature(
+                    is_hole = false,
+                    peg_diameter = OMEGA_D_PEG_DIAMETER,
+                    peg_height = OMEGA_D_PEG_HEIGHT,
+                    peg_pos_x = peg_pos_x_calc,
+                    peg_pos_y = peg_pos_y_calc,
                     z_offset = peg_z_offset_calc + 0.1 // Use calculated z_offset for bottom
                 );
+            }
+            // If heat-set pegs are selected (and no alignment board),
+            // holes are made in the difference() block below.
         }
+
+        // Base Shape with Subtractions for Bottom Piece
         difference() {
             base_shape();
-            // Use generic film_opening
-            film_opening(
-                opening_height = adjusted_opening_height,
-                opening_width = adjusted_opening_width,
-                carrier_height = OMEGA_D_CARRIER_HEIGHT,
-                cut_through_extension = CUT_THROUGH_EXTENSION,
-                frame_fillet = OMEGA_D_FRAME_FILLET
-            );
-            registration_holes();
-            if (!Alignment_Board) {
-                alignment_screw_holes();
-            }
+            common_subtractions(is_top_piece = false);
+
+            // Bottom-specific peg-related subtractions
+            // If heat-set pegs are chosen, make holes for them in the bottom piece.
+            // This occurs regardless of the alignment board, per original logic.
             if (Printed_or_Heat_Set_Pegs == "heat_set") {
-                heat_set_pegs_holes(peg_height = OMEGA_D_PEG_HEIGHT, peg_pos_x = peg_pos_x_calc, peg_pos_y = peg_pos_y_calc, z_offset = peg_z_offset_calc + 0.1);
-            }
-            if (Enable_Owner_Name_Etch) {
-                // Use generic text_etch for owner name, applying transforms before the call
-                rotate(owner_etch_rot) translate(owner_etch_pos)
-                    text_etch(
-                        text_string = Owner_Name,
-                        font = Fontface,
-                        size = Font_Size,
-                        etch_depth = TEXT_ETCH_DEPTH, // Pass calculated depth
-                        halign = "right",
-                        valign = "top"
-                    );
-            }
-            if (Enable_Type_Name_Etch) {
-                // Use generic text_etch for type name, applying transforms before the call
-                rotate(type_etch_rot) translate(type_etch_pos)
-                    text_etch(
-                        text_string = SELECTED_TYPE_NAME,
-                        font = Fontface,
-                        size = Font_Size,
-                        etch_depth = TEXT_ETCH_DEPTH, // Pass calculated depth
-                        halign = "left",
-                        valign = "top"
-                    );
+                heat_set_pegs_holes(
+                    peg_height = 4.2,
+                    peg_pos_x = peg_pos_x_calc,
+                    peg_pos_y = peg_pos_y_calc,
+                    z_offset = peg_z_offset_calc + 0.1
+                );
             }
 
-            // Add arrow etch for 6x6 formats
+            // Add arrow etch for 6x6 formats on the bottom piece
             if (Film_Format == "6x6" || Film_Format == "6x6 filed") {
                 arrowOffset = 5; // Distance from opening edge to arrow tip
                 if (Orientation == "vertical") {
-                    // Arrow points right (-->), placed to the right of the opening
-                    currentOpeningWidth = FILM_FORMAT_WIDTH; // Width along X
-                    arrowPosX = 0; // Center X of arrow
+                    currentOpeningWidth = FILM_FORMAT_WIDTH;
+                    arrowPosX = 0;
                     arrowPosY = currentOpeningWidth / 2 + arrowOffset + ARROW_LENGTH / 2;
                     translate([arrowPosX + 10, -arrowPosY , 0])
                         arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
                 } else { // Orientation == "horizontal"
-                    // Arrow points down (v), placed below the opening
-                    currentOpeningHeight = FILM_FORMAT_HEIGHT; // Height along Y
-                    arrowPosX = 0; // Center X
-                    arrowPosY = -currentOpeningHeight / 2 - arrowOffset - ARROW_LENGTH / 2; // Center Y of arrow
+                    currentOpeningHeight = FILM_FORMAT_HEIGHT;
+                    arrowPosX = 0;
+                    arrowPosY = -currentOpeningHeight / 2 - arrowOffset - ARROW_LENGTH / 2;
                     translate([arrowPosX, arrowPosY, 0])
-                    rotate([0, 0, 90]) // Point down
+                    rotate([0, 0, 90])
                         arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
                 }
             }
         }
+    }
+} else if (Top_or_Bottom == "top") {
+    difference() {
+        base_shape();
+        common_subtractions(is_top_piece = true);
 
+        // Top-specific peg-related subtractions
+        if (Printed_or_Heat_Set_Pegs == "heat_set") {
+            // Holes for screws to engage with heat-set inserts (in bottom or alignment board)
+            heat_set_pegs_socket_head_opening(
+                peg_height = OMEGA_D_PEG_HEIGHT,
+                peg_pos_x = peg_pos_x_calc,
+                peg_pos_y = peg_pos_y_calc,
+                z_offset = peg_z_offset_calc + 0.1 // z_offset includes +0.1 as per original use
+            );
+        } else { // Printed pegs are on the bottom piece, so top needs clearance holes
+            pegs_feature(
+                is_hole = true,
+                peg_diameter = OMEGA_D_PEG_DIAMETER,
+                peg_height = OMEGA_D_PEG_HEIGHT,
+                peg_pos_x = peg_pos_x_calc,
+                peg_pos_y = peg_pos_y_calc,
+                z_offset = peg_z_offset_calc // Use calculated z_offset for top
+            );
+        }
     }
 } else if (Top_or_Bottom == "frameAndPegTestBottom" || Top_or_Bottom == "frameAndPegTestTop") {
     // Create a smaller base for the test piece, slightly larger than the film opening + pegs
@@ -373,59 +417,8 @@ if (Top_or_Bottom == "bottom") {
             z_offset = test_peg_z_offset // Correct Z offset for test frame
          );
     }
-} else { // topOrBottom == "top"
-    difference() {
-        base_shape();
-        // Use generic film_opening
-        film_opening(
-            opening_height = adjusted_opening_height,
-            opening_width = adjusted_opening_width,
-            carrier_height = OMEGA_D_CARRIER_HEIGHT,
-            cut_through_extension = CUT_THROUGH_EXTENSION,
-            frame_fillet = OMEGA_D_FRAME_FILLET
-        );
-        registration_holes();
-        // Use generic pegs_feature for holes
-        if (Printed_or_Heat_Set_Pegs == "heat_set") {
-            heat_set_pegs_socket_head_opening(peg_height = OMEGA_D_PEG_HEIGHT, peg_pos_x = peg_pos_x_calc, peg_pos_y = peg_pos_y_calc, z_offset = peg_z_offset_calc + 0.1);
-        }
-        else {
-            pegs_feature(
-                is_hole = true,
-                peg_diameter = OMEGA_D_PEG_DIAMETER,
-            peg_height = OMEGA_D_PEG_HEIGHT,
-            peg_pos_x = peg_pos_x_calc,
-            peg_pos_y = peg_pos_y_calc,
-            z_offset = peg_z_offset_calc // Use calculated z_offset for top
-            );
-        }
-        if (!Alignment_Board) {
-            alignment_screw_holes(is_dent = true, dent_depth = 1); // Top part gets 1mm dents
-        }
-        
-        if (Enable_Owner_Name_Etch) {
-            // Use generic text_etch for owner name
-            rotate(owner_etch_rot) translate(owner_etch_pos)
-                text_etch(
-                    text_string = Owner_Name,
-                    font = Fontface,
-                    size = Font_Size,
-                    etch_depth = TEXT_ETCH_DEPTH,
-                    halign = "right",
-                    valign = "top"
-                );
-        }
-        if (Enable_Type_Name_Etch) {
-             // Use generic text_etch for type name
-             rotate(type_etch_rot) translate(type_etch_pos)
-                text_etch(
-                    text_string = SELECTED_TYPE_NAME,
-                    font = Fontface,
-                    size = Font_Size,
-                    etch_depth = TEXT_ETCH_DEPTH,
-                    halign = "left",
-                    valign = "top"
-                );
-        }
-    }
+}
+
+if (Alignment_Board && Printed_or_Heat_Set_Pegs == "printed") {
+    assert(false, "CARRIER OPTIONS ERROR: Alignment board included, so we can't use printed pegs! Please use heat-set pegs or disable the alignment board.");
 }
