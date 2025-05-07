@@ -1,17 +1,19 @@
 // !! READ README.md BEFORE USING !!
 
 include <BOSL2/std.scad>
-include <film-sizes.scad> // Include the film size definitions
-include <common-carrier-features.scad> // Include common features
-include <omega-d-alignment-board.scad> // Include the alignment board
+include <common/film-sizes.scad> // Film size definitions
+include <common/carrier-features.scad> // Common features shared by all carriers
+include <common/omega-d-alignment-board.scad> // Omega style alignment board
+include <common/lpl-saunders-alignment-board.scad> // LPL Saunders style alignment board
 
 /* [Carrier Options] */
 // Top or bottom of the carrier
 Top_or_Bottom = "bottom"; // ["top", "bottom", "frameAndPegTestBottom", "frameAndPegTestTop"]
-// Orientation of the film in the carrier
+// Orientation of the film in the carrier. Does nothing for 4x5.
 Orientation = "vertical"; // ["vertical", "horizontal"]
 // Include the alignment board?
 Alignment_Board = true; // [true, false]
+Alignment_Board_Type = "omega"; // ["omega", "lpl-saunders"]
 
 // Printed or heat-set pegs? Heat set pegs required when including alignment board.
 Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
@@ -87,8 +89,6 @@ ARROW_LENGTH = 8;
 ARROW_WIDTH = 5;
 ARROW_ETCH_DEPTH = 0.5;
 
-
-
 // Check if the selected format is a "filed" medium format
 IS_FILED_MEDIUM_FORMAT = Film_Format == "6x4.5 filed" ||
     Film_Format == "6x6 filed" ||
@@ -110,13 +110,14 @@ FILM_FORMAT_PEG_DISTANCE = get_film_format_peg_distance(Film_Format);
 assert(FILM_FORMAT_HEIGHT != undef, str("Unknown or unsupported Film_Format selected: ", Film_Format));
 assert(FILM_FORMAT_WIDTH != undef, str("Unknown or unsupported Film_Format selected: ", Film_Format));
 assert(FILM_FORMAT_PEG_DISTANCE != undef, str("Unknown or unsupported Film_Format selected: ", Film_Format));
+if (Alignment_Board && Printed_or_Heat_Set_Pegs == "printed") {
+    assert(false, "CARRIER OPTIONS ERROR: Alignment board included, so we can't use printed pegs! Please use heat-set pegs or disable the alignment board.");
+}
 
 SELECTED_TYPE_NAME = get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format);
 
 // Calculate Z offset for pegs/holes based on topOrBottom
 PEG_Z_OFFSET = Top_or_Bottom == "bottom" ? OMEGA_D_CARRIER_HEIGHT / 2 : OMEGA_D_CARRIER_HEIGHT - OMEGA_D_TOP_PEG_HOLE_Z_OFFSET;
-
-/* [Hidden] */
 
 // Get text metrics
 owner_metrics = textmetrics(text=Owner_Name, font=Fontface, size=10, halign="center", valign="center");
@@ -192,12 +193,12 @@ module alignment_screw_holes(is_dent = false, dent_depth = 1) {
 
 module registration_holes() {
     // top 
-    translate([0, -1.4, 0]) union() {
+    translate([0, -1.5, 0]) union() {
         color("red") translate([OMEGA_D_REG_HOLE_TOP_X_OFFSET + (OMEGA_D_REG_HOLE_DISTANCE/2) + OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2, 0]) cuboid([OMEGA_D_REG_HOLE_DIAMETER, OMEGA_D_REG_HOLE_DIAMETER + OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION, OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor = CENTER);
         color("red") translate([OMEGA_D_REG_HOLE_TOP_X_OFFSET + (OMEGA_D_REG_HOLE_DISTANCE/2) + OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2 + OMEGA_D_REG_HOLE_CYL_Y_OFFSET, 0]) cylinder(h=OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=OMEGA_D_REG_HOLE_DIAMETER/2, center = true);
     }
     // bottom
-    translate([0, -1.4, 0]) union() {
+    translate([0, -1.5, 0]) union() {
         color("red") translate([OMEGA_D_REG_HOLE_BOTTOM_X_OFFSET - (OMEGA_D_REG_HOLE_DISTANCE/2) - OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2, 0]) cuboid([OMEGA_D_REG_HOLE_DIAMETER, OMEGA_D_REG_HOLE_DIAMETER + OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION, OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor = CENTER);
         color("red") translate([OMEGA_D_REG_HOLE_BOTTOM_X_OFFSET - (OMEGA_D_REG_HOLE_DISTANCE/2) - OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2 + OMEGA_D_REG_HOLE_CYL_Y_OFFSET, 0]) cylinder(h=OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=OMEGA_D_REG_HOLE_DIAMETER/2, center = true);
     }
@@ -262,7 +263,11 @@ module common_subtractions(is_top_piece) {
         // For bottom piece (is_top_piece=false), is_dent will be false (default behavior of alignment_screw_holes).
         // For top piece (is_top_piece=true), is_dent will be true.
         // dent_depth is only used if is_dent is true.
-        alignment_screw_holes(is_dent = is_top_piece, dent_depth = 1);
+        if (Alignment_Board_Type == "omega") {
+            alignment_screw_holes(is_dent = is_top_piece, dent_depth = 1);
+        } else if (Alignment_Board_Type == "lpl-saunders") {
+            alignment_screw_holes(is_dent = is_top_piece, dent_depth = 1);
+        }
     }
 
     if (Enable_Owner_Name_Etch) {
@@ -294,7 +299,11 @@ if (Top_or_Bottom == "bottom") {
     union() {
         // Positive Features for Bottom Piece
         if (Alignment_Board) {
-            translate([0, 0, -2]) omega_d_alignment_board_no_screws();
+            if (Alignment_Board_Type == "omega") {
+                translate([0, 0, -2]) omega_d_alignment_board_no_screws();
+            } else if (Alignment_Board_Type == "lpl-saunders") {
+                translate([0, 0, 0.15]) lpl_saunders_alignment_board();
+            }
         } else { // No Alignment Board
             if (Printed_or_Heat_Set_Pegs == "printed") {
                 // Add printed pegs if no alignment board and printed pegs are selected
@@ -421,6 +430,3 @@ if (Top_or_Bottom == "bottom") {
     }
 }
 
-if (Alignment_Board && Printed_or_Heat_Set_Pegs == "printed") {
-    assert(false, "CARRIER OPTIONS ERROR: Alignment board included, so we can't use printed pegs! Please use heat-set pegs or disable the alignment board.");
-}
