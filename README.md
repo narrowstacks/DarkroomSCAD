@@ -2,7 +2,7 @@
 
 ## Open source 3D models for darkroom equipment
 
-[More detailed project description will go here]
+This project provides a collection of open-source 3D models for darkroom equipment, designed using OpenSCAD. The models are parametric, allowing for customization to fit various needs and film formats. Whether you need negative carriers, film developing tools, or other darkroom accessories, this library aims to provide a versatile and adaptable set of designs for the analog photography community.
 
 ## Getting Started
 
@@ -73,8 +73,6 @@ Contributions are welcome! If you'd like to contribute, please follow these gene
 - **Code Style:** Try to maintain a consistent code style with the existing codebase. Comment your code where necessary.
 - **Test Your Changes:** Ensure your changes work as expected and do not introduce new issues.
 - **Submit a Pull Request:** Once your changes are ready, submit a pull request with a clear description of the changes and why they were made.
-
-(More detailed contribution guidelines, such as specific testing procedures or commit message formats, can be added here.)
 
 ## License
 
