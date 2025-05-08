@@ -14,7 +14,7 @@ Top_or_Bottom = "bottom"; // ["top", "bottom", "frameAndPegTestBottom", "frameAn
 Orientation = "vertical"; // ["vertical", "horizontal"]
 // Include the alignment board?
 Alignment_Board = true; // [true, false]
-Alignment_Board_Type = "beseler-23c"; // ["omega", "lpl-saunders", "beseler-23c"]
+// Alignment_Board_Type = "beseler-23c"; // ["omega", "lpl-saunders", "beseler-23c"]
 // Printed or heat-set pegs? Heat set pegs required when including alignment board.
 Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
 
@@ -173,7 +173,7 @@ if (Top_or_Bottom == "bottom") {
                 // and is intended to be additive or handled correctly there.
                 // If it's a subtractive feature for the base_shape, its placement here is unusual.
                 // For now, keeping as is from original structure.
-                translate([0, 0, CARRIER_HEIGHT/2]) alignment_circle(); 
+                translate([0, 0, CARRIER_HEIGHT/2]) beseler_23c_alignment_board(); 
             }
             // This subtraction of base_shape seems to imply alignment_circle() is positive 
             // and this difference is to make space for it or another feature.
