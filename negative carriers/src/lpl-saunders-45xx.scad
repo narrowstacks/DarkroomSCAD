@@ -54,6 +54,11 @@ Fontface = "Futura";
 Font_Size = 10;
 
 /* [Hidden] */
+// Alignment Screw Hole constants (mirrored from Omega D for compatibility with Omega type boards)
+LPL_ALIGNMENT_SCREW_DIAMETER = 2;
+LPL_ALIGNMENT_SCREW_PATTERN_DIST_X = 82; // Corresponds to Omega D's ALIGNMENT_SCREW_DISTANCE_Y (used for X coords of holes)
+LPL_ALIGNMENT_SCREW_PATTERN_DIST_Y = 113; // Corresponds to Omega D's ALIGNMENT_SCREW_DISTANCE_X (used for Y coords of holes)
+
 if (Alignment_Board && Printed_or_Heat_Set_Pegs == "printed") {
     assert(false, "CARRIER OPTIONS ERROR: Alignment board included, so we can't use printed pegs! Please use heat-set pegs or disable the alignment board.");
 }
@@ -105,7 +110,7 @@ LPL_PEG_HEIGHT = 4; // Height of the pegs
 // For LPL, peg Z offset is carrierHeight / 2 for both top and bottom.
 _is_top_piece_for_peg_z_lpl = (Top_or_Bottom == "top"); // This boolean is for the function argument
 _peg_z_value_lpl = carrierHeight / 2;
-peg_z_offset_calc = get_peg_z_offset(_is_top_piece_for_peg_z_lpl, _peg_z_value_lpl, _peg_z_value_lpl);
+peg_z_offset_calc = get_peg_z_offset(_is_top_piece_for_peg_z_lpl, _peg_z_value_lpl, _peg_z_value_lpl) + 0.1;
 
 // peg_pos_x_final and peg_pos_y_final are half the distance between opposite peg centers.
 // Assumes FILM_FORMAT_WIDTH_RAW is the film's narrow dimension and pegDistance is the longitudinal peg pitch.
@@ -142,48 +147,47 @@ module handle() {
 // Main logic for carrier generation
 if (Top_or_Bottom == "bottom" || Top_or_Bottom == "top") {
     union() { // Main union for the carrier part
-        difference() { // Start of difference for the main carrier body
-            base_shape();
-            film_opening(
-                opening_height = adjusted_opening_height,
-                opening_width = adjusted_opening_width,
-                carrier_height = carrierHeight,
-                cut_through_extension = Film_Opening_Cut_Through_Extension,
-                frame_fillet = Film_Opening_Frame_Fillet
-            );
-
-            // Peg-related subtractions using the common module
-            generate_peg_features(
-                _top_or_bottom = Top_or_Bottom,
-                _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
-                _peg_dia = pegDiameter,
-                _peg_h = LPL_PEG_HEIGHT,
-                _peg_x = peg_pos_x_final,
-                _peg_y = peg_pos_y_final,
-                _z_off = peg_z_offset_calc,
-                _is_subtraction_pass = true
-            );
-
-        } // End of difference for the main carrier body
-
-        // Additive peg features (e.g., printed pegs on bottom) using the common module
-        generate_peg_features(
+        carrier_base_processing(
             _top_or_bottom = Top_or_Bottom,
-            _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
-            _peg_dia = pegDiameter,
-            _peg_h = LPL_PEG_HEIGHT,
-            _peg_x = peg_pos_x_final,
-            _peg_y = peg_pos_y_final,
-            _z_off = peg_z_offset_calc,
-            _is_subtraction_pass = false
-        );
+            _carrier_material_height = carrierHeight,
+            _opening_height_param = adjusted_opening_height,
+            _opening_width_param = adjusted_opening_width,
+            _opening_cut_through_ext_param = Film_Opening_Cut_Through_Extension,
+            _opening_fillet_param = Film_Opening_Frame_Fillet,
+            _peg_style_param = Printed_or_Heat_Set_Pegs,
+            _peg_diameter_param = pegDiameter, // LPL uses pegDiameter
+            _peg_actual_height_param = LPL_PEG_HEIGHT,
+            _peg_pos_x_param = peg_pos_x_final,
+            _peg_pos_y_param = peg_pos_y_final,
+            _peg_z_offset_param = peg_z_offset_calc
+        ) {
+            difference() { // Wrap base_shape in difference to allow for conditional screw holes
+                base_shape();
+                if (!Alignment_Board) {
+                    // If Alignment_Board is OFF, and type implies screws, punch the alignment footprint holes
+                    if (Alignment_Board_Type == "omega" || Alignment_Board_Type == "lpl-saunders") { 
+                        // Assuming "lpl-saunders" board type might also use a standard screw footprint if specified elsewhere,
+                        // or this provides a default screw hole option if board is off.
+                        alignment_footprint_holes(
+                            _screw_dia = LPL_ALIGNMENT_SCREW_DIAMETER,
+                            _dist_for_x_coords = LPL_ALIGNMENT_SCREW_PATTERN_DIST_X,
+                            _dist_for_y_coords = LPL_ALIGNMENT_SCREW_PATTERN_DIST_Y,
+                            _carrier_h = carrierHeight, // LPL's carrier height
+                            _cut_ext = Film_Opening_Cut_Through_Extension, // LPL's cut through extension
+                            _is_dent = (Top_or_Bottom == "top"), // Dents for top, through-holes for bottom
+                            _dent_depth = 1 // Standard dent depth
+                        );
+                    }
+                }
+            }
+        }
         
         handle(); // Add the handle to the carrier part
 
-        // Alignment board addition
+        // Alignment board addition for LPL Saunders (only on bottom piece)
         if (Alignment_Board && Top_or_Bottom == "bottom") {
             _z_trans_val = -carrierHeight; // LPL uses -carrierHeight for its boards
-            // Conditional coloring based on board type
+            // Conditional coloring based on board type (can be kept or removed if not essential for unified logic)
             if (Alignment_Board_Type == "omega") {
                 color("red") translate([0, 0, _z_trans_val]) 
                     instantiate_alignment_board_by_type(Alignment_Board_Type);
@@ -191,60 +195,35 @@ if (Top_or_Bottom == "bottom" || Top_or_Bottom == "top") {
                 color("blue") translate([0, 0, _z_trans_val]) 
                     instantiate_alignment_board_by_type(Alignment_Board_Type);
             } else if (Alignment_Board_Type == "beseler-23c") {
-                // Assuming LPL might support Beseler board with same Z offset
-                // color("green") // Example color
                 translate([0, 0, _z_trans_val]) 
                     instantiate_alignment_board_by_type(Alignment_Board_Type);
             } else {
-                // Fallback for unknown, or let instantiate_alignment_board_by_type handle echo
-                instantiate_alignment_board_by_type(Alignment_Board_Type);
+                instantiate_alignment_board_by_type(Alignment_Board_Type); // Fallback handles echo
             }
         }
     }
 } else if (Top_or_Bottom == "frameAndPegTestBottom" || Top_or_Bottom == "frameAndPegTestTop") {
-    // Create a smaller base for the test piece
     testPiecePadding = 10;
-    // Test piece dimensions based on max extent of pegs or film opening
-    testPieceWidth = max(2 * peg_pos_y_final + testPiecePadding * 2, adjusted_opening_width + testPiecePadding*2);
-    testPieceDepth = max(2 * peg_pos_x_final + testPiecePadding * 2, adjusted_opening_height + testPiecePadding*2);
-
-    // Determine effective top/bottom string for the common module based on the test piece type
+    // Test piece dimensions for LPL (using max with opening dimensions as well)
+    testPieceCuboidWidth = max(2 * peg_pos_y_final + pegDiameter + testPiecePadding * 2, adjusted_opening_width + testPiecePadding*2);
+    testPieceCuboidDepth = max(2 * peg_pos_x_final + pegDiameter + testPiecePadding * 2, adjusted_opening_height + testPiecePadding*2);
+    // For LPL, peg_z_offset_calc is carrierHeight / 2 for both top and bottom, suitable for test frames too.
     effective_test_top_bottom = (Top_or_Bottom == "frameAndPegTestTop") ? "top" : "bottom";
 
-    union() {
-        // Additive peg features for test piece (e.g., printed pegs on bottom test piece)
-        generate_peg_features(
-            _top_or_bottom = effective_test_top_bottom,
-            _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
-            _peg_dia = pegDiameter,
-            _peg_h = LPL_PEG_HEIGHT,
-            _peg_x = peg_pos_x_final,
-            _peg_y = peg_pos_y_final,
-            _z_off = peg_z_offset_calc, // Assuming peg_z_offset_calc is appropriate for test pieces too
-            _is_subtraction_pass = false
-        );
-
-        difference() {
-            cuboid([testPieceDepth, testPieceWidth, carrierHeight], anchor = CENTER);
-            film_opening(
-                opening_height = adjusted_opening_height,
-                opening_width = adjusted_opening_width,
-                carrier_height = carrierHeight,
-                cut_through_extension = Film_Opening_Cut_Through_Extension,
-                frame_fillet = Film_Opening_Frame_Fillet
-            );
-
-            // Peg-related subtractions for test piece
-            generate_peg_features(
-                _top_or_bottom = effective_test_top_bottom,
-                _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
-                _peg_dia = pegDiameter,
-                _peg_h = LPL_PEG_HEIGHT,
-                _peg_x = peg_pos_x_final,
-                _peg_y = peg_pos_y_final,
-                _z_off = peg_z_offset_calc, // Assuming peg_z_offset_calc is appropriate
-                _is_subtraction_pass = true
-            );
-        }
-    }
+    generate_test_frame(
+        _effective_test_piece_role = effective_test_top_bottom,
+        _frame_material_height = carrierHeight,
+        _film_opening_h = adjusted_opening_height,
+        _film_opening_w = adjusted_opening_width,
+        _film_opening_cut_ext = Film_Opening_Cut_Through_Extension,
+        _film_opening_f = Film_Opening_Frame_Fillet,
+        _peg_style = Printed_or_Heat_Set_Pegs,
+        _peg_dia_val = pegDiameter,
+        _peg_h_val = LPL_PEG_HEIGHT,
+        _peg_x_val = peg_pos_x_final,
+        _peg_y_val = peg_pos_y_final,
+        _peg_z_val = peg_z_offset_calc, // LPL peg_z_offset_calc is suitable here
+        _test_cuboid_width = testPieceCuboidWidth,
+        _test_cuboid_depth = testPieceCuboidDepth
+    );
 }

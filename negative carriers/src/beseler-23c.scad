@@ -145,77 +145,87 @@ module base_shape() {
 // Main logic
 if (Top_or_Bottom == "bottom") {
     union() {
-        difference() {
-            base_shape();
-            film_opening(
-                opening_height = opening_height_actual,
-                opening_width = opening_width_actual,
-                carrier_height = CARRIER_HEIGHT,
-                cut_through_extension = Film_Opening_Cut_Through_Extension,
-                frame_fillet = Film_Opening_Frame_Fillet
-            );
-            // Add subtractive peg features (e.g., holes for heat-set inserts)
-            generate_peg_features(
-                _top_or_bottom = Top_or_Bottom, // Should be "bottom"
-                _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
-                _peg_dia = PEG_DIAMETER,
-                _peg_h = PEG_HEIGHT,
-                _peg_x = peg_pos_x_calc,
-                _peg_y = peg_pos_y_calc,
-                _z_off = peg_z_offset_calc,
-                _is_subtraction_pass = true
-            );
-        }
-        // This difference block for alignment seems specific and should be maintained
-        difference() {
-            if (Alignment_Board) {
-                // Assuming alignment_circle() is defined in beseler-23c-alignment-board.scad
-                // and is intended to be additive or handled correctly there.
-                // If it's a subtractive feature for the base_shape, its placement here is unusual.
-                // For now, keeping as is from original structure.
-                translate([0, 0, CARRIER_HEIGHT/2]) beseler_23c_alignment_board(); 
-            }
-            // This subtraction of base_shape seems to imply alignment_circle() is positive 
-            // and this difference is to make space for it or another feature.
-            // Given original structure, this might be part of creating a recess or similar.
-            translate([0, 0, -2]) base_shape(); 
+        carrier_base_processing(
+            _top_or_bottom = Top_or_Bottom,
+            _carrier_material_height = CARRIER_HEIGHT,
+            _opening_height_param = opening_height_actual,
+            _opening_width_param = opening_width_actual,
+            _opening_cut_through_ext_param = Film_Opening_Cut_Through_Extension,
+            _opening_fillet_param = Film_Opening_Frame_Fillet,
+            _peg_style_param = Printed_or_Heat_Set_Pegs,
+            _peg_diameter_param = PEG_DIAMETER,
+            _peg_actual_height_param = PEG_HEIGHT,
+            _peg_pos_x_param = peg_pos_x_calc,
+            _peg_pos_y_param = peg_pos_y_calc,
+            _peg_z_offset_param = peg_z_offset_calc
+        ) {
+            base_shape(); // Beseler's base_shape
+            // No Beseler-specific subtractions comparable to Omega-D's registration holes were in the original main diff block.
+            // Text etching is not explicitly in the main body difference of the original Beseler file.
         }
         
-        // Add additive peg features (e.g., printed pegs)
-        generate_peg_features(
-            _top_or_bottom = Top_or_Bottom, // Should be "bottom"
-            _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
-            _peg_dia = PEG_DIAMETER,
-            _peg_h = PEG_HEIGHT,
-            _peg_x = peg_pos_x_calc,
-            _peg_y = peg_pos_y_calc,
-            _z_off = peg_z_offset_calc, // Original printed pegs had +0.1, heat-set did not. Common module handles this nuance if necessary or assumes centered for additions.
-            _is_subtraction_pass = false
-        );
-        
+        // Beseler-specific additions (handle, alignment board)
         handle();
+
+        // Beseler's unique alignment board logic for the bottom piece
+        if (Alignment_Board) {
+            difference() {
+                translate([0, 0, CARRIER_HEIGHT/2]) beseler_23c_alignment_board(); 
+                translate([0, 0, -2]) base_shape(); 
+            }
+        }
     }
-} else { // topOrBottom == "top"
-    difference() {
-        base_shape();
-        film_opening(
-            opening_height = opening_height_actual,
-            opening_width = opening_width_actual,
-            carrier_height = CARRIER_HEIGHT,
-            cut_through_extension = Film_Opening_Cut_Through_Extension,
-            frame_fillet = Film_Opening_Frame_Fillet
-        );
-        // Add subtractive peg features (e.g., clearance holes or socket head openings)
-        generate_peg_features(
-            _top_or_bottom = Top_or_Bottom, // Should be "top"
-            _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
-            _peg_dia = PEG_DIAMETER,
-            _peg_h = PEG_HEIGHT,
-            _peg_x = peg_pos_x_calc,
-            _peg_y = peg_pos_y_calc,
-            _z_off = peg_z_offset_calc,
-            _is_subtraction_pass = true
-        );
+} else { // topOrBottom == "top" (Original Beseler file only had "bottom" or "top" for main logic, no test frames explicitly)
+    // For the top piece, it's mostly subtractions from the base_shape.
+    carrier_base_processing(
+        _top_or_bottom = Top_or_Bottom,
+        _carrier_material_height = CARRIER_HEIGHT,
+        _opening_height_param = opening_height_actual,
+        _opening_width_param = opening_width_actual,
+        _opening_cut_through_ext_param = Film_Opening_Cut_Through_Extension,
+        _opening_fillet_param = Film_Opening_Frame_Fillet,
+        _peg_style_param = Printed_or_Heat_Set_Pegs,
+        _peg_diameter_param = PEG_DIAMETER,
+        _peg_actual_height_param = PEG_HEIGHT,
+        _peg_pos_x_param = peg_pos_x_calc,
+        _peg_pos_y_param = peg_pos_y_calc,
+        _peg_z_offset_param = peg_z_offset_calc
+    ) {
+        base_shape(); // Beseler's base_shape
+        // No specific subtractions for top piece in original main diff other than film opening and pegs.
     }
     handle();
 }
+
+// NOTE: The original beseler-23c.scad did not have explicit frameAndPegTestBottom/Top options 
+// in its main if/else structure. If these are desired, they would need to be added using 
+// the generate_test_frame module, similar to how it was done for omega-d.scad, 
+// including calculations for test piece dimensions and Z offsets for pegs.
+// For example:
+/*
+} else if (Top_or_Bottom == "frameAndPegTestBottom" || Top_or_Bottom == "frameAndPegTestTop") {
+    testPiecePadding = 10; 
+    // Calculate testPieceWidth and testPieceDepth based on peg_pos_x_calc, peg_pos_y_calc, PEG_DIAMETER and padding
+    // Example: testPieceWidth = 2 * peg_pos_y_calc + PEG_DIAMETER + testPiecePadding * 2;
+    // Example: testPieceDepth = 2 * peg_pos_x_calc + PEG_DIAMETER + testPiecePadding * 2;
+    test_peg_z_offset = CARRIER_HEIGHT / 2;
+    effective_test_top_bottom = (Top_or_Bottom == "frameAndPegTestTop") ? "top" : "bottom";
+
+    generate_test_frame(
+        _effective_test_piece_role = effective_test_top_bottom,
+        _frame_material_height = CARRIER_HEIGHT,
+        _film_opening_h = opening_height_actual,
+        _film_opening_w = opening_width_actual,
+        _film_opening_cut_ext = Film_Opening_Cut_Through_Extension,
+        _film_opening_f = Film_Opening_Frame_Fillet,
+        _peg_style = Printed_or_Heat_Set_Pegs,
+        _peg_dia_val = PEG_DIAMETER,
+        _peg_h_val = PEG_HEIGHT,
+        _peg_x_val = peg_pos_x_calc,
+        _peg_y_val = peg_pos_y_calc,
+        _peg_z_val = test_peg_z_offset,
+        _test_cuboid_width = testPieceWidth, // Calculated value
+        _test_cuboid_depth = testPieceDepth  // Calculated value
+    );
+}
+*/

@@ -209,3 +209,161 @@ module instantiate_alignment_board_by_type(board_type_str) {
         echo(str("Warning: Unknown alignment board type specified: ", board_type_str));
     }
 }
+
+// Module to process a carrier-specific base shape (passed as children(0))
+// by adding standard film opening and peg features.
+module carrier_base_processing(
+    _top_or_bottom,             // "top" or "bottom"
+    _carrier_material_height,   // Height of the carrier plate material
+    // Film Opening Parameters
+    _opening_height_param,
+    _opening_width_param,
+    _opening_cut_through_ext_param,
+    _opening_fillet_param,
+    // Peg Feature Parameters (passed to generate_peg_features)
+    _peg_style_param,         // "printed" or "heat_set"
+    _peg_diameter_param,
+    _peg_actual_height_param, // The actual height for the peg geometry
+    _peg_pos_x_param,
+    _peg_pos_y_param,
+    _peg_z_offset_param       // Calculated Z offset for pegs/holes
+) {
+    difference() {
+        children(0); // Expects the carrier-specific base_shape() module call here
+
+        // Standard film opening
+        film_opening(
+            opening_height = _opening_height_param,
+            opening_width = _opening_width_param,
+            carrier_height = _carrier_material_height,
+            cut_through_extension = _opening_cut_through_ext_param,
+            frame_fillet = _opening_fillet_param
+        );
+
+        // Subtractive peg features (holes)
+        generate_peg_features(
+            _top_or_bottom = _top_or_bottom,
+            _printed_or_heat_set = _peg_style_param,
+            _peg_dia = _peg_diameter_param,
+            _peg_h = _peg_actual_height_param,
+            _peg_x = _peg_pos_x_param,
+            _peg_y = _peg_pos_y_param,
+            _z_off = _peg_z_offset_param,
+            _is_subtraction_pass = true
+        );
+    }
+
+    // Additive peg features (e.g., printed pegs, if applicable based on internal logic of generate_peg_features)
+    generate_peg_features(
+        _top_or_bottom = _top_or_bottom,
+        _printed_or_heat_set = _peg_style_param,
+        _peg_dia = _peg_diameter_param,
+        _peg_h = _peg_actual_height_param,
+        _peg_x = _peg_pos_x_param,
+        _peg_y = _peg_pos_y_param,
+        _z_off = _peg_z_offset_param,
+        _is_subtraction_pass = false // Create solid pegs if conditions within generate_peg_features are met
+    );
+}
+
+// Module to generate a standardized test frame for checking film fit and peg alignment.
+module generate_test_frame(
+    _effective_test_piece_role, // "top" or "bottom", defines how pegs/holes are made
+    _frame_material_height,     // Standard height for carrier material used for the frame
+    // Film Opening Parameters
+    _film_opening_h,
+    _film_opening_w,
+    _film_opening_cut_ext,
+    _film_opening_f,
+    // Peg Feature Parameters
+    _peg_style,       // "printed" or "heat_set"
+    _peg_dia_val,
+    _peg_h_val,
+    _peg_x_val,
+    _peg_y_val,
+    _peg_z_val,       // Calculated Z offset for pegs/holes in the test frame
+    // Test Frame Dimensions
+    _test_cuboid_width,  // Overall width of the test frame cuboid
+    _test_cuboid_depth   // Overall depth (or X-dim if viewed from top) of test frame cuboid
+) {
+    union() { // Union for potential additive parts of the test piece (i.e., printed pegs)
+        generate_peg_features(
+            _top_or_bottom = _effective_test_piece_role,
+            _printed_or_heat_set = _peg_style,
+            _peg_dia = _peg_dia_val,
+            _peg_h = _peg_h_val,
+            _peg_x = _peg_x_val,
+            _peg_y = _peg_y_val,
+            _z_off = _peg_z_val,
+            _is_subtraction_pass = false
+        );
+
+        difference() {
+            // Centered test piece cuboid
+            cuboid([_test_cuboid_depth, _test_cuboid_width, _frame_material_height], anchor = CENTER);
+
+            film_opening(
+                opening_height = _film_opening_h,
+                opening_width = _film_opening_w,
+                carrier_height = _frame_material_height,
+                cut_through_extension = _film_opening_cut_ext,
+                frame_fillet = _film_opening_f
+            );
+
+            // Subtractive peg features for the test piece
+            generate_peg_features(
+                _top_or_bottom = _effective_test_piece_role,
+                _printed_or_heat_set = _peg_style,
+                _peg_dia = _peg_dia_val,
+                _peg_h = _peg_h_val,
+                _peg_x = _peg_x_val,
+                _peg_y = _peg_y_val,
+                _z_off = _peg_z_val,
+                _is_subtraction_pass = true
+            );
+        }
+    }
+}
+
+// Creates the standard four-hole footprint for alignment board screws.
+// Parameters:
+//   _screw_dia: Diameter of the screw holes.
+//   _dist_for_x_coords: Total distance between hole centers that are separated along the X-axis of the carrier (forms the width of the hole pattern).
+//   _dist_for_y_coords: Total distance between hole centers that are separated along the Y-axis of the carrier (forms the length of the hole pattern).
+//   _carrier_h: Height of the carrier material.
+//   _cut_ext: Cut through extension value.
+//   _is_dent: If true, creates dents; otherwise, creates through-holes.
+//   _dent_depth: Depth of the dent if _is_dent is true.
+module alignment_footprint_holes(_screw_dia, _dist_for_x_coords, _dist_for_y_coords, _carrier_h, _cut_ext, _is_dent, _dent_depth) {
+    hole_radius = _is_dent ? _screw_dia/2 + 0.25 : _screw_dia/2; // Add tolerance for dents if they are for press-fit or similar
+    actual_hole_height = _is_dent ? _dent_depth : _carrier_h + _cut_ext;
+    use_center_alignment = !_is_dent; // Through-holes are centered; dents are typically from a surface.
+    // For dents, place their base at one of the surfaces (e.g. top surface going down, or bottom surface going up).
+    // Assuming dents are typically made from the "outside" surface coming in.
+    // If carrier is centered at Z=0, top surface is _carrier_h/2, bottom is -_carrier_h/2.
+    // If _is_dent, place base of cylinder such that it cuts inwards from a surface.
+    // For this module, let's assume dents go from Z=0 downwards if not centered, or from top surface if centered for carrier.
+    // The original omega-d alignment_screw_holes places dents starting from z_pos = (-OMEGA_D_CARRIER_HEIGHT / 2) - 0.1 for dents.
+    // This means the base of the dent cylinder is slightly below the carrier bottom surface, cutting upwards.
+    // To maintain compatibility while being generic:
+    // If it's a dent, it's not centered. We need a z_pos that makes sense.
+    // Let's assume dents are cut from the surface the pegs/holes are referenced from.
+    // If z_offset for pegs is carrier_h/2 (bottom piece), dents would be from top surface down.
+    // If z_offset for pegs is related to top piece, dents might be from bottom surface up.
+    // Given the original was `z_pos = is_dent ? (-OMEGA_D_CARRIER_HEIGHT / 2) - 0.1 : 0;`
+    // and `cylinder(h=hole_h, r=hole_radius, center = use_center);`
+    // If is_dent, hole_h = _dent_depth + 0.1 (originally), and center=false. Cylinder base at z_pos.
+    // If !is_dent, hole_h = _carrier_h + _cut_ext, and center=true. Cylinder centered at z_pos=0.
+
+    z_val_for_hole = _is_dent ? (-_carrier_h / 2) : 0; // If dent, base is at bottom surface, cutting up. If through-hole, centered at Z=0.
+    
+    eff_spacing_x = _dist_for_x_coords / 2;
+    eff_spacing_y = _dist_for_y_coords / 2;
+
+    for (x_mult = [-1, 1]) {
+        for (y_mult = [-1, 1]) {
+            translate([eff_spacing_x * x_mult, eff_spacing_y * y_mult, z_val_for_hole])
+                cylinder(h=actual_hole_height, r=hole_radius, center=use_center_alignment);
+        }
+    }
+}

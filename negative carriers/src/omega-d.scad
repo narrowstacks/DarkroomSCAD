@@ -165,32 +165,6 @@ module base_shape() {
     }
 }
 
-module alignment_screw_holes(is_dent = false, dent_depth = 1) {
-    // hole_height = is_dent ? dent_depth : OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION; // Removed, height calculated in cylinder call
-    // For dents, place their base at the bottom surface. For through-holes, center them vertically.
-    z_pos = is_dent ? (-OMEGA_D_CARRIER_HEIGHT / 2) - 0.1 : 0;
-    // use_center = true; // Removed, centering determined by is_dent
-    hole_radius = is_dent ? OMEGA_D_ALIGNMENT_SCREW_DIAMETER/2 + 0.25 : OMEGA_D_ALIGNMENT_SCREW_DIAMETER/2;
-    // Make the dent cylinder slightly taller to ensure subtraction // Removed effective_hole_height logic
-    // effective_hole_height = is_dent ? dent_depth + 0.1 : hole_height;
-
-    hole_h = is_dent ? dent_depth : OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION;
-    use_center = !is_dent; // Center only if it's a through-hole
-
-    // color("red")
-    translate([OMEGA_D_ALIGNMENT_SCREW_DISTANCE_Y/2, OMEGA_D_ALIGNMENT_SCREW_DISTANCE_X/2, z_pos])
-        cylinder(h=hole_h, r=hole_radius, center = use_center);
-    // color("red")
-    translate([-OMEGA_D_ALIGNMENT_SCREW_DISTANCE_Y/2, OMEGA_D_ALIGNMENT_SCREW_DISTANCE_X/2, z_pos])
-        cylinder(h=hole_h, r=hole_radius, center = use_center);
-    // color("red")
-    translate([OMEGA_D_ALIGNMENT_SCREW_DISTANCE_Y/2, -OMEGA_D_ALIGNMENT_SCREW_DISTANCE_X/2, z_pos])
-        cylinder(h=hole_h, r=hole_radius, center = use_center);
-    // color("red")
-    translate([-OMEGA_D_ALIGNMENT_SCREW_DISTANCE_Y/2, -OMEGA_D_ALIGNMENT_SCREW_DISTANCE_X/2, z_pos])
-        cylinder(h=hole_h, r=hole_radius, center = use_center);
-}
-
 module registration_holes() {
     // top 
     translate([0, -1.5, 0]) union() {
@@ -267,186 +241,176 @@ type_etch_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - (TEXT_ETCH_DEPTH + 0.1);
 type_etch_pos = [type_etch_top_position, -95, type_etch_z_pos];
 type_etch_rot = [0, 0, 270]; // Rotation vector for rotate() before calling text_etch
 
-// Module to encapsulate common subtractions for top and bottom pieces
-module common_subtractions(is_top_piece) {
-    film_opening(
-        opening_height = adjusted_opening_height,
-        opening_width = adjusted_opening_width,
-        carrier_height = OMEGA_D_CARRIER_HEIGHT,
-        cut_through_extension = CUT_THROUGH_EXTENSION,
-        frame_fillet = OMEGA_D_FRAME_FILLET
-    );
-    registration_holes();
-
-    if (!Alignment_Board) {
-        // For bottom piece (is_top_piece=false), is_dent will be false (default behavior of alignment_screw_holes).
-        // For top piece (is_top_piece=true), is_dent will be true.
-        // dent_depth is only used if is_dent is true.
-        if (Alignment_Board_Type == "omega") {
-            alignment_screw_holes(is_dent = is_top_piece, dent_depth = 1);
-        } else if (Alignment_Board_Type == "lpl-saunders") {
-            alignment_screw_holes(is_dent = is_top_piece, dent_depth = 1);
-        }
-    }
-
-    if (Enable_Owner_Name_Etch) {
-        rotate(owner_etch_rot) translate(owner_etch_pos)
-            text_etch(
-                text_string = Owner_Name,
-                font = Fontface,
-                size = Font_Size,
-                etch_depth = TEXT_ETCH_DEPTH,
-                halign = "right",
-                valign = "top"
-            );
-    }
-    if (Enable_Type_Name_Etch) {
-        rotate(type_etch_rot) translate(type_etch_pos)
-            text_etch(
-                text_string = SELECTED_TYPE_NAME,
-                font = Fontface,
-                size = Font_Size,
-                etch_depth = TEXT_ETCH_DEPTH,
-                halign = "left",
-                valign = "top"
-            );
-    }
-}
-
 // Main logic
 if (Top_or_Bottom == "bottom") {
     union() {
-        // Positive Features for Bottom Piece
-        if (Alignment_Board) {
-            // Determine Z translation based on board type for Omega carrier
-            _z_trans_val = (Alignment_Board_Type == "omega") ? -2 :
-                           (Alignment_Board_Type == "lpl-saunders") ? 0.15 :
-                           0; // Default Z or for other types like Beseler if supported by Omega
-            translate([0, 0, _z_trans_val]) 
-                instantiate_alignment_board_by_type(Alignment_Board_Type);
-        } else { // No Alignment Board
-            // Additive printed pegs handled by generate_peg_features called below
-        }
-
-        // Additive peg features (printed pegs on bottom piece if no alignment board)
-        // The common module internally checks for "bottom" and "printed"
-        if (!Alignment_Board) {
-             generate_peg_features(
-                _top_or_bottom = Top_or_Bottom,
-                _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
-                _peg_dia = OMEGA_D_PEG_DIAMETER,
-                _peg_h = OMEGA_D_PEG_HEIGHT,
-                _peg_x = peg_pos_x_calc,
-                _peg_y = peg_pos_y_calc,
-                _z_off = peg_z_offset_calc, // peg_z_offset_calc is already adjusted for bottom
-                _is_subtraction_pass = false
-            );
-        }
-
-        // Base Shape with Subtractions for Bottom Piece
-        difference() {
-            base_shape();
-            common_subtractions(is_top_piece = false);
-
-            // Peg-related subtractions (holes for heat-set inserts) using common module
-            generate_peg_features(
-                _top_or_bottom = Top_or_Bottom,
-                _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
-                _peg_dia = OMEGA_D_PEG_DIAMETER, // Diameter for clearance if needed, module handles specifics
-                _peg_h = OMEGA_D_PEG_HEIGHT,
-                _peg_x = peg_pos_x_calc,
-                _peg_y = peg_pos_y_calc,
-                _z_off = peg_z_offset_calc, // peg_z_offset_calc is already adjusted for bottom
-                _is_subtraction_pass = true
-            );
-
-            // Add arrow etch for 6x6 formats on the bottom piece
-            if (Film_Format == "6x6" || Film_Format == "6x6 filed") {
-                arrowOffset = 5; // Distance from opening edge to arrow tip
-                if (Orientation == "vertical") {
-                    currentOpeningWidth = FILM_FORMAT_WIDTH;
-                    arrowPosX = 0;
-                    arrowPosY = currentOpeningWidth / 2 + arrowOffset + ARROW_LENGTH / 2;
-                    translate([arrowPosX + 10, -arrowPosY , 0])
-                        arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
-                } else { // Orientation == "horizontal"
-                    currentOpeningHeight = FILM_FORMAT_HEIGHT;
-                    arrowPosX = 0;
-                    arrowPosY = -currentOpeningHeight / 2 - arrowOffset - ARROW_LENGTH / 2;
-                    translate([arrowPosX, arrowPosY, 0])
-                    rotate([0, 0, 90])
-                        arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
+        carrier_base_processing(
+            _top_or_bottom = Top_or_Bottom,
+            _carrier_material_height = OMEGA_D_CARRIER_HEIGHT,
+            _opening_height_param = adjusted_opening_height,
+            _opening_width_param = adjusted_opening_width,
+            _opening_cut_through_ext_param = CUT_THROUGH_EXTENSION,
+            _opening_fillet_param = OMEGA_D_FRAME_FILLET,
+            _peg_style_param = Printed_or_Heat_Set_Pegs,
+            _peg_diameter_param = OMEGA_D_PEG_DIAMETER,
+            _peg_actual_height_param = OMEGA_D_PEG_HEIGHT,
+            _peg_pos_x_param = peg_pos_x_calc,
+            _peg_pos_y_param = peg_pos_y_calc,
+            _peg_z_offset_param = peg_z_offset_calc
+        ) {
+            difference() {
+                base_shape();
+                registration_holes();
+                if (!Alignment_Board) {
+                    if (Alignment_Board_Type == "omega" || Alignment_Board_Type == "lpl-saunders") {
+                        alignment_footprint_holes(
+                            _screw_dia = OMEGA_D_ALIGNMENT_SCREW_DIAMETER,
+                            _dist_for_x_coords = OMEGA_D_ALIGNMENT_SCREW_DISTANCE_Y, // Swapped due to original omega-d definition
+                            _dist_for_y_coords = OMEGA_D_ALIGNMENT_SCREW_DISTANCE_X, // Swapped due to original omega-d definition
+                            _carrier_h = OMEGA_D_CARRIER_HEIGHT,
+                            _cut_ext = CUT_THROUGH_EXTENSION,
+                            _is_dent = false, // For bottom piece, make through-holes
+                            _dent_depth = 1    // Dent depth (not used if _is_dent is false)
+                        );
+                    }
+                }
+                if (Enable_Owner_Name_Etch) {
+                    rotate(owner_etch_rot) translate(owner_etch_pos)
+                        text_etch(
+                            text_string = Owner_Name,
+                            font = Fontface,
+                            size = Font_Size,
+                            etch_depth = TEXT_ETCH_DEPTH,
+                            halign = "right",
+                            valign = "top"
+                        );
+                }
+                if (Enable_Type_Name_Etch) {
+                    rotate(type_etch_rot) translate(type_etch_pos)
+                        text_etch(
+                            text_string = SELECTED_TYPE_NAME,
+                            font = Fontface,
+                            size = Font_Size,
+                            etch_depth = TEXT_ETCH_DEPTH,
+                            halign = "left",
+                            valign = "top"
+                        );
+                }
+                if (Film_Format == "6x6" || Film_Format == "6x6 filed") {
+                    arrowOffset = 5; // Distance from opening edge to arrow tip
+                    if (Orientation == "vertical") {
+                        currentOpeningWidth = FILM_FORMAT_WIDTH; // This should be opening_width_actual or similar if adjusted
+                        arrowPosX = 0;
+                        arrowPosY = currentOpeningWidth / 2 + arrowOffset + ARROW_LENGTH / 2;
+                        translate([arrowPosX + 10, -arrowPosY , 0])
+                            arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
+                    } else { // Orientation == "horizontal"
+                        currentOpeningHeight = FILM_FORMAT_HEIGHT; // This should be opening_height_actual or similar
+                        arrowPosX = 0;
+                        arrowPosY = -currentOpeningHeight / 2 - arrowOffset - ARROW_LENGTH / 2;
+                        translate([arrowPosX, arrowPosY, 0])
+                        rotate([0, 0, 90])
+                            arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
+                    }
                 }
             }
         }
+
+        // Omega-D specific additions (e.g., alignment board)
+        if (Alignment_Board) {
+            _z_trans_val = (Alignment_Board_Type == "omega") ? -2 :
+                           (Alignment_Board_Type == "lpl-saunders") ? 0.15 :
+                           0; 
+            translate([0, 0, _z_trans_val]) 
+                instantiate_alignment_board_by_type(Alignment_Board_Type);
+        } 
+        // No handle() module in Omega-D original structure for main pieces
     }
 } else if (Top_or_Bottom == "top") {
-    difference() {
-        base_shape();
-        common_subtractions(is_top_piece = true);
-
-        // Top-specific peg-related subtractions using common module
-        generate_peg_features(
-            _top_or_bottom = Top_or_Bottom,
-            _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
-            _peg_dia = OMEGA_D_PEG_DIAMETER, // Diameter for clearance if needed, module handles specifics
-            _peg_h = OMEGA_D_PEG_HEIGHT,
-            _peg_x = peg_pos_x_calc,
-            _peg_y = peg_pos_y_calc,
-            _z_off = peg_z_offset_calc, // peg_z_offset_calc is already adjusted for top
-            _is_subtraction_pass = true
-        );
-    }
-} else if (Top_or_Bottom == "frameAndPegTestBottom" || Top_or_Bottom == "frameAndPegTestTop") {
-    // Create a smaller base for the test piece, slightly larger than the film opening + pegs
-    testPiecePadding = 10; // Add padding around
-
-    // Test piece dimensions based on max extent of pegs
-    testPieceWidth = 2 * peg_pos_y_calc + testPiecePadding * 2;
-    testPieceHeight = 2 * peg_pos_x_calc + testPiecePadding * 2;
-    // Z offset for pegs/holes in test frames should be centered
-    test_peg_z_offset = OMEGA_D_CARRIER_HEIGHT / 2;
-
-    // Determine effective top/bottom string for the common module
-    effective_test_top_bottom = (Top_or_Bottom == "frameAndPegTestTop") ? "top" : "bottom";
-
-    union(){ // Union for additive parts of test piece
-        // Additive peg features for test piece (e.g., printed pegs on bottom test piece)
-        // Common module internally checks for "bottom" and "printed"
-        generate_peg_features(
-            _top_or_bottom = effective_test_top_bottom,
-            _printed_or_heat_set = Printed_or_Heat_Set_Pegs, // Assuming test frames use main Printed_or_Heat_Set_Pegs
-            _peg_dia = OMEGA_D_PEG_DIAMETER,
-            _peg_h = OMEGA_D_PEG_HEIGHT,
-            _peg_x = peg_pos_x_calc,
-            _peg_y = peg_pos_y_calc,
-            _z_off = test_peg_z_offset,
-            _is_subtraction_pass = false
-        );
-
+    // For the top piece, it's mostly subtractions from the base_shape.
+    // The carrier_base_processing module applies both subtractions and then additions (for printed pegs).
+    // Since top pieces typically don't have printed pegs on them (they have holes for pegs from bottom), 
+    // the additive part of carrier_base_processing will effectively do nothing if _printed_or_heat_set is "heat_set"
+    // or if _top_or_bottom is "top" and _printed_or_heat_set is "printed" (as generate_peg_features handles this).
+    carrier_base_processing(
+        _top_or_bottom = Top_or_Bottom,
+        _carrier_material_height = OMEGA_D_CARRIER_HEIGHT,
+        _opening_height_param = adjusted_opening_height,
+        _opening_width_param = adjusted_opening_width,
+        _opening_cut_through_ext_param = CUT_THROUGH_EXTENSION,
+        _opening_fillet_param = OMEGA_D_FRAME_FILLET,
+        _peg_style_param = Printed_or_Heat_Set_Pegs,
+        _peg_diameter_param = OMEGA_D_PEG_DIAMETER,
+        _peg_actual_height_param = OMEGA_D_PEG_HEIGHT,
+        _peg_pos_x_param = peg_pos_x_calc,
+        _peg_pos_y_param = peg_pos_y_calc,
+        _peg_z_offset_param = peg_z_offset_calc
+    ) {
         difference() {
-            // Center the test piece
-            cuboid([testPieceHeight, testPieceWidth, OMEGA_D_CARRIER_HEIGHT], anchor = CENTER);
-            // Use generic film_opening
-            film_opening(
-                opening_height = adjusted_opening_height,
-                opening_width = adjusted_opening_width,
-                carrier_height = OMEGA_D_CARRIER_HEIGHT,
-                cut_through_extension = CUT_THROUGH_EXTENSION,
-                frame_fillet = OMEGA_D_FRAME_FILLET
-            );
-            // Subtract holes if it's the top test piece or heat-set holes for bottom
-            generate_peg_features(
-                _top_or_bottom = effective_test_top_bottom,
-                _printed_or_heat_set = Printed_or_Heat_Set_Pegs, // Assuming test frames use main Printed_or_Heat_Set_Pegs
-                _peg_dia = OMEGA_D_PEG_DIAMETER,
-                _peg_h = OMEGA_D_PEG_HEIGHT,
-                _peg_x = peg_pos_x_calc,
-                _peg_y = peg_pos_y_calc,
-                _z_off = test_peg_z_offset,
-                _is_subtraction_pass = true
-            );
+            base_shape();
+            registration_holes(); 
+            if (!Alignment_Board) {
+                 if (Alignment_Board_Type == "omega" || Alignment_Board_Type == "lpl-saunders") {
+                    alignment_footprint_holes(
+                        _screw_dia = OMEGA_D_ALIGNMENT_SCREW_DIAMETER,
+                        _dist_for_x_coords = OMEGA_D_ALIGNMENT_SCREW_DISTANCE_Y, // Swapped due to original omega-d definition
+                        _dist_for_y_coords = OMEGA_D_ALIGNMENT_SCREW_DISTANCE_X, // Swapped due to original omega-d definition
+                        _carrier_h = OMEGA_D_CARRIER_HEIGHT,
+                        _cut_ext = CUT_THROUGH_EXTENSION,
+                        _is_dent = true,  // For top piece, make dents
+                        _dent_depth = 1   // Standard dent depth
+                    );
+                 }
+            }
+            if (Enable_Owner_Name_Etch) {
+                rotate(owner_etch_rot) translate(owner_etch_pos)
+                    text_etch(
+                        text_string = Owner_Name,
+                        font = Fontface,
+                        size = Font_Size,
+                        etch_depth = TEXT_ETCH_DEPTH,
+                        halign = "right",
+                        valign = "top"
+                    );
+            }
+            if (Enable_Type_Name_Etch) {
+                rotate(type_etch_rot) translate(type_etch_pos)
+                    text_etch(
+                        text_string = SELECTED_TYPE_NAME,
+                        font = Fontface,
+                        size = Font_Size,
+                        etch_depth = TEXT_ETCH_DEPTH,
+                        halign = "left",
+                        valign = "top"
+                    );
+            }
+            // No arrow etch for top piece in original logic
         }
     }
+    // No handle() module in Omega-D original structure for main pieces
+
+} else if (Top_or_Bottom == "frameAndPegTestBottom" || Top_or_Bottom == "frameAndPegTestTop") {
+    testPiecePadding = 10; 
+    testPieceWidth = 2 * peg_pos_y_calc + OMEGA_D_PEG_DIAMETER + testPiecePadding * 2; // Adjusted to include full peg dia for extent
+    testPieceDepth = 2 * peg_pos_x_calc + OMEGA_D_PEG_DIAMETER + testPiecePadding * 2; // Adjusted to include full peg dia for extent
+    test_peg_z_offset = OMEGA_D_CARRIER_HEIGHT / 2;
+    effective_test_top_bottom = (Top_or_Bottom == "frameAndPegTestTop") ? "top" : "bottom";
+
+    generate_test_frame(
+        _effective_test_piece_role = effective_test_top_bottom,
+        _frame_material_height = OMEGA_D_CARRIER_HEIGHT,
+        _film_opening_h = adjusted_opening_height,
+        _film_opening_w = adjusted_opening_width,
+        _film_opening_cut_ext = CUT_THROUGH_EXTENSION,
+        _film_opening_f = OMEGA_D_FRAME_FILLET,
+        _peg_style = Printed_or_Heat_Set_Pegs,
+        _peg_dia_val = OMEGA_D_PEG_DIAMETER,
+        _peg_h_val = OMEGA_D_PEG_HEIGHT,
+        _peg_x_val = peg_pos_x_calc,
+        _peg_y_val = peg_pos_y_calc,
+        _peg_z_val = test_peg_z_offset,
+        _test_cuboid_width = testPieceWidth,
+        _test_cuboid_depth = testPieceDepth
+    );
 }
 
