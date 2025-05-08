@@ -8,7 +8,7 @@ BOARD_DEPTH = 4;
 GAP_WIDTH = 121;
 CORNER_CUT_BOX_WIDTH = 20;
 
-module corner_cut_box() {
+module lpl_corner_cut_box() {
     rotate([0, 0, 45]) cuboid([CORNER_CUT_BOX_WIDTH, CORNER_CUT_BOX_WIDTH, BOARD_DEPTH + 0.1], anchor = CENTER);
 }
 
@@ -23,4 +23,3 @@ module lpl_saunders_alignment_board() {
         translate([0, -CIRCLE_DIAMETER/2, 0]) cuboid([161, TOP_BOTTOM_CUT, BOARD_DEPTH + 0.2], anchor = CENTER);
     }
 }
-

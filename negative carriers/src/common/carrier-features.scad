@@ -68,3 +68,144 @@ module text_etch(text_string, font, size, etch_depth = 1, halign="center", valig
         text(text_string, font = font, size = size, halign = halign, valign = valign);
     }
 }
+
+// Function to determine effective orientation, especially for "4x5"
+function get_effective_orientation(film_format_str, orientation_str) =
+    (film_format_str == "4x5") ? "vertical" : orientation_str;
+
+// Function to calculate base opening height based on effective orientation and film dimensions
+function get_calculated_opening_height(eff_orientation, film_actual_h, film_actual_w) =
+    eff_orientation == "vertical" ? film_actual_h : film_actual_w;
+
+// Function to calculate base opening width based on effective orientation and film dimensions
+function get_calculated_opening_width(eff_orientation, film_actual_h, film_actual_w) =
+    eff_orientation == "vertical" ? film_actual_w : film_actual_h;
+
+// Generic function to apply an adjustment to a dimension
+function get_adjusted_dimension(base_dim, adjustment_val) =
+    base_dim + adjustment_val;
+
+// Function to get the final, adjusted opening height after considering film format, orientation, and adjustments
+function get_final_opening_height(film_format_str, orientation_str, adjust_h_val) = 
+    let (
+        _film_h_raw = get_film_format_height(film_format_str),
+        _film_w_raw = get_film_format_width(film_format_str),
+        _eff_orientation = get_effective_orientation(film_format_str, orientation_str),
+        _calc_opening_h = get_calculated_opening_height(_eff_orientation, _film_h_raw, _film_w_raw)
+    )
+    get_adjusted_dimension(_calc_opening_h, adjust_h_val);
+
+// Function to get the final, adjusted opening width after considering film format, orientation, and adjustments
+function get_final_opening_width(film_format_str, orientation_str, adjust_w_val) = 
+    let (
+        _film_h_raw = get_film_format_height(film_format_str),
+        _film_w_raw = get_film_format_width(film_format_str),
+        _eff_orientation = get_effective_orientation(film_format_str, orientation_str),
+        _calc_opening_w = get_calculated_opening_width(_eff_orientation, _film_h_raw, _film_w_raw)
+    )
+    get_adjusted_dimension(_calc_opening_w, adjust_w_val);
+
+// Function to calculate Z offset for pegs/holes
+// is_top_piece: boolean (true if "top" part, false otherwise)
+// z_value_for_top: the Z offset value if it's the top piece
+// z_value_for_bottom: the Z offset value if it's the bottom piece
+function get_peg_z_offset(is_top_piece, z_value_for_top, z_value_for_bottom) =
+    is_top_piece ? z_value_for_top : z_value_for_bottom;
+
+// Function to calculate a peg coordinate (either X or Y) based on Omega-style rules
+// is_dominant_film_dimension:
+//      For X-coord: true if effective_orientation is "vertical" (X uses film width).
+//      For Y-coord: true if effective_orientation is "horizontal" (Y uses film width).
+// film_width_or_equiv_half: (e.g., FILM_FORMAT_WIDTH / 2)
+// film_peg_distance_half: (e.g., FILM_FORMAT_PEG_DISTANCE / 2)
+// peg_radius: (e.g., OMEGA_D_PEG_DIAMETER / 2)
+// omega_internal_gap_value: The calculated internal gap (e.g., CALCULATED_INTERNAL_PEG_GAP).
+//                           This gap is SUBTRACTED when film_peg_distance is used.
+function calculate_omega_style_peg_coordinate(is_dominant_film_dimension, film_width_or_equiv_half, film_peg_distance_half, peg_radius, omega_internal_gap_value) =
+    is_dominant_film_dimension ?
+        (film_width_or_equiv_half + peg_radius) : // No gap applied here in Omega style for dominant film dimension
+        (film_peg_distance_half + peg_radius - omega_internal_gap_value);
+
+// Module to generate peg features (printed pegs or holes for pegs/inserts)
+// Parameters:
+//   _top_or_bottom: "top" or "bottom"
+//   _printed_or_heat_set: "printed" or "heat_set"
+//   _peg_dia: Diameter of the peg (used for printed pegs and clearance holes)
+//   _peg_h: Height of the peg
+//   _peg_x: X position of peg centers
+//   _peg_y: Y position of peg centers
+//   _z_off: Z offset for the pegs/holes
+//   _is_subtraction_pass: true if generating holes for subtraction, false for generating solid pegs
+module generate_peg_features(
+    _top_or_bottom,
+    _printed_or_heat_set,
+    _peg_dia,
+    _peg_h,
+    _peg_x,
+    _peg_y,
+    _z_off,
+    _is_subtraction_pass
+) {
+    if (_is_subtraction_pass) {
+        // Logic for subtractions (holes)
+        if (_top_or_bottom == "top") {
+            if (_printed_or_heat_set == "printed") {
+                // Clearance holes for printed pegs (which are on the bottom piece)
+                pegs_feature(
+                    is_hole = true,
+                    peg_diameter = _peg_dia,
+                    peg_height = _peg_h,
+                    peg_pos_x = _peg_x,
+                    peg_pos_y = _peg_y,
+                    z_offset = _z_off
+                );
+            } else { // "heat_set" pegs chosen, top piece needs socket head openings
+                heat_set_pegs_socket_head_opening(
+                    peg_height = _peg_h, // Uses its own diameter logic for M2 socket head
+                    peg_pos_x = _peg_x,
+                    peg_pos_y = _peg_y,
+                    z_offset = _z_off
+                );
+            }
+        } else { // Bottom piece, for subtractions (only for heat-set inserts)
+            if (_printed_or_heat_set == "heat_set") {
+                // Holes for heat-set inserts
+                heat_set_pegs_holes(
+                    peg_height = _peg_h, // Uses its own diameter logic for M2 heat-set insert
+                    peg_pos_x = _peg_x,
+                    peg_pos_y = _peg_y,
+                    z_offset = _z_off
+                );
+            }
+        }
+    } else {
+        // Logic for additions (printed pegs on bottom piece)
+        if (_top_or_bottom == "bottom" && _printed_or_heat_set == "printed") {
+            pegs_feature(
+                is_hole = false, // Create pegs
+                peg_diameter = _peg_dia,
+                peg_height = _peg_h,
+                peg_pos_x = _peg_x,
+                peg_pos_y = _peg_y,
+                z_offset = _z_off
+            );
+        }
+    }
+}
+
+// Module to instantiate a specific alignment board based on type string
+// The caller is responsible for positioning (translate) and coloring.
+module instantiate_alignment_board_by_type(board_type_str) {
+    if (board_type_str == "omega") {
+        omega_d_alignment_board_no_screws(); // From common/omega-d-alignment-board.scad
+    } else if (board_type_str == "lpl-saunders") {
+        lpl_saunders_alignment_board();    // From common/lpl-saunders-alignment-board.scad
+    } else if (board_type_str == "beseler-23c") {
+        // Assuming a module like `beseler_23c_alignment_board()` exists in common/beseler-23c-alignment-board.scad
+        // If the actual module is just `alignment_circle()`, this might need adjustment
+        // or Beseler carriers will call `alignment_circle()` directly.
+        beseler_23c_alignment_board(); 
+    } else {
+        echo(str("Warning: Unknown alignment board type specified: ", board_type_str));
+    }
+}

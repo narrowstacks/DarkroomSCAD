@@ -213,23 +213,42 @@ module arrow_etch(etch_depth = 0.5, length = 5, width = 3) {
         polygon(points=[ [-length/2, 0], [length/2, width/2], [length/2, -width/2] ]);
 }
 
-// Calculate values needed for generic modules
+// Calculate values needed for generic modules using functions from carrier-features.scad
+
 // Film Opening Dimensions
-effective_orientation = (Film_Format == "4x5") ? "vertical" : Orientation;
-calculated_opening_height = effective_orientation == "vertical" ? FILM_FORMAT_HEIGHT : FILM_FORMAT_WIDTH;
-calculated_opening_width = effective_orientation == "vertical" ? FILM_FORMAT_WIDTH : FILM_FORMAT_HEIGHT;
-adjusted_opening_height = calculated_opening_height + Adjust_Film_Height;
-adjusted_opening_width = calculated_opening_width + Adjust_Film_Width;
+effective_orientation = get_effective_orientation(Film_Format, Orientation);
+adjusted_opening_height = get_final_opening_height(Film_Format, Orientation, Adjust_Film_Height);
+adjusted_opening_width = get_final_opening_width(Film_Format, Orientation, Adjust_Film_Width);
 
 // Peg Feature Dimensions
-peg_z_offset_calc = Top_or_Bottom == "top" ? PEG_Z_OFFSET : OMEGA_D_CARRIER_HEIGHT / 2;
-// Calculate peg positions based on Orientation and Film Format
-peg_pos_x_calc = effective_orientation == "vertical" ?
-            (FILM_FORMAT_WIDTH/2 + OMEGA_D_PEG_DIAMETER/2) :
-            (FILM_FORMAT_PEG_DISTANCE/2 + OMEGA_D_PEG_DIAMETER/2 - CALCULATED_INTERNAL_PEG_GAP);
-peg_pos_y_calc = effective_orientation == "vertical" ?
-            (FILM_FORMAT_PEG_DISTANCE/2 + OMEGA_D_PEG_DIAMETER/2 - CALCULATED_INTERNAL_PEG_GAP) :
-            (FILM_FORMAT_WIDTH/2 + OMEGA_D_PEG_DIAMETER/2);
+_is_top_piece_for_peg_z = (Top_or_Bottom == "top");
+// Original logic for peg_z_offset_calc:
+// If Top_or_Bottom == "top", value is (OMEGA_D_CARRIER_HEIGHT - OMEGA_D_TOP_PEG_HOLE_Z_OFFSET)
+// If Top_or_Bottom == "bottom", value is (OMEGA_D_CARRIER_HEIGHT / 2)
+_value_for_top_peg_z_omega = OMEGA_D_CARRIER_HEIGHT - OMEGA_D_TOP_PEG_HOLE_Z_OFFSET;
+_value_for_bottom_peg_z_omega = OMEGA_D_CARRIER_HEIGHT / 2;
+peg_z_offset_calc = get_peg_z_offset(_is_top_piece_for_peg_z, _value_for_top_peg_z_omega, _value_for_bottom_peg_z_omega);
+
+// Calculate peg positions using Omega-style rules
+_peg_radius_omega = OMEGA_D_PEG_DIAMETER / 2;
+_film_width_raw_half_omega = FILM_FORMAT_WIDTH / 2;
+_film_peg_distance_half_omega = FILM_FORMAT_PEG_DISTANCE / 2;
+
+peg_pos_x_calc = calculate_omega_style_peg_coordinate(
+    is_dominant_film_dimension = (effective_orientation == "vertical"),
+    film_width_or_equiv_half = _film_width_raw_half_omega,
+    film_peg_distance_half = _film_peg_distance_half_omega,
+    peg_radius = _peg_radius_omega,
+    omega_internal_gap_value = CALCULATED_INTERNAL_PEG_GAP
+);
+
+peg_pos_y_calc = calculate_omega_style_peg_coordinate(
+    is_dominant_film_dimension = (effective_orientation == "horizontal"), // If horizontal, Y uses film width. If vertical, Y uses film peg distance.
+    film_width_or_equiv_half = _film_width_raw_half_omega,
+    film_peg_distance_half = _film_peg_distance_half_omega,
+    peg_radius = _peg_radius_omega,
+    omega_internal_gap_value = CALCULATED_INTERNAL_PEG_GAP
+);
 
 // Text Etch Positions & Parameters
 owner_etch_bottom_margin = 5;
@@ -299,25 +318,29 @@ if (Top_or_Bottom == "bottom") {
     union() {
         // Positive Features for Bottom Piece
         if (Alignment_Board) {
-            if (Alignment_Board_Type == "omega") {
-                translate([0, 0, -2]) omega_d_alignment_board_no_screws();
-            } else if (Alignment_Board_Type == "lpl-saunders") {
-                translate([0, 0, 0.15]) lpl_saunders_alignment_board();
-            }
+            // Determine Z translation based on board type for Omega carrier
+            _z_trans_val = (Alignment_Board_Type == "omega") ? -2 :
+                           (Alignment_Board_Type == "lpl-saunders") ? 0.15 :
+                           0; // Default Z or for other types like Beseler if supported by Omega
+            translate([0, 0, _z_trans_val]) 
+                instantiate_alignment_board_by_type(Alignment_Board_Type);
         } else { // No Alignment Board
-            if (Printed_or_Heat_Set_Pegs == "printed") {
-                // Add printed pegs if no alignment board and printed pegs are selected
-                pegs_feature(
-                    is_hole = false,
-                    peg_diameter = OMEGA_D_PEG_DIAMETER,
-                    peg_height = OMEGA_D_PEG_HEIGHT,
-                    peg_pos_x = peg_pos_x_calc,
-                    peg_pos_y = peg_pos_y_calc,
-                    z_offset = peg_z_offset_calc + 0.1 // Use calculated z_offset for bottom
-                );
-            }
-            // If heat-set pegs are selected (and no alignment board),
-            // holes are made in the difference() block below.
+            // Additive printed pegs handled by generate_peg_features called below
+        }
+
+        // Additive peg features (printed pegs on bottom piece if no alignment board)
+        // The common module internally checks for "bottom" and "printed"
+        if (!Alignment_Board) {
+             generate_peg_features(
+                _top_or_bottom = Top_or_Bottom,
+                _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
+                _peg_dia = OMEGA_D_PEG_DIAMETER,
+                _peg_h = OMEGA_D_PEG_HEIGHT,
+                _peg_x = peg_pos_x_calc,
+                _peg_y = peg_pos_y_calc,
+                _z_off = peg_z_offset_calc, // peg_z_offset_calc is already adjusted for bottom
+                _is_subtraction_pass = false
+            );
         }
 
         // Base Shape with Subtractions for Bottom Piece
@@ -325,17 +348,17 @@ if (Top_or_Bottom == "bottom") {
             base_shape();
             common_subtractions(is_top_piece = false);
 
-            // Bottom-specific peg-related subtractions
-            // If heat-set pegs are chosen, make holes for them in the bottom piece.
-            // This occurs regardless of the alignment board, per original logic.
-            if (Printed_or_Heat_Set_Pegs == "heat_set") {
-                heat_set_pegs_holes(
-                    peg_height = 4.2,
-                    peg_pos_x = peg_pos_x_calc,
-                    peg_pos_y = peg_pos_y_calc,
-                    z_offset = peg_z_offset_calc + 0.1
-                );
-            }
+            // Peg-related subtractions (holes for heat-set inserts) using common module
+            generate_peg_features(
+                _top_or_bottom = Top_or_Bottom,
+                _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
+                _peg_dia = OMEGA_D_PEG_DIAMETER, // Diameter for clearance if needed, module handles specifics
+                _peg_h = OMEGA_D_PEG_HEIGHT,
+                _peg_x = peg_pos_x_calc,
+                _peg_y = peg_pos_y_calc,
+                _z_off = peg_z_offset_calc, // peg_z_offset_calc is already adjusted for bottom
+                _is_subtraction_pass = true
+            );
 
             // Add arrow etch for 6x6 formats on the bottom piece
             if (Film_Format == "6x6" || Film_Format == "6x6 filed") {
@@ -362,25 +385,17 @@ if (Top_or_Bottom == "bottom") {
         base_shape();
         common_subtractions(is_top_piece = true);
 
-        // Top-specific peg-related subtractions
-        if (Printed_or_Heat_Set_Pegs == "heat_set") {
-            // Holes for screws to engage with heat-set inserts (in bottom or alignment board)
-            heat_set_pegs_socket_head_opening(
-                peg_height = OMEGA_D_PEG_HEIGHT,
-                peg_pos_x = peg_pos_x_calc,
-                peg_pos_y = peg_pos_y_calc,
-                z_offset = peg_z_offset_calc + 0.1 // z_offset includes +0.1 as per original use
-            );
-        } else { // Printed pegs are on the bottom piece, so top needs clearance holes
-            pegs_feature(
-                is_hole = true,
-                peg_diameter = OMEGA_D_PEG_DIAMETER,
-                peg_height = OMEGA_D_PEG_HEIGHT,
-                peg_pos_x = peg_pos_x_calc,
-                peg_pos_y = peg_pos_y_calc,
-                z_offset = peg_z_offset_calc // Use calculated z_offset for top
-            );
-        }
+        // Top-specific peg-related subtractions using common module
+        generate_peg_features(
+            _top_or_bottom = Top_or_Bottom,
+            _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
+            _peg_dia = OMEGA_D_PEG_DIAMETER, // Diameter for clearance if needed, module handles specifics
+            _peg_h = OMEGA_D_PEG_HEIGHT,
+            _peg_x = peg_pos_x_calc,
+            _peg_y = peg_pos_y_calc,
+            _z_off = peg_z_offset_calc, // peg_z_offset_calc is already adjusted for top
+            _is_subtraction_pass = true
+        );
     }
 } else if (Top_or_Bottom == "frameAndPegTestBottom" || Top_or_Bottom == "frameAndPegTestTop") {
     // Create a smaller base for the test piece, slightly larger than the film opening + pegs
@@ -392,41 +407,46 @@ if (Top_or_Bottom == "bottom") {
     // Z offset for pegs/holes in test frames should be centered
     test_peg_z_offset = OMEGA_D_CARRIER_HEIGHT / 2;
 
-    difference() {
-        // Center the test piece
-        cuboid([testPieceHeight, testPieceWidth, OMEGA_D_CARRIER_HEIGHT], anchor = CENTER);
-        // Use generic film_opening
-        film_opening(
-            opening_height = adjusted_opening_height,
-            opening_width = adjusted_opening_width,
-            carrier_height = OMEGA_D_CARRIER_HEIGHT,
-            cut_through_extension = CUT_THROUGH_EXTENSION,
-            frame_fillet = OMEGA_D_FRAME_FILLET
+    // Determine effective top/bottom string for the common module
+    effective_test_top_bottom = (Top_or_Bottom == "frameAndPegTestTop") ? "top" : "bottom";
+
+    union(){ // Union for additive parts of test piece
+        // Additive peg features for test piece (e.g., printed pegs on bottom test piece)
+        // Common module internally checks for "bottom" and "printed"
+        generate_peg_features(
+            _top_or_bottom = effective_test_top_bottom,
+            _printed_or_heat_set = Printed_or_Heat_Set_Pegs, // Assuming test frames use main Printed_or_Heat_Set_Pegs
+            _peg_dia = OMEGA_D_PEG_DIAMETER,
+            _peg_h = OMEGA_D_PEG_HEIGHT,
+            _peg_x = peg_pos_x_calc,
+            _peg_y = peg_pos_y_calc,
+            _z_off = test_peg_z_offset,
+            _is_subtraction_pass = false
         );
-        // Subtract holes if it's the top test piece
-        if (Top_or_Bottom == "frameAndPegTestTop") {
-            // Use generic pegs_feature for holes
-             pegs_feature(
-                is_hole = true,
-                peg_diameter = OMEGA_D_PEG_DIAMETER,
-                peg_height = OMEGA_D_PEG_HEIGHT,
-                peg_pos_x = peg_pos_x_calc,
-                peg_pos_y = peg_pos_y_calc,
-                z_offset = test_peg_z_offset // Correct Z offset for test frame
-             );
+
+        difference() {
+            // Center the test piece
+            cuboid([testPieceHeight, testPieceWidth, OMEGA_D_CARRIER_HEIGHT], anchor = CENTER);
+            // Use generic film_opening
+            film_opening(
+                opening_height = adjusted_opening_height,
+                opening_width = adjusted_opening_width,
+                carrier_height = OMEGA_D_CARRIER_HEIGHT,
+                cut_through_extension = CUT_THROUGH_EXTENSION,
+                frame_fillet = OMEGA_D_FRAME_FILLET
+            );
+            // Subtract holes if it's the top test piece or heat-set holes for bottom
+            generate_peg_features(
+                _top_or_bottom = effective_test_top_bottom,
+                _printed_or_heat_set = Printed_or_Heat_Set_Pegs, // Assuming test frames use main Printed_or_Heat_Set_Pegs
+                _peg_dia = OMEGA_D_PEG_DIAMETER,
+                _peg_h = OMEGA_D_PEG_HEIGHT,
+                _peg_x = peg_pos_x_calc,
+                _peg_y = peg_pos_y_calc,
+                _z_off = test_peg_z_offset,
+                _is_subtraction_pass = true
+            );
         }
-    }
-    // Add pegs if it's the bottom test piece
-    if (Top_or_Bottom == "frameAndPegTestBottom") {
-        // Use generic pegs_feature for pegs
-         pegs_feature(
-            is_hole = false,
-            peg_diameter = OMEGA_D_PEG_DIAMETER,
-            peg_height = OMEGA_D_PEG_HEIGHT,
-            peg_pos_x = peg_pos_x_calc,
-            peg_pos_y = peg_pos_y_calc,
-            z_offset = test_peg_z_offset // Correct Z offset for test frame
-         );
     }
 }
 

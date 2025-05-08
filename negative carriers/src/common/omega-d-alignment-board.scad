@@ -38,11 +38,11 @@ module big_alignment_screw_holes() {
     color("green") translate([-BIG_ALIGNMENT_SCREW_DISTANCE_Y/2, -BIG_ALIGNMENT_SCREW_DISTANCE_X/2, 0]) cylinder(d=BIG_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER);
 }
 
-module edge_cuts() {
-    color("blue")  translate([BOARD_LENGTH_WIDTH/2, BOARD_LENGTH_WIDTH/2, 0]) rotate([0, 0, 45])cuboid([20, 20, 2], anchor=CENTER);
-    color("blue")  translate([BOARD_LENGTH_WIDTH/2, -BOARD_LENGTH_WIDTH/2, 0]) rotate([0, 0, 45])cuboid([20, 20, 2], anchor=CENTER);
-    color("blue")  translate([-BOARD_LENGTH_WIDTH/2, BOARD_LENGTH_WIDTH/2, 0]) rotate([0, 0, 45])cuboid([20, 20, 2], anchor=CENTER);
-    color("blue")  translate([-BOARD_LENGTH_WIDTH/2, -BOARD_LENGTH_WIDTH/2, 0]) rotate([0, 0, 45])cuboid([20, 20, 2], anchor=CENTER);
+module omega_board_edge_cuts() {
+    translate([BOARD_LENGTH_WIDTH/2, BOARD_LENGTH_WIDTH/2, 0]) rotate([0, 0, 45])cuboid([20, 20, 4], anchor=CENTER);
+    translate([BOARD_LENGTH_WIDTH/2, -BOARD_LENGTH_WIDTH/2, 0]) rotate([0, 0, 45])cuboid([20, 20, 4], anchor=CENTER);
+    translate([-BOARD_LENGTH_WIDTH/2, BOARD_LENGTH_WIDTH/2, 0]) rotate([0, 0, 45])cuboid([20, 20, 4], anchor=CENTER);
+    translate([-BOARD_LENGTH_WIDTH/2, -BOARD_LENGTH_WIDTH/2, 0]) rotate([0, 0, 45])cuboid([20, 20, 4], anchor=CENTER);
 }
 
 module board () {
@@ -50,22 +50,23 @@ module board () {
 }
 
 module omega_d_alignment_board_screws () {
-    difference() {
-        color("grey") board();
-        opening_cutout();
-        alignment_screw_holes();
-        big_alignment_screw_holes();
-        edge_cuts();
-    }
+        difference() {
+            color("red") board();
+            omega_board_edge_cuts();
+            opening_cutout();
+            alignment_screw_holes();
+            big_alignment_screw_holes();
+
+        }
 }
 
 module omega_d_alignment_board_no_screws () {
     difference() {
-        color("grey") board();
+        color("red") board();
+        omega_board_edge_cuts();
         opening_cutout();
-        edge_cuts();
     }
 }
 
 // omega_d_alignment_board_screws();
-// // omega_d_alignment_board_no_screws();
+// // omega_d_alignment_board_no_screws();  

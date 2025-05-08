@@ -1,14 +1,22 @@
 // !! READ README.md BEFORE USING !!
 
 include <BOSL2/std.scad>
-include <film-sizes.scad> // Include the film size definitions
-include <common-carrier-features.scad> // Include common carrier features
+include <common/film-sizes.scad> // Include the film size definitions
+include <common/carrier-features.scad> // Include common carrier features
+include <common/beseler-23c-alignment-board.scad> // Include the alignment board
+include <common/lpl-saunders-alignment-board.scad> // Include the alignment board
+include <common/omega-d-alignment-board.scad> // Include the alignment board
 
 /* [Carrier Options] */
 // Top or bottom of the carrier
 Top_or_Bottom = "bottom"; // ["top", "bottom", "frameAndPegTestBottom", "frameAndPegTestTop"]
 // Orientation of the film in the carrier
 Orientation = "vertical"; // ["vertical", "horizontal"]
+// Include the alignment board?
+Alignment_Board = true; // [true, false]
+Alignment_Board_Type = "beseler-23c"; // ["omega", "lpl-saunders", "beseler-23c"]
+// Printed or heat-set pegs? Heat set pegs required when including alignment board.
+Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
 
 /* [Film Format Selection] */
 Film_Format = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "4x5", "custom"]
@@ -21,9 +29,9 @@ Owner_Name = "NAME";
 
 /* [Film Opening Parameters] */
 // Extra distance for the film opening cut to ensure it goes through the material.
-Film_Opening_Cut_Through_Extension = 1; // [mm]
+Film_Opening_Cut_Through_Extension = 1; //
 // Fillet radius for the film opening edges.
-Film_Opening_Frame_Fillet = 0.5; // [mm]
+Film_Opening_Frame_Fillet = 0.5; //
 
 /* [Carrier Type Name Source] */
 // Enable or disable the type name etching
@@ -48,15 +56,17 @@ Fontface = "Futura";
 Font_Size = 10;
 
 /* [Hidden] */
-carrierDiameter = 160;
-carrierHeight = 2;
-alignmentCircleOuterDiameter = 120;
-alignmentCircleInnerDiameter = 110;
-alignmentCircleThickness = 5;
-pegZOffset = 1;
+CARRIER_DIAMETER = 160;
+CARRIER_HEIGHT = 2;
+PEG_Z_OFFSET = Top_or_Bottom == "bottom" ? CARRIER_HEIGHT / 2 : CARRIER_HEIGHT - TOP_PEG_HOLE_Z_OFFSET;
 
-handleLength = 50;
-handleWidth = 42;
+// Peg constants (similar to Omega D)
+PEG_DIAMETER = 5.6; // [mm] Diameter of the pegs
+PEG_HEIGHT = 4;     // [mm] Height of the pegs
+TOP_PEG_HOLE_Z_OFFSET = 1; // [mm] Z offset for peg holes in the top carrier part, relative to CARRIER_HEIGHT. (e.g. Omega D uses 2mm for a 2mm thick carrier, meaning holes are at mid-plane if peg height matches carrier height)
+
+HANDLE_LENGTH = 50;
+HANDLE_WIDTH = 42;
 
 // custom opening height
 customFilmFormatHeight = 36;
@@ -65,31 +75,70 @@ customFilmFormatWidth = 24;
 // custom film format height (for peg distance)
 customFilmFormatPegDistance = 36;
 
-// Determine actual opening dimensions based on orientation
-opening_width_raw = get_film_format_width(Film_Format) + Adjust_Film_Width;
-opening_height_raw = get_film_format_height(Film_Format) + Adjust_Film_Height;
+// Get film dimensions by calling functions from film-sizes.scad
+FILM_FORMAT_HEIGHT = get_film_format_height(Film_Format);
+FILM_FORMAT_WIDTH = get_film_format_width(Film_Format);
+FILM_FORMAT_PEG_DISTANCE = get_film_format_peg_distance(Film_Format);
 
-opening_width_actual = Orientation == "vertical" ? opening_width_raw : opening_height_raw;
-opening_height_actual = Orientation == "vertical" ? opening_height_raw : opening_width_raw;
+// Determine actual opening dimensions based on orientation
+opening_width_actual = get_final_opening_width(Film_Format, Orientation, Adjust_Film_Width);
+opening_height_actual = get_final_opening_height(Film_Format, Orientation, Adjust_Film_Height);
+
+// Peg Feature Dimensions & Calculations
+_is_top_piece_for_peg_z = (Top_or_Bottom == "top");
+
+// Z offset for pegs/holes
+_value_for_top_peg_z = CARRIER_HEIGHT - TOP_PEG_HOLE_Z_OFFSET; // Peg holes on top piece
+_value_for_bottom_peg_z = CARRIER_HEIGHT / 2;                 // Pegs on bottom piece (if implemented)
+peg_z_offset_calc = get_peg_z_offset(_is_top_piece_for_peg_z, _value_for_top_peg_z, _value_for_bottom_peg_z);
+
+// Determine effective orientation (especially for "4x5", though Beseler doesn't list it, good practice)
+effective_orientation = get_effective_orientation(Film_Format, Orientation);
+
+// Check if the selected format is a "filed" medium format
+IS_FILED_MEDIUM_FORMAT = Film_Format == "35mm filed" || // Add other filed formats if they exist for Beseler
+                         Film_Format == "6x4.5 filed" ||
+                         Film_Format == "6x6 filed" ||
+                         Film_Format == "6x7 filed" ||
+                         Film_Format == "6x8 filed" ||
+                         Film_Format == "6x9 filed";
+
+// Internal calculation for peg gap, adjusted for filed formats
+CALCULATED_INTERNAL_PEG_GAP = IS_FILED_MEDIUM_FORMAT ? (1 - Peg_Gap) - 1 : (1 - Peg_Gap);
+
+// Calculate peg positions using Omega-style rules
+_peg_radius = PEG_DIAMETER / 2;
+_film_width_actual_half = (get_film_format_width(Film_Format) + Adjust_Film_Width) / 2; // Use adjusted width
+_film_peg_distance_actual_half = FILM_FORMAT_PEG_DISTANCE / 2; // Peg distance usually not adjusted by Adjust_Film_Height/Width
+
+if (Alignment_Board && Printed_or_Heat_Set_Pegs == "printed") {
+    assert(false, "CARRIER OPTIONS ERROR: Alignment board included, so we can't use printed pegs! Please use heat-set pegs or disable the alignment board.");
+}
+peg_pos_x_calc = calculate_omega_style_peg_coordinate(
+    is_dominant_film_dimension = (effective_orientation == "vertical"), // X uses film width if vertical
+    film_width_or_equiv_half = _film_width_actual_half,
+    film_peg_distance_half = _film_peg_distance_actual_half,
+    peg_radius = _peg_radius,
+    omega_internal_gap_value = CALCULATED_INTERNAL_PEG_GAP
+);
+
+peg_pos_y_calc = calculate_omega_style_peg_coordinate(
+    is_dominant_film_dimension = (effective_orientation == "horizontal"), // Y uses film width if horizontal
+    film_width_or_equiv_half = _film_width_actual_half,
+    film_peg_distance_half = _film_peg_distance_actual_half,
+    peg_radius = _peg_radius,
+    omega_internal_gap_value = CALCULATED_INTERNAL_PEG_GAP
+);
 
 $fn=200;
 
-module alignment_circle() {
-    // Major radius R = (OuterD/2 + InnerD/2) / 2 = (120/2 + 110/2) / 2 = (60 + 55) / 2 = 57.5
-    // Minor radius r = (OuterD/2 - InnerD/2) / 2 = (60 - 55) / 2 = 2.5
-    // Height = 2 * r = 5, which matches alignmentCircleThickness
-    color("red") torus(r_maj = alignmentCircleOuterDiameter/4 + alignmentCircleInnerDiameter/4, 
-                       r_min = alignmentCircleOuterDiameter/4 - alignmentCircleInnerDiameter/4, 
-                       anchor=CENTER);
-}
-
 module handle() {
-    translate([0, carrierDiameter/2, 0]) color("grey") cuboid([handleWidth, handleLength*1.5, carrierHeight], anchor = CENTER, rounding = .5);
+    translate([0, CARRIER_DIAMETER/2, 0]) color("grey") cuboid([HANDLE_WIDTH, HANDLE_LENGTH*1.5, CARRIER_HEIGHT], anchor = CENTER, rounding = .5);
 }
 
 module base_shape() {
     color("grey") union() {
-        cyl(h=carrierHeight, r=carrierDiameter/2, center = true, rounding = .5);
+        cyl(h=CARRIER_HEIGHT, r=CARRIER_DIAMETER/2, center = true, rounding = .5);
     }
 }
 
@@ -101,18 +150,48 @@ if (Top_or_Bottom == "bottom") {
             film_opening(
                 opening_height = opening_height_actual,
                 opening_width = opening_width_actual,
-                carrier_height = carrierHeight,
+                carrier_height = CARRIER_HEIGHT,
                 cut_through_extension = Film_Opening_Cut_Through_Extension,
                 frame_fillet = Film_Opening_Frame_Fillet
             );
-            
+            // Add subtractive peg features (e.g., holes for heat-set inserts)
+            generate_peg_features(
+                _top_or_bottom = Top_or_Bottom, // Should be "bottom"
+                _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
+                _peg_dia = PEG_DIAMETER,
+                _peg_h = PEG_HEIGHT,
+                _peg_x = peg_pos_x_calc,
+                _peg_y = peg_pos_y_calc,
+                _z_off = peg_z_offset_calc,
+                _is_subtraction_pass = true
+            );
         }
+        // This difference block for alignment seems specific and should be maintained
         difference() {
-            translate([0, 0, carrierHeight/2]) alignment_circle();
-            translate([0, 0, -2]) base_shape();
+            if (Alignment_Board) {
+                // Assuming alignment_circle() is defined in beseler-23c-alignment-board.scad
+                // and is intended to be additive or handled correctly there.
+                // If it's a subtractive feature for the base_shape, its placement here is unusual.
+                // For now, keeping as is from original structure.
+                translate([0, 0, CARRIER_HEIGHT/2]) alignment_circle(); 
             }
-
-        // pegs_feature();
+            // This subtraction of base_shape seems to imply alignment_circle() is positive 
+            // and this difference is to make space for it or another feature.
+            // Given original structure, this might be part of creating a recess or similar.
+            translate([0, 0, -2]) base_shape(); 
+        }
+        
+        // Add additive peg features (e.g., printed pegs)
+        generate_peg_features(
+            _top_or_bottom = Top_or_Bottom, // Should be "bottom"
+            _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
+            _peg_dia = PEG_DIAMETER,
+            _peg_h = PEG_HEIGHT,
+            _peg_x = peg_pos_x_calc,
+            _peg_y = peg_pos_y_calc,
+            _z_off = peg_z_offset_calc, // Original printed pegs had +0.1, heat-set did not. Common module handles this nuance if necessary or assumes centered for additions.
+            _is_subtraction_pass = false
+        );
         
         handle();
     }
@@ -122,11 +201,21 @@ if (Top_or_Bottom == "bottom") {
         film_opening(
             opening_height = opening_height_actual,
             opening_width = opening_width_actual,
-            carrier_height = carrierHeight,
+            carrier_height = CARRIER_HEIGHT,
             cut_through_extension = Film_Opening_Cut_Through_Extension,
             frame_fillet = Film_Opening_Frame_Fillet
         );
-        // pegs_feature(is_hole = true);
+        // Add subtractive peg features (e.g., clearance holes or socket head openings)
+        generate_peg_features(
+            _top_or_bottom = Top_or_Bottom, // Should be "top"
+            _printed_or_heat_set = Printed_or_Heat_Set_Pegs,
+            _peg_dia = PEG_DIAMETER,
+            _peg_h = PEG_HEIGHT,
+            _peg_x = peg_pos_x_calc,
+            _peg_y = peg_pos_y_calc,
+            _z_off = peg_z_offset_calc,
+            _is_subtraction_pass = true
+        );
     }
     handle();
 }
