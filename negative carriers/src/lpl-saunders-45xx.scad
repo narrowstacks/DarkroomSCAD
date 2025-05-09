@@ -22,6 +22,13 @@ Alignment_Board_Type = "omega"; // ["omega", "lpl-saunders", "beseler-23c"]
 /* [Film Format Selection] */
 Film_Format = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "4x5", "custom"]
 
+// If custom selected above: measurement of Custom Film Format (top to bottom)
+Custom_Film_Format_Width = 37;
+// Measurement of Custom Film Format carrier opening (top to bottom)
+Custom_Film_Format_Opening_Width = 24;
+// Measurement of Custom Film Format carrier opening (left to right)
+Custom_Film_Format_Opening_Height = 36;
+
 /* [Customization] */
 // Enable or disable the owner name etching
 Enable_Owner_Name_Etch = true; // [true, false]
@@ -67,10 +74,16 @@ if (Alignment_Board && Printed_or_Heat_Set_Pegs == "printed") {
 // Film Opening Dimensions
 $fn = 100;
 // Extra distance for the film opening cut to ensure it goes through the material.
-Film_Opening_Cut_Through_Extension = 1; // 
+Film_Opening_Cut_Through_Extension = 1; //
 // Get film dimensions by calling functions from film-sizes.scad
-FILM_FORMAT_HEIGHT_RAW = get_film_format_height(Film_Format);
-FILM_FORMAT_WIDTH_RAW = get_film_format_width(Film_Format);
+if (Film_Format == "custom"){
+    FILM_FORMAT_HEIGHT_RAW = Custom_Film_Format_Opening_Height;
+    FILM_FORMAT_WIDTH_RAW = Custom_Film_Format_Opening_Width;
+}
+else{
+    FILM_FORMAT_HEIGHT_RAW = get_film_format_height(Film_Format);
+    FILM_FORMAT_WIDTH_RAW = get_film_format_width(Film_Format);
+}
 // Note: LPL Saunders might not use film peg distance directly from standards in the same way Omega does,
 // as 'pegDistance' is a user-configurable variable.
 
@@ -165,7 +178,7 @@ if (Top_or_Bottom == "bottom" || Top_or_Bottom == "top") {
                 base_shape();
                 if (!Alignment_Board) {
                     // If Alignment_Board is OFF, and type implies screws, punch the alignment footprint holes
-                    if (Alignment_Board_Type == "omega" || Alignment_Board_Type == "lpl-saunders") { 
+                    if (Alignment_Board_Type == "omega" || Alignment_Board_Type == "lpl-saunders") {
                         // Assuming "lpl-saunders" board type might also use a standard screw footprint if specified elsewhere,
                         // or this provides a default screw hole option if board is off.
                         alignment_footprint_holes(
@@ -181,7 +194,7 @@ if (Top_or_Bottom == "bottom" || Top_or_Bottom == "top") {
                 }
             }
         }
-        
+
         handle(); // Add the handle to the carrier part
 
         // Alignment board addition for LPL Saunders (only on bottom piece)
@@ -189,13 +202,13 @@ if (Top_or_Bottom == "bottom" || Top_or_Bottom == "top") {
             _z_trans_val = -carrierHeight; // LPL uses -carrierHeight for its boards
             // Conditional coloring based on board type (can be kept or removed if not essential for unified logic)
             if (Alignment_Board_Type == "omega") {
-                color("red") translate([0, 0, _z_trans_val]) 
+                color("red") translate([0, 0, _z_trans_val])
                     instantiate_alignment_board_by_type(Alignment_Board_Type);
             } else if (Alignment_Board_Type == "lpl-saunders") {
-                color("blue") translate([0, 0, _z_trans_val]) 
+                color("blue") translate([0, 0, _z_trans_val])
                     instantiate_alignment_board_by_type(Alignment_Board_Type);
             } else if (Alignment_Board_Type == "beseler-23c") {
-                translate([0, 0, _z_trans_val]) 
+                translate([0, 0, _z_trans_val])
                     instantiate_alignment_board_by_type(Alignment_Board_Type);
             } else {
                 instantiate_alignment_board_by_type(Alignment_Board_Type); // Fallback handles echo
