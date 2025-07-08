@@ -256,7 +256,7 @@ if (Top_or_Bottom == "bottom") {
             _peg_actual_height_param = OMEGA_D_PEG_HEIGHT,
             _peg_pos_x_param = peg_pos_x_calc,
             _peg_pos_y_param = peg_pos_y_calc,
-            _peg_z_offset_param = peg_z_offset_calc
+            _peg_z_offset_param = peg_z_offset_calc + 0.1
         ) {
             difference() {
                 base_shape();
@@ -318,7 +318,7 @@ if (Top_or_Bottom == "bottom") {
 
         // Omega-D specific additions (e.g., alignment board)
         if (Alignment_Board) {
-            _z_trans_val = (Alignment_Board_Type == "omega") ? -2 :
+            _z_trans_val = (Alignment_Board_Type == "omega") ? -1.4 :
                            (Alignment_Board_Type == "lpl-saunders") ? 0.15 :
                            0; 
             translate([0, 0, _z_trans_val]) 
