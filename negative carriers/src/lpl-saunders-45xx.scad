@@ -18,6 +18,8 @@ Printed_or_Heat_Set_Pegs = "printed"; // ["printed", "heat_set"]
 Alignment_Board = true; // [true, false]
 // Type of alignment board- both are compatible with each other, just different styles
 Alignment_Board_Type = "omega"; // ["omega", "lpl-saunders", "beseler-23c"]
+// Flip bottom carriers to printable orientation (rotate 180° on X-axis)
+Flip_Bottom_For_Printing = true; // [true, false]
 
 /* [Film Format Selection] */
 Film_Format = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "4x5", "custom"]
@@ -76,14 +78,8 @@ $fn = 100;
 // Extra distance for the film opening cut to ensure it goes through the material.
 Film_Opening_Cut_Through_Extension = 1; //
 // Get film dimensions by calling functions from film-sizes.scad
-if (Film_Format == "custom"){
-    FILM_FORMAT_HEIGHT_RAW = Custom_Film_Format_Opening_Height;
-    FILM_FORMAT_WIDTH_RAW = Custom_Film_Format_Opening_Width;
-}
-else{
-    FILM_FORMAT_HEIGHT_RAW = get_film_format_height(Film_Format);
-    FILM_FORMAT_WIDTH_RAW = get_film_format_width(Film_Format);
-}
+FILM_FORMAT_HEIGHT_RAW = (Film_Format == "custom") ? Custom_Film_Format_Opening_Height : get_film_format_height(Film_Format);
+FILM_FORMAT_WIDTH_RAW = (Film_Format == "custom") ? Custom_Film_Format_Opening_Width : get_film_format_width(Film_Format);
 // Note: LPL Saunders might not use film peg distance directly from standards in the same way Omega does,
 // as 'pegDistance' is a user-configurable variable.
 
@@ -157,8 +153,11 @@ module handle() {
     }
 }
 
-// Main logic for carrier generation
-if (Top_or_Bottom == "bottom" || Top_or_Bottom == "top") {
+/**
+ * Generates the carrier assembly with all its components
+ * This module contains the carrier logic for both top and bottom
+ */
+module carrier_assembly() {
     union() { // Main union for the carrier part
         carrier_base_processing(
             _top_or_bottom = Top_or_Bottom,
@@ -215,6 +214,20 @@ if (Top_or_Bottom == "bottom" || Top_or_Bottom == "top") {
             }
         }
     }
+}
+
+// Main logic for carrier generation
+if (Top_or_Bottom == "bottom") {
+    // Apply rotation for printable orientation if enabled
+    if (Flip_Bottom_For_Printing) {
+        rotate([180, 0, 0]) {
+            carrier_assembly();
+        }
+    } else {
+        carrier_assembly();
+    }
+} else if (Top_or_Bottom == "top") {
+    carrier_assembly();
 } else if (Top_or_Bottom == "frameAndPegTestBottom" || Top_or_Bottom == "frameAndPegTestTop") {
     testPiecePadding = 10;
     // Test piece dimensions for LPL (using max with opening dimensions as well)

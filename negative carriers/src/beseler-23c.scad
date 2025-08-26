@@ -15,6 +15,8 @@ Orientation = "vertical"; // ["vertical", "horizontal"]
 // Include the alignment board?
 Alignment_Board = true; // [true, false]
 // Alignment_Board_Type = "beseler-23c"; // ["omega", "lpl-saunders", "beseler-23c"]
+// Flip bottom carriers to printable orientation (rotate 180° on X-axis)
+Flip_Bottom_For_Printing = true; // [true, false]
 // Printed or heat-set pegs? Heat set pegs required when including alignment board.
 Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
 
@@ -143,7 +145,11 @@ module base_shape() {
 }
 
 // Main logic
-if (Top_or_Bottom == "bottom") {
+/**
+ * Generates the bottom carrier assembly with all its components
+ * This module contains the original bottom carrier logic for Beseler
+ */
+module bottom_carrier_assembly() {
     union() {
         carrier_base_processing(
             _top_or_bottom = Top_or_Bottom,
@@ -174,6 +180,17 @@ if (Top_or_Bottom == "bottom") {
                 translate([0, 0, -2]) base_shape(); 
             }
         }
+    }
+}
+
+if (Top_or_Bottom == "bottom") {
+    // Apply rotation for printable orientation if enabled
+    if (Flip_Bottom_For_Printing) {
+        rotate([180, 0, 0]) {
+            bottom_carrier_assembly();
+        }
+    } else {
+        bottom_carrier_assembly();
     }
 } else { // topOrBottom == "top" (Original Beseler file only had "bottom" or "top" for main logic, no test frames explicitly)
     // For the top piece, it's mostly subtractions from the base_shape.

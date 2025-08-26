@@ -14,6 +14,8 @@ Orientation = "vertical"; // ["vertical", "horizontal"]
 // Include the alignment board?
 Alignment_Board = true; // [true, false]
 Alignment_Board_Type = "omega"; // ["omega", "lpl-saunders"]
+// Flip bottom carriers to printable orientation (rotate 180° on X-axis)
+Flip_Bottom_For_Printing = true; // [true, false]
 
 // Printed or heat-set pegs? Heat set pegs required when including alignment board.
 Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
@@ -67,6 +69,7 @@ Adjust_Film_Height = 0;
 /* [Hidden] */
 $fn=100;
 
+// Omega-D carrier base dimensions
 OMEGA_D_CARRIER_LENGTH = 202;
 OMEGA_D_CARRIER_WIDTH = 139;
 OMEGA_D_CARRIER_HEIGHT = 2;
@@ -75,50 +78,54 @@ OMEGA_D_CARRIER_RECT_OFFSET = 13.5;
 OMEGA_D_CARRIER_FILLET = 5;
 OMEGA_D_FRAME_FILLET = 0.5;
 
-// Pegs
+// Film positioning peg dimensions
 OMEGA_D_PEG_DIAMETER = 5.6;
 OMEGA_D_PEG_HEIGHT = 4;
 
-// Registration holes
+// Registration hole dimensions and positioning
 OMEGA_D_REG_HOLE_DIAMETER = 6.2;
 OMEGA_D_REG_HOLE_DISTANCE = 130;
 OMEGA_D_REG_HOLE_X_LENGTH = 5;
 OMEGA_D_REG_HOLE_OFFSET = 4.5;
-OMEGA_D_REG_HOLE_TOP_X_OFFSET = 5; // Added for top registration hole X offset
-OMEGA_D_REG_HOLE_BOTTOM_X_OFFSET = -7; // Added for bottom registration hole X offset
+OMEGA_D_REG_HOLE_TOP_X_OFFSET = 5;
+OMEGA_D_REG_HOLE_BOTTOM_X_OFFSET = -7;
 
-// Alignment hole screws
+// Alignment board screw hole dimensions
 OMEGA_D_ALIGNMENT_SCREW_DIAMETER = 2;
 OMEGA_D_ALIGNMENT_SCREW_DISTANCE_X = 113;
 OMEGA_D_ALIGNMENT_SCREW_DISTANCE_Y = 82;
 
-// General constants
-CUT_THROUGH_EXTENSION = 1; // ensures difference operations cut fully through
-OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION = 0; // extends the length of the reg hole slots
-OMEGA_D_REG_HOLE_CYL_Y_OFFSET = 3.1; // Y offset for the cylindrical part of the reg holes
-OMEGA_D_TOP_PEG_HOLE_Z_OFFSET = 2; // Z offset for the peg holes in the top carrier part
+// General modeling constants
+CUT_THROUGH_EXTENSION = 1;
+OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION = 0;
+OMEGA_D_REG_HOLE_CYL_Y_OFFSET = 3.1;
+OMEGA_D_TOP_PEG_HOLE_Z_OFFSET = 2;
 
-// Arrow dimensions for etching
+// Direction arrow dimensions for 6x6 format
 ARROW_LENGTH = 8;
 ARROW_WIDTH = 5;
 ARROW_ETCH_DEPTH = 0.5;
 
-// Check if the selected format is a "filed" medium format
+// Z-axis positioning calculations
+TEXT_ETCH_Z_POSITION = OMEGA_D_CARRIER_HEIGHT / 2 - (TEXT_ETCH_DEPTH + 0.1);
+CARRIER_HALF_HEIGHT = OMEGA_D_CARRIER_HEIGHT / 2;
+
+// Film format type detection
 IS_FILED_MEDIUM_FORMAT = Film_Format == "6x4.5 filed" ||
     Film_Format == "6x6 filed" ||
     Film_Format == "6x7 filed" ||
     Film_Format == "6x8 filed" ||
     Film_Format == "6x9 filed";
 
-// Internal calculation based on user input, adjusted for filed formats
+// Peg gap calculation adjusted for filed medium formats
 CALCULATED_INTERNAL_PEG_GAP = IS_FILED_MEDIUM_FORMAT ? (1 - Peg_Gap) - 1 : (1 - Peg_Gap);
 
-// Get film dimensions by calling functions from film-sizes.scad
+// Film format dimensions from film-sizes.scad
 FILM_FORMAT_HEIGHT = get_film_format_height(Film_Format);
 FILM_FORMAT_WIDTH = get_film_format_width(Film_Format);
 FILM_FORMAT_PEG_DISTANCE = get_film_format_peg_distance(Film_Format);
 
-// Assert that the functions returned valid values (not undef)
+// Validate film format selection
 assert(FILM_FORMAT_HEIGHT != undef, str("Unknown or unsupported Film_Format selected: ", Film_Format));
 assert(FILM_FORMAT_WIDTH != undef, str("Unknown or unsupported Film_Format selected: ", Film_Format));
 assert(FILM_FORMAT_PEG_DISTANCE != undef, str("Unknown or unsupported Film_Format selected: ", Film_Format));
@@ -126,14 +133,14 @@ if (Alignment_Board && Printed_or_Heat_Set_Pegs == "printed") {
     assert(false, "CARRIER OPTIONS ERROR: Alignment board included, so we can't use printed pegs! Please use heat-set pegs or disable the alignment board.");
 }
 
+// Generate carrier type name for etching
 SELECTED_TYPE_NAME = get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format);
 
-// Calculate Z offset for pegs/holes based on topOrBottom
-PEG_Z_OFFSET = Top_or_Bottom == "bottom" ? OMEGA_D_CARRIER_HEIGHT / 2 : OMEGA_D_CARRIER_HEIGHT - OMEGA_D_TOP_PEG_HOLE_Z_OFFSET;
-
-// Get text metrics
+// Text positioning and boundary calculations
 owner_metrics = textmetrics(text=Owner_Name, font=Fontface, size=10, halign="center", valign="center");
 type_metrics = textmetrics(text=SELECTED_TYPE_NAME, font=Fontface, size=10, halign="center", valign="center");
+
+// Safe rectangular area boundaries for text placement
 safe_rect_center_x = -OMEGA_D_CARRIER_RECT_OFFSET;
 safe_rect_size_x = OMEGA_D_CARRIER_LENGTH;
 safe_rect_size_y = OMEGA_D_CARRIER_WIDTH;
@@ -141,26 +148,28 @@ safe_min_x = safe_rect_center_x - safe_rect_size_x / 2;
 safe_max_x = safe_rect_center_x + safe_rect_size_x / 2;
 safe_min_y = -safe_rect_size_y / 2;
 safe_max_y = safe_rect_size_y / 2;
-owner_rotated_size_x = owner_metrics.size[1]; // text height
-owner_rotated_size_y = owner_metrics.size[0]; // text width
+
+// Owner name text boundaries (rotated 270 degrees)
+owner_rotated_size_x = owner_metrics.size[1];
+owner_rotated_size_y = owner_metrics.size[0];
 owner_center_x = -100;
 owner_center_y = -35;
 owner_min_x = owner_center_x - owner_rotated_size_x / 2;
 owner_max_x = owner_center_x + owner_rotated_size_x / 2;
 owner_min_y = owner_center_y - owner_rotated_size_y / 2;
 owner_max_y = owner_center_y + owner_rotated_size_y / 2;
-type_rotated_size_x = type_metrics.size[1]; // text height
-type_rotated_size_y = type_metrics.size[0]; // text width
+
+// Type name text boundaries (rotated 270 degrees)
+type_rotated_size_x = type_metrics.size[1];
+type_rotated_size_y = type_metrics.size[0];
 type_center_x = -100;
 type_center_y = 40;
 type_min_x = type_center_x - type_rotated_size_x / 2;
 type_max_x = type_center_x + type_rotated_size_x / 2;
 type_min_y = type_center_y - type_rotated_size_y / 2;
 type_max_y = type_center_y + type_rotated_size_y / 2;
-// echo(str("Type Name Final BBox X: [", type_min_x, ", ", type_max_x, "]"));
-// echo(str("Type Name Final BBox Y: [", type_min_y, ", ", type_max_y, "]"));
 
-// Check bounds and assert if text goes outside the safe rectangular area
+// Validate text fits within safe area boundaries
 assert(owner_min_x >= safe_min_x && owner_max_x <= safe_max_x,
        str("ERROR: Owner Name '", Owner_Name, "' X dimension [", owner_min_x, ", ", owner_max_x, "] exceeds safe area X [", safe_min_x, ", ", safe_max_x, "]. Consider shortening the name or adjusting position."));
 assert(owner_min_y >= safe_min_y && owner_max_y <= safe_max_y,
@@ -170,114 +179,213 @@ assert(type_min_x >= safe_min_x && type_max_x <= safe_max_x,
 assert(type_min_y >= safe_min_y && type_max_y <= safe_max_y,
        str("ERROR: Type Name '", SELECTED_TYPE_NAME, "' Y dimension [", type_min_y, ", ", type_max_y, "] exceeds safe area Y [", safe_min_y, ", ", safe_max_y, "]. Consider adjusting position."));
 
-// Effective text depths
+// Multi-material text depth calculations
 TEXT_SOLID_HEIGHT = Layer_Height_mm * Text_Layer_Multiple;
 TEXT_SUBTRACT_DEPTH = Text_As_Separate_Parts ? TEXT_SOLID_HEIGHT : TEXT_ETCH_DEPTH;
+TEXT_SOLID_Z_POSITION = CARRIER_HALF_HEIGHT - TEXT_SOLID_HEIGHT;
 
-// Map part name to preview color (unique colors for MM parts)
+/**
+ * Generates multi-material text parts for separate printing
+ * Creates solid text objects positioned for multi-color printing
+ */
+module generate_multi_material_text_parts() {
+    if (Text_As_Separate_Parts) {
+        owner_text_solid_pos = [owner_etch_bottom_position, -95, TEXT_SOLID_Z_POSITION];
+        type_text_solid_pos = [type_etch_top_position, -95, TEXT_SOLID_Z_POSITION];
+        
+        if (Enable_Owner_Name_Etch) {
+            Part("OwnerText")
+                rotate(owner_etch_rot) translate(owner_text_solid_pos)
+                    text_solid(
+                        text_string = Owner_Name,
+                        font = Fontface,
+                        size = Font_Size,
+                        height = TEXT_SOLID_HEIGHT,
+                        halign = "right",
+                        valign = "top"
+                    );
+        }
+        if (Enable_Type_Name_Etch) {
+            Part("TypeText")
+                rotate(type_etch_rot) translate(type_text_solid_pos)
+                    text_solid(
+                        text_string = SELECTED_TYPE_NAME,
+                        font = Fontface,
+                        size = Font_Size,
+                        height = TEXT_SOLID_HEIGHT,
+                        halign = "left",
+                        valign = "top"
+                    );
+        }
+    }
+}
+
+/**
+ * Generates alignment board footprint holes
+ * @param is_dent_holes true for top piece (dents), false for bottom piece (through-holes)
+ */
+module generate_alignment_footprint_holes(is_dent_holes = false) {
+    if (!Alignment_Board) {
+        if (Alignment_Board_Type == "omega" || Alignment_Board_Type == "lpl-saunders") {
+            alignment_footprint_holes(
+                _screw_dia = OMEGA_D_ALIGNMENT_SCREW_DIAMETER,
+                _dist_for_x_coords = OMEGA_D_ALIGNMENT_SCREW_DISTANCE_Y,
+                _dist_for_y_coords = OMEGA_D_ALIGNMENT_SCREW_DISTANCE_X,
+                _carrier_h = OMEGA_D_CARRIER_HEIGHT,
+                _cut_ext = CUT_THROUGH_EXTENSION,
+                _is_dent = is_dent_holes,
+                _dent_depth = 1
+            );
+        }
+    }
+}
+
+/**
+ * Generates text etch subtractions for owner and type names
+ * Creates recessed text areas on the carrier surface
+ */
+module generate_text_etch_subtractions() {
+    if (Enable_Owner_Name_Etch) {
+        rotate(owner_etch_rot) translate(owner_etch_pos)
+            text_etch(
+                text_string = Owner_Name,
+                font = Fontface,
+                size = Font_Size,
+                etch_depth = TEXT_SUBTRACT_DEPTH,
+                halign = "right",
+                valign = "top"
+            );
+    }
+    if (Enable_Type_Name_Etch) {
+        rotate(type_etch_rot) translate(type_etch_pos)
+            text_etch(
+                text_string = SELECTED_TYPE_NAME,
+                font = Fontface,
+                size = Font_Size,
+                etch_depth = TEXT_SUBTRACT_DEPTH,
+                halign = "left",
+                valign = "top"
+            );
+    }
+}
+
+/**
+ * Maps part names to preview colors for multi-material visualization
+ * @param part Part name string
+ * @return Color name for OpenSCAD preview
+ */
 function PartColor(part) =
     (part == "Base") ? "grey" :
     (part == "OwnerText") ? "orange" :
     (part == "TypeText") ? "purple" :
     "gray";
 
-// Part gating (children()) as per multi-extruder blog technique
-module Part(DoPart)
-{
-    color(PartColor(DoPart))
-    {
-        if (_WhichPart == "All" || DoPart == _WhichPart)
-        {
+/**
+ * Part gating module for multi-material printing
+ * Controls which parts are rendered based on selection
+ * @param DoPart Part name to conditionally render
+ */
+module Part(DoPart) {
+    color(PartColor(DoPart)) {
+        if (_WhichPart == "All" || DoPart == _WhichPart) {
             children();
         }
     }
 }
 
+/**
+ * Creates the basic Omega-D carrier shape
+ * Combines circular and rectangular sections with rounded edges
+ */
 module base_shape() {
     color("grey") union() {
         cylinder(h=OMEGA_D_CARRIER_HEIGHT, r=OMEGA_D_CARRIER_CIRCLE_DIAMETER/2, center = true);
-        translate([-OMEGA_D_CARRIER_RECT_OFFSET, 0, 0]) cuboid([OMEGA_D_CARRIER_LENGTH, OMEGA_D_CARRIER_WIDTH, OMEGA_D_CARRIER_HEIGHT], anchor = CENTER, rounding=OMEGA_D_CARRIER_FILLET, edges=[[0,0,0,0], [0,0,0,0], [1,1,1,1]]);
+        translate([-OMEGA_D_CARRIER_RECT_OFFSET, 0, 0]) 
+            cuboid([OMEGA_D_CARRIER_LENGTH, OMEGA_D_CARRIER_WIDTH, OMEGA_D_CARRIER_HEIGHT], 
+                   anchor = CENTER, rounding=OMEGA_D_CARRIER_FILLET, 
+                   edges=[[0,0,0,0], [0,0,0,0], [1,1,1,1]]);
     }
 }
 
+/**
+ * Creates registration holes for Omega-D enlarger alignment
+ * Generates top and bottom registration slots with cylindrical extensions
+ */
 module registration_holes() {
-    // top 
-    translate([0, -1.5, 0]) union() {
-        color("red") translate([OMEGA_D_REG_HOLE_TOP_X_OFFSET + (OMEGA_D_REG_HOLE_DISTANCE/2) + OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2, 0]) cuboid([OMEGA_D_REG_HOLE_DIAMETER, OMEGA_D_REG_HOLE_DIAMETER + OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION, OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor = CENTER);
-        color("red") translate([OMEGA_D_REG_HOLE_TOP_X_OFFSET + (OMEGA_D_REG_HOLE_DISTANCE/2) + OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2 + OMEGA_D_REG_HOLE_CYL_Y_OFFSET, 0]) cylinder(h=OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=OMEGA_D_REG_HOLE_DIAMETER/2, center = true);
-    }
-    // bottom
-    translate([0, -1.5, 0]) union() {
-        color("red") translate([OMEGA_D_REG_HOLE_BOTTOM_X_OFFSET - (OMEGA_D_REG_HOLE_DISTANCE/2) - OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2, 0]) cuboid([OMEGA_D_REG_HOLE_DIAMETER, OMEGA_D_REG_HOLE_DIAMETER + OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION, OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor = CENTER);
-        color("red") translate([OMEGA_D_REG_HOLE_BOTTOM_X_OFFSET - (OMEGA_D_REG_HOLE_DISTANCE/2) - OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2 + OMEGA_D_REG_HOLE_CYL_Y_OFFSET, 0]) cylinder(h=OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=OMEGA_D_REG_HOLE_DIAMETER/2, center = true);
+    translate([0, -1.5, 0]) {
+        // Top registration hole
+        union() {
+            color("red") translate([OMEGA_D_REG_HOLE_TOP_X_OFFSET + (OMEGA_D_REG_HOLE_DISTANCE/2) + OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2, 0]) 
+                cuboid([OMEGA_D_REG_HOLE_DIAMETER, OMEGA_D_REG_HOLE_DIAMETER + OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION, OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor = CENTER);
+            color("red") translate([OMEGA_D_REG_HOLE_TOP_X_OFFSET + (OMEGA_D_REG_HOLE_DISTANCE/2) + OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2 + OMEGA_D_REG_HOLE_CYL_Y_OFFSET, 0]) 
+                cylinder(h=OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=OMEGA_D_REG_HOLE_DIAMETER/2, center = true);
+        }
+        // Bottom registration hole
+        union() {
+            color("red") translate([OMEGA_D_REG_HOLE_BOTTOM_X_OFFSET - (OMEGA_D_REG_HOLE_DISTANCE/2) - OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2, 0]) 
+                cuboid([OMEGA_D_REG_HOLE_DIAMETER, OMEGA_D_REG_HOLE_DIAMETER + OMEGA_D_REG_HOLE_SLOT_LENGTH_EXTENSION, OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor = CENTER);
+            color("red") translate([OMEGA_D_REG_HOLE_BOTTOM_X_OFFSET - (OMEGA_D_REG_HOLE_DISTANCE/2) - OMEGA_D_REG_HOLE_DIAMETER/2, -OMEGA_D_REG_HOLE_DISTANCE/2 + OMEGA_D_REG_HOLE_CYL_Y_OFFSET, 0]) 
+                cylinder(h=OMEGA_D_CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=OMEGA_D_REG_HOLE_DIAMETER/2, center = true);
+        }
     }
 }
 
-// Module to create a left-pointing arrow shape for etching
+/**
+ * Creates a left-pointing arrow shape for directional etching
+ * Used to indicate film orientation on 6x6 format carriers
+ * @param etch_depth Depth of the etched arrow
+ * @param length Arrow length
+ * @param width Arrow width
+ */
 module arrow_etch(etch_depth = 0.5, length = 5, width = 3) {
-    // Centered around [0,0] for easier placement later
-    // Tip at [-length/2, 0], Base at [length/2, +/- width/2]
-    translate([-10 ,0, .5]) // Position Z base at the top surface
-    linear_extrude(height = etch_depth + 0.1) // Extrude upwards
-        polygon(points=[ [-length/2, 0], [length/2, width/2], [length/2, -width/2] ]);
+    translate([-10 ,0, .5]) 
+        linear_extrude(height = etch_depth + 0.1) 
+            polygon(points=[ [-length/2, 0], [length/2, width/2], [length/2, -width/2] ]);
 }
 
-// Calculate values needed for generic modules using functions from carrier-features.scad
-
-// Film Opening Dimensions
+// Film opening calculations using carrier-features.scad functions
 effective_orientation = get_effective_orientation(Film_Format, Orientation);
 adjusted_opening_height = get_final_opening_height(Film_Format, Orientation, Adjust_Film_Height);
 adjusted_opening_width = get_final_opening_width(Film_Format, Orientation, Adjust_Film_Width);
 
-// Peg Feature Dimensions
-_is_top_piece_for_peg_z = (Top_or_Bottom == "top");
-// Original logic for peg_z_offset_calc:
-// If Top_or_Bottom == "top", value is (OMEGA_D_CARRIER_HEIGHT - OMEGA_D_TOP_PEG_HOLE_Z_OFFSET)
-// If Top_or_Bottom == "bottom", value is (OMEGA_D_CARRIER_HEIGHT / 2)
-_value_for_top_peg_z_omega = OMEGA_D_CARRIER_HEIGHT - OMEGA_D_TOP_PEG_HOLE_Z_OFFSET;
-_value_for_bottom_peg_z_omega = OMEGA_D_CARRIER_HEIGHT / 2;
-peg_z_offset_calc = get_peg_z_offset(_is_top_piece_for_peg_z, _value_for_top_peg_z_omega, _value_for_bottom_peg_z_omega);
+// Peg positioning calculations
+peg_z_offset_calc = (Top_or_Bottom == "top") ? 
+    (OMEGA_D_CARRIER_HEIGHT - OMEGA_D_TOP_PEG_HOLE_Z_OFFSET) : 
+    CARRIER_HALF_HEIGHT;
 
-// Calculate peg positions using Omega-style rules
-_peg_radius_omega = OMEGA_D_PEG_DIAMETER / 2;
-_film_width_raw_half_omega = FILM_FORMAT_WIDTH / 2;
-_film_peg_distance_half_omega = FILM_FORMAT_PEG_DISTANCE / 2;
-
+// Calculate peg positions using Omega-style coordinate system
 peg_pos_x_calc = calculate_omega_style_peg_coordinate(
     is_dominant_film_dimension = (effective_orientation == "vertical"),
-    film_width_or_equiv_half = _film_width_raw_half_omega,
-    film_peg_distance_half = _film_peg_distance_half_omega,
-    peg_radius = _peg_radius_omega,
+    film_width_or_equiv_half = FILM_FORMAT_WIDTH / 2,
+    film_peg_distance_half = FILM_FORMAT_PEG_DISTANCE / 2,
+    peg_radius = OMEGA_D_PEG_DIAMETER / 2,
     omega_internal_gap_value = CALCULATED_INTERNAL_PEG_GAP
 );
 
 peg_pos_y_calc = calculate_omega_style_peg_coordinate(
-    is_dominant_film_dimension = (effective_orientation == "horizontal"), // If horizontal, Y uses film width. If vertical, Y uses film peg distance.
-    film_width_or_equiv_half = _film_width_raw_half_omega,
-    film_peg_distance_half = _film_peg_distance_half_omega,
-    peg_radius = _peg_radius_omega,
+    is_dominant_film_dimension = (effective_orientation == "horizontal"),
+    film_width_or_equiv_half = FILM_FORMAT_WIDTH / 2,
+    film_peg_distance_half = FILM_FORMAT_PEG_DISTANCE / 2,
+    peg_radius = OMEGA_D_PEG_DIAMETER / 2,
     omega_internal_gap_value = CALCULATED_INTERNAL_PEG_GAP
 );
 
-// Text Etch Positions & Parameters
+// Text etching position calculations
 owner_etch_bottom_margin = 5;
 owner_etch_bottom_position = safe_max_y - owner_etch_bottom_margin;
-// Position vector for translate() before calling text_etch for Owner Name
-// Adjust Z to position the *base* of the extrusion correctly for subtraction
-owner_etch_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - (TEXT_SUBTRACT_DEPTH + 0.1);
-owner_etch_pos = [owner_etch_bottom_position, -95, owner_etch_z_pos];
-owner_etch_rot = [0, 0, 270]; // Rotation vector for rotate() before calling text_etch
+owner_etch_pos = [owner_etch_bottom_position, -95, TEXT_ETCH_Z_POSITION];
+owner_etch_rot = [0, 0, 270];
 
 type_etch_top_margin = 5;
 type_etch_top_position = safe_min_y + type_etch_top_margin;
-// Position vector for translate() before calling text_etch for Type Name
-// Adjust Z to position the *base* of the extrusion correctly for subtraction
-type_etch_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - (TEXT_SUBTRACT_DEPTH + 0.1);
-type_etch_pos = [type_etch_top_position, -95, type_etch_z_pos];
-type_etch_rot = [0, 0, 270]; // Rotation vector for rotate() before calling text_etch
+type_etch_pos = [type_etch_top_position, -95, TEXT_ETCH_Z_POSITION];
+type_etch_rot = [0, 0, 270];
 
-// Main logic
-if (Top_or_Bottom == "bottom") {
+/**
+ * Generates the bottom carrier assembly with all its components
+ * This module contains the original bottom carrier logic
+ */
+module bottom_carrier_assembly() {
     Part("Base") union() {
         carrier_base_processing(
             _top_or_bottom = Top_or_Bottom,
@@ -296,51 +404,19 @@ if (Top_or_Bottom == "bottom") {
             difference() {
                 base_shape();
                 registration_holes();
-                if (!Alignment_Board) {
-                    if (Alignment_Board_Type == "omega" || Alignment_Board_Type == "lpl-saunders") {
-                        alignment_footprint_holes(
-                            _screw_dia = OMEGA_D_ALIGNMENT_SCREW_DIAMETER,
-                            _dist_for_x_coords = OMEGA_D_ALIGNMENT_SCREW_DISTANCE_Y, // Swapped due to original omega-d definition
-                            _dist_for_y_coords = OMEGA_D_ALIGNMENT_SCREW_DISTANCE_X, // Swapped due to original omega-d definition
-                            _carrier_h = OMEGA_D_CARRIER_HEIGHT,
-                            _cut_ext = CUT_THROUGH_EXTENSION,
-                            _is_dent = false, // For bottom piece, make through-holes
-                            _dent_depth = 1    // Dent depth (not used if _is_dent is false)
-                        );
-                    }
-                }
-                if (Enable_Owner_Name_Etch) {
-                    rotate(owner_etch_rot) translate(owner_etch_pos)
-                        text_etch(
-                            text_string = Owner_Name,
-                            font = Fontface,
-                            size = Font_Size,
-                            etch_depth = TEXT_SUBTRACT_DEPTH,
-                            halign = "right",
-                            valign = "top"
-                        );
-                }
-                if (Enable_Type_Name_Etch) {
-                    rotate(type_etch_rot) translate(type_etch_pos)
-                        text_etch(
-                            text_string = SELECTED_TYPE_NAME,
-                            font = Fontface,
-                            size = Font_Size,
-                            etch_depth = TEXT_SUBTRACT_DEPTH,
-                            halign = "left",
-                            valign = "top"
-                        );
-                }
+                generate_alignment_footprint_holes(is_dent_holes = false);
+                generate_text_etch_subtractions();
+                // Add directional arrow for 6x6 formats
                 if (Film_Format == "6x6" || Film_Format == "6x6 filed") {
-                    arrowOffset = 5; // Distance from opening edge to arrow tip
+                    arrowOffset = 5;
                     if (Orientation == "vertical") {
-                        currentOpeningWidth = FILM_FORMAT_WIDTH; // This should be opening_width_actual or similar if adjusted
+                        currentOpeningWidth = FILM_FORMAT_WIDTH;
                         arrowPosX = 0;
                         arrowPosY = currentOpeningWidth / 2 + arrowOffset + ARROW_LENGTH / 2;
                         translate([arrowPosX + 10, -arrowPosY , 0])
                             arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
-                    } else { // Orientation == "horizontal"
-                        currentOpeningHeight = FILM_FORMAT_HEIGHT; // This should be opening_height_actual or similar
+                    } else {
+                        currentOpeningHeight = FILM_FORMAT_HEIGHT;
                         arrowPosX = 0;
                         arrowPosY = -currentOpeningHeight / 2 - arrowOffset - ARROW_LENGTH / 2;
                         translate([arrowPosX, arrowPosY, 0])
@@ -351,55 +427,30 @@ if (Top_or_Bottom == "bottom") {
             }
         }
 
-        // Omega-D specific additions (e.g., alignment board)
+        // Add alignment board if enabled
         if (Alignment_Board) {
             _z_trans_val = (Alignment_Board_Type == "omega") ? -1.4 :
                            (Alignment_Board_Type == "lpl-saunders") ? 0.15 :
                            0; 
             translate([0, 0, _z_trans_val]) 
                 instantiate_alignment_board_by_type(Alignment_Board_Type);
-        } 
-        // No handle() module in Omega-D original structure for main pieces
+        }
+    }
+}
+
+// Main carrier generation logic
+if (Top_or_Bottom == "bottom") {
+    // Apply rotation for printable orientation if enabled
+    if (Flip_Bottom_For_Printing) {
+        rotate([180, 0, 0]) {
+            bottom_carrier_assembly();
+        }
+    } else {
+        bottom_carrier_assembly();
     }
 
-    // Separate text solids for multi-material printing
-    if (Text_As_Separate_Parts) {
-        // Solid Z positions have no extra overcut
-        owner_text_solid_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - TEXT_SOLID_HEIGHT;
-        owner_text_solid_pos = [owner_etch_bottom_position, -95, owner_text_solid_z_pos];
-        type_text_solid_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - TEXT_SOLID_HEIGHT;
-        type_text_solid_pos = [type_etch_top_position, -95, type_text_solid_z_pos];
-        if (Enable_Owner_Name_Etch) {
-            Part("OwnerText")
-                rotate(owner_etch_rot) translate(owner_text_solid_pos)
-                    text_solid(
-                        text_string = Owner_Name,
-                        font = Fontface,
-                        size = Font_Size,
-                        height = TEXT_SOLID_HEIGHT,
-                        halign = "right",
-                        valign = "top"
-                    );
-        }
-        if (Enable_Type_Name_Etch) {
-            Part("TypeText")
-                rotate(type_etch_rot) translate(type_text_solid_pos)
-                    text_solid(
-                        text_string = SELECTED_TYPE_NAME,
-                        font = Fontface,
-                        size = Font_Size,
-                        height = TEXT_SOLID_HEIGHT,
-                        halign = "left",
-                        valign = "top"
-                    );
-        }
-    }
+    generate_multi_material_text_parts();
 } else if (Top_or_Bottom == "top") {
-    // For the top piece, it's mostly subtractions from the base_shape.
-    // The carrier_base_processing module applies both subtractions and then additions (for printed pegs).
-    // Since top pieces typically don't have printed pegs on them (they have holes for pegs from bottom), 
-    // the additive part of carrier_base_processing will effectively do nothing if _printed_or_heat_set is "heat_set"
-    // or if _top_or_bottom is "top" and _printed_or_heat_set is "printed" (as generate_peg_features handles this).
     Part("Base") carrier_base_processing(
         _top_or_bottom = Top_or_Bottom,
         _carrier_material_height = OMEGA_D_CARRIER_HEIGHT,
@@ -417,84 +468,19 @@ if (Top_or_Bottom == "bottom") {
         difference() {
             base_shape();
             registration_holes(); 
-            if (!Alignment_Board) {
-                 if (Alignment_Board_Type == "omega" || Alignment_Board_Type == "lpl-saunders") {
-                    alignment_footprint_holes(
-                        _screw_dia = OMEGA_D_ALIGNMENT_SCREW_DIAMETER,
-                        _dist_for_x_coords = OMEGA_D_ALIGNMENT_SCREW_DISTANCE_Y, // Swapped due to original omega-d definition
-                        _dist_for_y_coords = OMEGA_D_ALIGNMENT_SCREW_DISTANCE_X, // Swapped due to original omega-d definition
-                        _carrier_h = OMEGA_D_CARRIER_HEIGHT,
-                        _cut_ext = CUT_THROUGH_EXTENSION,
-                        _is_dent = true,  // For top piece, make dents
-                        _dent_depth = 1   // Standard dent depth
-                    );
-                 }
-            }
-            if (Enable_Owner_Name_Etch) {
-                rotate(owner_etch_rot) translate(owner_etch_pos)
-                    text_etch(
-                        text_string = Owner_Name,
-                        font = Fontface,
-                        size = Font_Size,
-                        etch_depth = TEXT_SUBTRACT_DEPTH,
-                        halign = "right",
-                        valign = "top"
-                    );
-            }
-            if (Enable_Type_Name_Etch) {
-                rotate(type_etch_rot) translate(type_etch_pos)
-                    text_etch(
-                        text_string = SELECTED_TYPE_NAME,
-                        font = Fontface,
-                        size = Font_Size,
-                        etch_depth = TEXT_SUBTRACT_DEPTH,
-                        halign = "left",
-                        valign = "top"
-                    );
-            }
-            // No arrow etch for top piece in original logic
+            generate_alignment_footprint_holes(is_dent_holes = true);
+            generate_text_etch_subtractions();
         }
     }
-    // No handle() module in Omega-D original structure for main pieces
 
-    // Separate text solids for multi-material printing
-    if (Text_As_Separate_Parts) {
-        // Solid Z positions have no extra overcut
-        owner_text_solid_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - TEXT_SOLID_HEIGHT;
-        owner_text_solid_pos = [owner_etch_bottom_position, -95, owner_text_solid_z_pos];
-        type_text_solid_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - TEXT_SOLID_HEIGHT;
-        type_text_solid_pos = [type_etch_top_position, -95, type_text_solid_z_pos];
-        if (Enable_Owner_Name_Etch) {
-            Part("OwnerText")
-                rotate(owner_etch_rot) translate(owner_text_solid_pos)
-                    text_solid(
-                        text_string = Owner_Name,
-                        font = Fontface,
-                        size = Font_Size,
-                        height = TEXT_SOLID_HEIGHT,
-                        halign = "right",
-                        valign = "top"
-                    );
-        }
-        if (Enable_Type_Name_Etch) {
-            Part("TypeText")
-                rotate(type_etch_rot) translate(type_text_solid_pos)
-                    text_solid(
-                        text_string = SELECTED_TYPE_NAME,
-                        font = Fontface,
-                        size = Font_Size,
-                        height = TEXT_SOLID_HEIGHT,
-                        halign = "left",
-                        valign = "top"
-                    );
-        }
-    }
+    generate_multi_material_text_parts();
 
 } else if (Top_or_Bottom == "frameAndPegTestBottom" || Top_or_Bottom == "frameAndPegTestTop") {
+    // Generate test pieces for fit validation
     testPiecePadding = 10; 
-    testPieceWidth = 2 * peg_pos_y_calc + OMEGA_D_PEG_DIAMETER + testPiecePadding * 2; // Adjusted to include full peg dia for extent
-    testPieceDepth = 2 * peg_pos_x_calc + OMEGA_D_PEG_DIAMETER + testPiecePadding * 2; // Adjusted to include full peg dia for extent
-    test_peg_z_offset = OMEGA_D_CARRIER_HEIGHT / 2;
+    testPieceWidth = 2 * peg_pos_y_calc + OMEGA_D_PEG_DIAMETER + testPiecePadding * 2;
+    testPieceDepth = 2 * peg_pos_x_calc + OMEGA_D_PEG_DIAMETER + testPiecePadding * 2;
+    test_peg_z_offset = CARRIER_HALF_HEIGHT;
     effective_test_top_bottom = (Top_or_Bottom == "frameAndPegTestTop") ? "top" : "bottom";
 
     generate_test_frame(
