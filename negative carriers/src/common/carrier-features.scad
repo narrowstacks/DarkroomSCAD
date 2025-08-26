@@ -69,6 +69,14 @@ module text_etch(text_string, font, size, etch_depth = 1, halign="center", valig
     }
 }
 
+// Creates a solid text body (no over-extrusion) for multi-material parts.
+// Parameters mirror text_etch, but height is exact with no extra.
+module text_solid(text_string, font, size, height, halign="center", valign="center") {
+    linear_extrude(height = height) {
+        text(text_string, font = font, size = size, halign = halign, valign = valign);
+    }
+}
+
 // Function to determine effective orientation, especially for "4x5"
 function get_effective_orientation(film_format_str, orientation_str) =
     (film_format_str == "4x5") ? "vertical" : orientation_str;

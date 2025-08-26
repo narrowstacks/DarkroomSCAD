@@ -44,6 +44,18 @@ Font_Size = 10;
 // Depth for etching
 TEXT_ETCH_DEPTH = 1; 
 
+/* [Multi-Material Text] */
+// Render text as separate parts for multi-material printing
+Text_As_Separate_Parts = false; // [true, false]
+// Desired slicer layer height (mm)
+Layer_Height_mm = 0.27;
+// Number of layers for text thickness (multiple of layer height)
+Text_Layer_Multiple = 1;
+
+/* [Multi-Material Output Selector] */
+// Select which part to render when exporting STLs
+_WhichPart = "All"; // ["All", "Base", "OwnerText", "TypeText"]
+
 /* [Adjustments] */
 // Leave at 0 for default gap. Measured in mm. Add positive values to increase the gap between pegs and film edge, subtract (use negative values) to decrease it. Default 0 allows for little wiggle.
 Peg_Gap = 0;
@@ -53,6 +65,8 @@ Adjust_Film_Width = 0;
 Adjust_Film_Height = 0;
 
 /* [Hidden] */
+$fn=100;
+
 OMEGA_D_CARRIER_LENGTH = 202;
 OMEGA_D_CARRIER_WIDTH = 139;
 OMEGA_D_CARRIER_HEIGHT = 2;
@@ -98,8 +112,6 @@ IS_FILED_MEDIUM_FORMAT = Film_Format == "6x4.5 filed" ||
 
 // Internal calculation based on user input, adjusted for filed formats
 CALCULATED_INTERNAL_PEG_GAP = IS_FILED_MEDIUM_FORMAT ? (1 - Peg_Gap) - 1 : (1 - Peg_Gap);
-
-$fn=100;
 
 // Get film dimensions by calling functions from film-sizes.scad
 FILM_FORMAT_HEIGHT = get_film_format_height(Film_Format);
@@ -157,6 +169,29 @@ assert(type_min_x >= safe_min_x && type_max_x <= safe_max_x,
        str("ERROR: Type Name '", SELECTED_TYPE_NAME, "' X dimension [", type_min_x, ", ", type_max_x, "] exceeds safe area X [", safe_min_x, ", ", safe_max_x, "]. Consider adjusting position."));
 assert(type_min_y >= safe_min_y && type_max_y <= safe_max_y,
        str("ERROR: Type Name '", SELECTED_TYPE_NAME, "' Y dimension [", type_min_y, ", ", type_max_y, "] exceeds safe area Y [", safe_min_y, ", ", safe_max_y, "]. Consider adjusting position."));
+
+// Effective text depths
+TEXT_SOLID_HEIGHT = Layer_Height_mm * Text_Layer_Multiple;
+TEXT_SUBTRACT_DEPTH = Text_As_Separate_Parts ? TEXT_SOLID_HEIGHT : TEXT_ETCH_DEPTH;
+
+// Map part name to preview color (unique colors for MM parts)
+function PartColor(part) =
+    (part == "Base") ? "grey" :
+    (part == "OwnerText") ? "orange" :
+    (part == "TypeText") ? "purple" :
+    "gray";
+
+// Part gating (children()) as per multi-extruder blog technique
+module Part(DoPart)
+{
+    color(PartColor(DoPart))
+    {
+        if (_WhichPart == "All" || DoPart == _WhichPart)
+        {
+            children();
+        }
+    }
+}
 
 module base_shape() {
     color("grey") union() {
@@ -229,7 +264,7 @@ owner_etch_bottom_margin = 5;
 owner_etch_bottom_position = safe_max_y - owner_etch_bottom_margin;
 // Position vector for translate() before calling text_etch for Owner Name
 // Adjust Z to position the *base* of the extrusion correctly for subtraction
-owner_etch_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - (TEXT_ETCH_DEPTH + 0.1);
+owner_etch_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - (TEXT_SUBTRACT_DEPTH + 0.1);
 owner_etch_pos = [owner_etch_bottom_position, -95, owner_etch_z_pos];
 owner_etch_rot = [0, 0, 270]; // Rotation vector for rotate() before calling text_etch
 
@@ -237,13 +272,13 @@ type_etch_top_margin = 5;
 type_etch_top_position = safe_min_y + type_etch_top_margin;
 // Position vector for translate() before calling text_etch for Type Name
 // Adjust Z to position the *base* of the extrusion correctly for subtraction
-type_etch_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - (TEXT_ETCH_DEPTH + 0.1);
+type_etch_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - (TEXT_SUBTRACT_DEPTH + 0.1);
 type_etch_pos = [type_etch_top_position, -95, type_etch_z_pos];
 type_etch_rot = [0, 0, 270]; // Rotation vector for rotate() before calling text_etch
 
 // Main logic
 if (Top_or_Bottom == "bottom") {
-    union() {
+    Part("Base") union() {
         carrier_base_processing(
             _top_or_bottom = Top_or_Bottom,
             _carrier_material_height = OMEGA_D_CARRIER_HEIGHT,
@@ -280,7 +315,7 @@ if (Top_or_Bottom == "bottom") {
                             text_string = Owner_Name,
                             font = Fontface,
                             size = Font_Size,
-                            etch_depth = TEXT_ETCH_DEPTH,
+                            etch_depth = TEXT_SUBTRACT_DEPTH,
                             halign = "right",
                             valign = "top"
                         );
@@ -291,7 +326,7 @@ if (Top_or_Bottom == "bottom") {
                             text_string = SELECTED_TYPE_NAME,
                             font = Fontface,
                             size = Font_Size,
-                            etch_depth = TEXT_ETCH_DEPTH,
+                            etch_depth = TEXT_SUBTRACT_DEPTH,
                             halign = "left",
                             valign = "top"
                         );
@@ -326,13 +361,46 @@ if (Top_or_Bottom == "bottom") {
         } 
         // No handle() module in Omega-D original structure for main pieces
     }
+
+    // Separate text solids for multi-material printing
+    if (Text_As_Separate_Parts) {
+        // Solid Z positions have no extra overcut
+        owner_text_solid_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - TEXT_SOLID_HEIGHT;
+        owner_text_solid_pos = [owner_etch_bottom_position, -95, owner_text_solid_z_pos];
+        type_text_solid_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - TEXT_SOLID_HEIGHT;
+        type_text_solid_pos = [type_etch_top_position, -95, type_text_solid_z_pos];
+        if (Enable_Owner_Name_Etch) {
+            Part("OwnerText")
+                rotate(owner_etch_rot) translate(owner_text_solid_pos)
+                    text_solid(
+                        text_string = Owner_Name,
+                        font = Fontface,
+                        size = Font_Size,
+                        height = TEXT_SOLID_HEIGHT,
+                        halign = "right",
+                        valign = "top"
+                    );
+        }
+        if (Enable_Type_Name_Etch) {
+            Part("TypeText")
+                rotate(type_etch_rot) translate(type_text_solid_pos)
+                    text_solid(
+                        text_string = SELECTED_TYPE_NAME,
+                        font = Fontface,
+                        size = Font_Size,
+                        height = TEXT_SOLID_HEIGHT,
+                        halign = "left",
+                        valign = "top"
+                    );
+        }
+    }
 } else if (Top_or_Bottom == "top") {
     // For the top piece, it's mostly subtractions from the base_shape.
     // The carrier_base_processing module applies both subtractions and then additions (for printed pegs).
     // Since top pieces typically don't have printed pegs on them (they have holes for pegs from bottom), 
     // the additive part of carrier_base_processing will effectively do nothing if _printed_or_heat_set is "heat_set"
     // or if _top_or_bottom is "top" and _printed_or_heat_set is "printed" (as generate_peg_features handles this).
-    carrier_base_processing(
+    Part("Base") carrier_base_processing(
         _top_or_bottom = Top_or_Bottom,
         _carrier_material_height = OMEGA_D_CARRIER_HEIGHT,
         _opening_height_param = adjusted_opening_height,
@@ -368,7 +436,7 @@ if (Top_or_Bottom == "bottom") {
                         text_string = Owner_Name,
                         font = Fontface,
                         size = Font_Size,
-                        etch_depth = TEXT_ETCH_DEPTH,
+                        etch_depth = TEXT_SUBTRACT_DEPTH,
                         halign = "right",
                         valign = "top"
                     );
@@ -379,7 +447,7 @@ if (Top_or_Bottom == "bottom") {
                         text_string = SELECTED_TYPE_NAME,
                         font = Fontface,
                         size = Font_Size,
-                        etch_depth = TEXT_ETCH_DEPTH,
+                        etch_depth = TEXT_SUBTRACT_DEPTH,
                         halign = "left",
                         valign = "top"
                     );
@@ -388,6 +456,39 @@ if (Top_or_Bottom == "bottom") {
         }
     }
     // No handle() module in Omega-D original structure for main pieces
+
+    // Separate text solids for multi-material printing
+    if (Text_As_Separate_Parts) {
+        // Solid Z positions have no extra overcut
+        owner_text_solid_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - TEXT_SOLID_HEIGHT;
+        owner_text_solid_pos = [owner_etch_bottom_position, -95, owner_text_solid_z_pos];
+        type_text_solid_z_pos = OMEGA_D_CARRIER_HEIGHT / 2 - TEXT_SOLID_HEIGHT;
+        type_text_solid_pos = [type_etch_top_position, -95, type_text_solid_z_pos];
+        if (Enable_Owner_Name_Etch) {
+            Part("OwnerText")
+                rotate(owner_etch_rot) translate(owner_text_solid_pos)
+                    text_solid(
+                        text_string = Owner_Name,
+                        font = Fontface,
+                        size = Font_Size,
+                        height = TEXT_SOLID_HEIGHT,
+                        halign = "right",
+                        valign = "top"
+                    );
+        }
+        if (Enable_Type_Name_Etch) {
+            Part("TypeText")
+                rotate(type_etch_rot) translate(type_text_solid_pos)
+                    text_solid(
+                        text_string = SELECTED_TYPE_NAME,
+                        font = Fontface,
+                        size = Font_Size,
+                        height = TEXT_SOLID_HEIGHT,
+                        halign = "left",
+                        valign = "top"
+                    );
+        }
+    }
 
 } else if (Top_or_Bottom == "frameAndPegTestBottom" || Top_or_Bottom == "frameAndPegTestTop") {
     testPiecePadding = 10; 
