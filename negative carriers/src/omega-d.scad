@@ -5,6 +5,7 @@ include <common/film-sizes.scad> // Film size definitions
 include <common/carrier-features.scad> // Common features shared by all carriers
 include <common/omega-d-alignment-board.scad> // Omega style alignment board
 include <common/lpl-saunders-alignment-board.scad> // LPL Saunders style alignment board
+include <common/text-etching.scad> // Include shared text etching functionality
 
 /* [Carrier Options] */
 // Top or bottom of the carrier
@@ -110,15 +111,7 @@ ARROW_ETCH_DEPTH = 0.5;
 TEXT_ETCH_Z_POSITION = OMEGA_D_CARRIER_HEIGHT / 2 - (TEXT_ETCH_DEPTH + 0.1);
 CARRIER_HALF_HEIGHT = OMEGA_D_CARRIER_HEIGHT / 2;
 
-// Film format type detection
-IS_FILED_MEDIUM_FORMAT = Film_Format == "6x4.5 filed" ||
-    Film_Format == "6x6 filed" ||
-    Film_Format == "6x7 filed" ||
-    Film_Format == "6x8 filed" ||
-    Film_Format == "6x9 filed";
-
-// Peg gap calculation adjusted for filed medium formats
-CALCULATED_INTERNAL_PEG_GAP = IS_FILED_MEDIUM_FORMAT ? (1 - Peg_Gap) - 1 : (1 - Peg_Gap);
+// Peg gap calculation is now handled by the unified function in carrier-features.scad
 
 // Film format dimensions from film-sizes.scad
 FILM_FORMAT_HEIGHT = get_film_format_height(Film_Format);
@@ -169,15 +162,34 @@ type_max_x = type_center_x + type_rotated_size_x / 2;
 type_min_y = type_center_y - type_rotated_size_y / 2;
 type_max_y = type_center_y + type_rotated_size_y / 2;
 
-// Validate text fits within safe area boundaries
-assert(owner_min_x >= safe_min_x && owner_max_x <= safe_max_x,
-       str("ERROR: Owner Name '", Owner_Name, "' X dimension [", owner_min_x, ", ", owner_max_x, "] exceeds safe area X [", safe_min_x, ", ", safe_max_x, "]. Consider shortening the name or adjusting position."));
-assert(owner_min_y >= safe_min_y && owner_max_y <= safe_max_y,
-       str("ERROR: Owner Name '", Owner_Name, "' Y dimension [", owner_min_y, ", ", owner_max_y, "] exceeds safe area Y [", safe_min_y, ", ", safe_max_y, "]. Consider shortening the name or adjusting position."));
-assert(type_min_x >= safe_min_x && type_max_x <= safe_max_x,
-       str("ERROR: Type Name '", SELECTED_TYPE_NAME, "' X dimension [", type_min_x, ", ", type_max_x, "] exceeds safe area X [", safe_min_x, ", ", safe_max_x, "]. Consider adjusting position."));
-assert(type_min_y >= safe_min_y && type_max_y <= safe_max_y,
-       str("ERROR: Type Name '", SELECTED_TYPE_NAME, "' Y dimension [", type_min_y, ", ", type_max_y, "] exceeds safe area Y [", safe_min_y, ", ", safe_max_y, "]. Consider adjusting position."));
+// Validate text fits within safe area boundaries using shared validation
+validate_text_bounds(
+    text_string = Owner_Name,
+    font_face = Fontface,
+    font_size = 10,
+    center_x = owner_center_x,
+    center_y = owner_center_y,
+    rotation_angle = 270,
+    safe_min_x = safe_min_x,
+    safe_max_x = safe_max_x,
+    safe_min_y = safe_min_y,
+    safe_max_y = safe_max_y,
+    text_label = "Owner Name"
+);
+
+validate_text_bounds(
+    text_string = SELECTED_TYPE_NAME,
+    font_face = Fontface,
+    font_size = 10,
+    center_x = type_center_x,
+    center_y = type_center_y,
+    rotation_angle = 270,
+    safe_min_x = safe_min_x,
+    safe_max_x = safe_max_x,
+    safe_min_y = safe_min_y,
+    safe_max_y = safe_max_y,
+    text_label = "Type Name"
+);
 
 // Multi-material text depth calculations
 TEXT_SOLID_HEIGHT = Layer_Height_mm * Text_Layer_Multiple;
@@ -185,39 +197,28 @@ TEXT_SUBTRACT_DEPTH = Text_As_Separate_Parts ? TEXT_SOLID_HEIGHT : TEXT_ETCH_DEP
 TEXT_SOLID_Z_POSITION = CARRIER_HALF_HEIGHT - TEXT_SOLID_HEIGHT;
 
 /**
- * Generates multi-material text parts for separate printing
- * Creates solid text objects positioned for multi-color printing
+ * Generates multi-material text parts for Omega-D carrier
+ * Uses shared text etching library with Omega-D-specific positioning
  */
 module generate_multi_material_text_parts() {
-    if (Text_As_Separate_Parts) {
-        owner_text_solid_pos = [owner_etch_bottom_position, -95, TEXT_SOLID_Z_POSITION];
-        type_text_solid_pos = [type_etch_top_position, -95, TEXT_SOLID_Z_POSITION];
-        
-        if (Enable_Owner_Name_Etch) {
-            Part("OwnerText")
-                rotate(owner_etch_rot) translate(owner_text_solid_pos)
-                    text_solid(
-                        text_string = Owner_Name,
-                        font = Fontface,
-                        size = Font_Size,
-                        height = TEXT_SOLID_HEIGHT,
-                        halign = "right",
-                        valign = "top"
-                    );
-        }
-        if (Enable_Type_Name_Etch) {
-            Part("TypeText")
-                rotate(type_etch_rot) translate(type_text_solid_pos)
-                    text_solid(
-                        text_string = SELECTED_TYPE_NAME,
-                        font = Fontface,
-                        size = Font_Size,
-                        height = TEXT_SOLID_HEIGHT,
-                        halign = "left",
-                        valign = "top"
-                    );
-        }
-    }
+    owner_text_solid_pos = [owner_etch_bottom_position, -95, TEXT_SOLID_Z_POSITION];
+    type_text_solid_pos = [type_etch_top_position, -95, TEXT_SOLID_Z_POSITION];
+    
+    generate_shared_multi_material_text_parts(
+        owner_name = Owner_Name,
+        type_name = SELECTED_TYPE_NAME,
+        enable_owner_etch = Enable_Owner_Name_Etch,
+        enable_type_etch = Enable_Type_Name_Etch,
+        owner_position = owner_text_solid_pos,
+        type_position = type_text_solid_pos,
+        owner_rotation = owner_etch_rot,
+        type_rotation = type_etch_rot,
+        font_face = Fontface,
+        font_size = Font_Size,
+        text_height = TEXT_SOLID_HEIGHT,
+        text_as_separate_parts = Text_As_Separate_Parts,
+        which_part = _WhichPart
+    );
 }
 
 /**
@@ -241,52 +242,32 @@ module generate_alignment_footprint_holes(is_dent_holes = false) {
 }
 
 /**
- * Generates text etch subtractions for owner and type names
- * Creates recessed text areas on the carrier surface
+ * Generates text etch subtractions for Omega-D carrier
+ * Uses shared text etching library with Omega-D-specific positioning
  */
 module generate_text_etch_subtractions() {
-    if (Enable_Owner_Name_Etch) {
-        rotate(owner_etch_rot) translate(owner_etch_pos)
-            text_etch(
-                text_string = Owner_Name,
-                font = Fontface,
-                size = Font_Size,
-                etch_depth = TEXT_SUBTRACT_DEPTH,
-                halign = "right",
-                valign = "top"
-            );
-    }
-    if (Enable_Type_Name_Etch) {
-        rotate(type_etch_rot) translate(type_etch_pos)
-            text_etch(
-                text_string = SELECTED_TYPE_NAME,
-                font = Fontface,
-                size = Font_Size,
-                etch_depth = TEXT_SUBTRACT_DEPTH,
-                halign = "left",
-                valign = "top"
-            );
-    }
+    generate_shared_text_etch_subtractions(
+        owner_name = Owner_Name,
+        type_name = SELECTED_TYPE_NAME,
+        enable_owner_etch = Enable_Owner_Name_Etch,
+        enable_type_etch = Enable_Type_Name_Etch,
+        owner_position = owner_etch_pos,
+        type_position = type_etch_pos,
+        owner_rotation = owner_etch_rot,
+        type_rotation = type_etch_rot,
+        font_face = Fontface,
+        font_size = Font_Size,
+        etch_depth = TEXT_SUBTRACT_DEPTH
+    );
 }
 
 /**
- * Maps part names to preview colors for multi-material visualization
- * @param part Part name string
- * @return Color name for OpenSCAD preview
- */
-function PartColor(part) =
-    (part == "Base") ? "grey" :
-    (part == "OwnerText") ? "orange" :
-    (part == "TypeText") ? "purple" :
-    "gray";
-
-/**
- * Part gating module for multi-material printing
- * Controls which parts are rendered based on selection
+ * Local Part module for Omega-D carrier compatibility
+ * Wraps shared Part functionality with local color scheme
  * @param DoPart Part name to conditionally render
  */
 module Part(DoPart) {
-    color(PartColor(DoPart)) {
+    color(SharedPartColor(DoPart)) {
         if (_WhichPart == "All" || DoPart == _WhichPart) {
             children();
         }
@@ -353,22 +334,20 @@ peg_z_offset_calc = (Top_or_Bottom == "top") ?
     (OMEGA_D_CARRIER_HEIGHT - OMEGA_D_TOP_PEG_HOLE_Z_OFFSET) : 
     CARRIER_HALF_HEIGHT;
 
-// Calculate peg positions using Omega-style coordinate system
-peg_pos_x_calc = calculate_omega_style_peg_coordinate(
-    is_dominant_film_dimension = (effective_orientation == "vertical"),
-    film_width_or_equiv_half = FILM_FORMAT_WIDTH / 2,
-    film_peg_distance_half = FILM_FORMAT_PEG_DISTANCE / 2,
-    peg_radius = OMEGA_D_PEG_DIAMETER / 2,
-    omega_internal_gap_value = CALCULATED_INTERNAL_PEG_GAP
+// Calculate peg positions using the unified positioning function
+peg_positions = calculate_unified_peg_positions(
+    film_format_str = Film_Format,
+    orientation_str = Orientation,
+    peg_diameter = OMEGA_D_PEG_DIAMETER,
+    peg_gap_val = Peg_Gap,
+    adjust_film_width_val = Adjust_Film_Width,
+    adjust_film_height_val = Adjust_Film_Height,
+    positioning_style = "omega",
+    film_peg_distance = FILM_FORMAT_PEG_DISTANCE
 );
 
-peg_pos_y_calc = calculate_omega_style_peg_coordinate(
-    is_dominant_film_dimension = (effective_orientation == "horizontal"),
-    film_width_or_equiv_half = FILM_FORMAT_WIDTH / 2,
-    film_peg_distance_half = FILM_FORMAT_PEG_DISTANCE / 2,
-    peg_radius = OMEGA_D_PEG_DIAMETER / 2,
-    omega_internal_gap_value = CALCULATED_INTERNAL_PEG_GAP
-);
+peg_pos_x_calc = peg_positions[0];
+peg_pos_y_calc = peg_positions[1];
 
 // Text etching position calculations
 owner_etch_bottom_margin = 5;
