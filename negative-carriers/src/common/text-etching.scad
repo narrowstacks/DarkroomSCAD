@@ -41,26 +41,26 @@ module generate_shared_multi_material_text_parts(
         if (enable_owner_etch) {
             SharedPart("OwnerText", which_part)
                 rotate(owner_rotation) translate(owner_position)
-                    text_solid(
-                        text_string = owner_name,
-                        font = font_face,
-                        size = font_size,
-                        height = text_height,
-                        halign = "right",
-                        valign = "top"
-                    );
+                        text_solid(
+                            text_string=owner_name,
+                            font=font_face,
+                            size=font_size,
+                            height=text_height,
+                            halign="right",
+                            valign="top"
+                        );
         }
         if (enable_type_etch) {
             SharedPart("TypeText", which_part)
                 rotate(type_rotation) translate(type_position)
-                    text_solid(
-                        text_string = type_name,
-                        font = font_face,
-                        size = font_size,
-                        height = text_height,
-                        halign = "left",
-                        valign = "top"
-                    );
+                        text_solid(
+                            text_string=type_name,
+                            font=font_face,
+                            size=font_size,
+                            height=text_height,
+                            halign="left",
+                            valign="top"
+                        );
         }
     }
 }
@@ -96,25 +96,25 @@ module generate_shared_text_etch_subtractions(
 ) {
     if (enable_owner_etch) {
         rotate(owner_rotation) translate(owner_position)
-            text_etch(
-                text_string = owner_name,
-                font = font_face,
-                size = font_size,
-                etch_depth = etch_depth,
-                halign = "right",
-                valign = "top"
-            );
+                text_etch(
+                    text_string=owner_name,
+                    font=font_face,
+                    size=font_size,
+                    etch_depth=etch_depth,
+                    halign="right",
+                    valign="top"
+                );
     }
     if (enable_type_etch) {
         rotate(type_rotation) translate(type_position)
-            text_etch(
-                text_string = type_name,
-                font = font_face,
-                size = font_size,
-                etch_depth = etch_depth,
-                halign = "left",
-                valign = "top"
-            );
+                text_etch(
+                    text_string=type_name,
+                    font=font_face,
+                    size=font_size,
+                    etch_depth=etch_depth,
+                    halign="left",
+                    valign="top"
+                );
     }
 }
 
@@ -138,10 +138,10 @@ module SharedPart(DoPart, WhichPart) {
  * @return Color name for OpenSCAD preview
  */
 function SharedPartColor(part) =
-    (part == "Base") ? "grey" :
-    (part == "OwnerText") ? "orange" :
-    (part == "TypeText") ? "purple" :
-    "gray";
+    (part == "Base") ? "grey"
+    : (part == "OwnerText") ? "orange"
+    : (part == "TypeText") ? "purple"
+    : "gray";
 
 /**
  * Validates that text fits within specified boundary constraints
@@ -171,18 +171,22 @@ module validate_text_bounds(
     text_label
 ) {
     text_metrics = textmetrics(text=text_string, font=font_face, size=font_size, halign="center", valign="center");
-    
+
     // Calculate rotated dimensions (for 270° rotation, width and height swap)
     rotated_size_x = (rotation_angle == 270) ? text_metrics.size[1] : text_metrics.size[0];
     rotated_size_y = (rotation_angle == 270) ? text_metrics.size[0] : text_metrics.size[1];
-    
+
     text_min_x = center_x - rotated_size_x / 2;
     text_max_x = center_x + rotated_size_x / 2;
     text_min_y = center_y - rotated_size_y / 2;
     text_max_y = center_y + rotated_size_y / 2;
-    
-    assert(text_min_x >= safe_min_x && text_max_x <= safe_max_x,
-           str("ERROR: ", text_label, " '", text_string, "' X dimension [", text_min_x, ", ", text_max_x, "] exceeds safe area X [", safe_min_x, ", ", safe_max_x, "]. Consider shortening the name or adjusting position."));
-    assert(text_min_y >= safe_min_y && text_max_y <= safe_max_y,
-           str("ERROR: ", text_label, " '", text_string, "' Y dimension [", text_min_y, ", ", text_max_y, "] exceeds safe area Y [", safe_min_y, ", ", safe_max_y, "]. Consider shortening the name or adjusting position."));
+
+    assert(
+        text_min_x >= safe_min_x && text_max_x <= safe_max_x,
+        str("ERROR: ", text_label, " '", text_string, "' X dimension [", text_min_x, ", ", text_max_x, "] exceeds safe area X [", safe_min_x, ", ", safe_max_x, "]. Consider shortening the name or adjusting position.")
+    );
+    assert(
+        text_min_y >= safe_min_y && text_max_y <= safe_max_y,
+        str("ERROR: ", text_label, " '", text_string, "' Y dimension [", text_min_y, ", ", text_max_y, "] exceeds safe area Y [", safe_min_y, ", ", safe_max_y, "]. Consider shortening the name or adjusting position.")
+    );
 }

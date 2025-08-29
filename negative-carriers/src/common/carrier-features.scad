@@ -1,55 +1,54 @@
 // Common features for negative carriers
-
 include <BOSL2/std.scad>
 
 // Constants for common dimensions and tolerances
-PEG_HOLE_TOLERANCE = 0.25;      // Additional radius for peg holes
-PEG_HEIGHT_ADJUSTMENT = 0.2;    // Extra height for proper OpenSCAD preview
-TEXT_ETCH_OVEREXTRUDE = 0.2;    // Extra extrusion for reliable subtraction
-M2_HEAT_SET_HOLE_DIA = 1.6;     // Diameter for M2 heat-set insert holes
-M2_SOCKET_HEAD_DIA = 3.8;       // Diameter for M2 socket head clearance
-DENT_TOLERANCE = 0.25;          // Additional radius for dent holes
+PEG_HOLE_TOLERANCE = 0.25; // Additional radius for peg holes
+PEG_HEIGHT_ADJUSTMENT = 0.2; // Extra height for proper OpenSCAD preview
+TEXT_ETCH_OVEREXTRUDE = 0.2; // Extra extrusion for reliable subtraction
+M2_HEAT_SET_HOLE_DIA = 1.6; // Diameter for M2 heat-set insert holes
+M2_SOCKET_HEAD_DIA = 3.8; // Diameter for M2 socket head clearance
+DENT_TOLERANCE = 0.25; // Additional radius for dent holes
 
 // Creates the rectangular opening for the film frame.
 module film_opening(opening_height, opening_width, carrier_height, cut_through_extension, frame_fillet) {
-    cuboid([opening_height, opening_width, carrier_height + cut_through_extension], chamfer = frame_fillet, anchor = CENTER);
+    cuboid([opening_height, opening_width, carrier_height + cut_through_extension], chamfer=frame_fillet, anchor=CENTER);
 }
 
 // Creates the registration pegs or corresponding holes.
 module pegs_feature(is_hole = false, peg_diameter, peg_height, peg_pos_x, peg_pos_y, z_offset) {
-    radius = is_hole ? peg_diameter/2 + PEG_HOLE_TOLERANCE : peg_diameter/2;
+    radius = is_hole ? peg_diameter / 2 + PEG_HOLE_TOLERANCE : peg_diameter / 2;
     effective_peg_height = peg_height + PEG_HEIGHT_ADJUSTMENT;
 
     union() {
-        translate([peg_pos_x, peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center = true);
-        translate([peg_pos_x, -peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center = true);
-        translate([-peg_pos_x, peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center = true);
-        translate([-peg_pos_x, -peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center = true);
+        translate([peg_pos_x, peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true);
+        translate([peg_pos_x, -peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true);
+        translate([-peg_pos_x, peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true);
+        translate([-peg_pos_x, -peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true);
     }
 }
 
 // Creates holes for M2 heat-set screws
 module heat_set_pegs_holes(is_socket_head = false, peg_height, peg_pos_x, peg_pos_y, z_offset) {
     diameter = is_socket_head ? M2_SOCKET_HEAD_DIA : M2_HEAT_SET_HOLE_DIA;
-    pegs_feature(is_hole = true, peg_diameter = diameter, peg_height = peg_height, peg_pos_x = peg_pos_x, peg_pos_y = peg_pos_y, z_offset = z_offset);
+    pegs_feature(is_hole=true, peg_diameter=diameter, peg_height=peg_height, peg_pos_x=peg_pos_x, peg_pos_y=peg_pos_y, z_offset=z_offset);
 }
 
 // Legacy wrapper for backward compatibility
 module heat_set_pegs_socket_head_opening(peg_height, peg_pos_x, peg_pos_y, z_offset) {
-    heat_set_pegs_holes(is_socket_head = true, peg_height = peg_height, peg_pos_x = peg_pos_x, peg_pos_y = peg_pos_y, z_offset = z_offset);
+    heat_set_pegs_holes(is_socket_head=true, peg_height=peg_height, peg_pos_x=peg_pos_x, peg_pos_y=peg_pos_y, z_offset=z_offset);
 }
 
 // Creates an extruded text shape for etching.
-module text_etch(text_string, font, size, etch_depth = 1, halign="center", valign="center") {
-    linear_extrude(height = etch_depth + TEXT_ETCH_OVEREXTRUDE) {
-        text(text_string, font = font, size = size, halign = halign, valign = valign);
+module text_etch(text_string, font, size, etch_depth = 1, halign = "center", valign = "center") {
+    linear_extrude(height=etch_depth + TEXT_ETCH_OVEREXTRUDE) {
+        text(text_string, font=font, size=size, halign=halign, valign=valign);
     }
 }
 
 // Creates a solid text body for multi-material parts.
-module text_solid(text_string, font, size, height, halign="center", valign="center") {
-    linear_extrude(height = height) {
-        text(text_string, font = font, size = size, halign = halign, valign = valign);
+module text_solid(text_string, font, size, height, halign = "center", valign = "center") {
+    linear_extrude(height=height) {
+        text(text_string, font=font, size=size, halign=halign, valign=valign);
     }
 }
 
@@ -70,22 +69,21 @@ function get_adjusted_dimension(base_dim, adjustment_val) =
     base_dim + adjustment_val;
 
 // Get final adjusted opening dimension
-function get_final_opening_dimension(is_height, film_format_str, orientation_str, adjust_val) = 
+function get_final_opening_dimension(is_height, film_format_str, orientation_str, adjust_val) =
     let (
         _film_h_raw = get_film_format_height(film_format_str),
         _film_w_raw = get_film_format_width(film_format_str),
         _eff_orientation = get_effective_orientation(film_format_str, orientation_str),
-        _calc_opening_dim = is_height ? 
-            get_calculated_opening_height(_eff_orientation, _film_h_raw, _film_w_raw) :
-            get_calculated_opening_width(_eff_orientation, _film_h_raw, _film_w_raw)
-    )
-    get_adjusted_dimension(_calc_opening_dim, adjust_val);
+        _calc_opening_dim = is_height ?
+            get_calculated_opening_height(_eff_orientation, _film_h_raw, _film_w_raw)
+        : get_calculated_opening_width(_eff_orientation, _film_h_raw, _film_w_raw)
+    ) get_adjusted_dimension(_calc_opening_dim, adjust_val);
 
 // Wrapper functions for backward compatibility
-function get_final_opening_height(film_format_str, orientation_str, adjust_h_val) = 
+function get_final_opening_height(film_format_str, orientation_str, adjust_h_val) =
     get_final_opening_dimension(true, film_format_str, orientation_str, adjust_h_val);
 
-function get_final_opening_width(film_format_str, orientation_str, adjust_w_val) = 
+function get_final_opening_width(film_format_str, orientation_str, adjust_w_val) =
     get_final_opening_dimension(false, film_format_str, orientation_str, adjust_w_val);
 
 // Calculate Z offset for pegs/holes
@@ -95,29 +93,21 @@ function get_peg_z_offset(is_top_piece, z_value_for_top, z_value_for_bottom) =
 // Calculate a peg coordinate (X or Y) based on Omega-style rules
 function calculate_omega_style_peg_coordinate(is_dominant_film_dimension, film_width_or_equiv_half, film_peg_distance_half, peg_radius, omega_internal_gap_value) =
     is_dominant_film_dimension ?
-        (film_width_or_equiv_half + peg_radius) :
-        (film_peg_distance_half + peg_radius - omega_internal_gap_value);
+        (film_width_or_equiv_half + peg_radius)
+    : (film_peg_distance_half + peg_radius - omega_internal_gap_value);
 
 // Calculate internal peg gap for filed medium formats
 function calculate_internal_peg_gap(film_format_str, peg_gap_val) =
     let (
-        is_filed = film_format_str == "6x4.5 filed" ||
-                   film_format_str == "6x6 filed" ||
-                   film_format_str == "6x7 filed" ||
-                   film_format_str == "6x8 filed" ||
-                   film_format_str == "6x9 filed" ||
-                   film_format_str == "35mm filed"
-    )
-    is_filed ? (1 - peg_gap_val) - 1 : (1 - peg_gap_val);
+        is_filed = film_format_str == "6x4.5 filed" || film_format_str == "6x6 filed" || film_format_str == "6x7 filed" || film_format_str == "6x8 filed" || film_format_str == "6x9 filed" || film_format_str == "35mm filed"
+    ) is_filed ? (1 - peg_gap_val) - 1 : (1 - peg_gap_val);
 
 // Calculate LPL-style peg coordinate (simpler approach based on film dimensions + peg radius + gap)
 function calculate_lpl_style_peg_coordinate(effective_orientation, film_height, film_width, peg_radius, peg_gap, is_x_coordinate) =
     let (
-        use_width = (effective_orientation == "vertical" && is_x_coordinate) ||
-                   (effective_orientation == "horizontal" && !is_x_coordinate),
+        use_width = (effective_orientation == "vertical" && is_x_coordinate) || (effective_orientation == "horizontal" && !is_x_coordinate),
         film_dimension = use_width ? film_width : film_height
-    )
-    film_dimension / 2 + peg_radius + peg_gap;
+    ) film_dimension / 2 + peg_radius + peg_gap;
 
 // Unified peg positioning function that can handle both Omega-D and LPL-Saunders approaches
 function calculate_unified_peg_positions(
@@ -128,50 +118,48 @@ function calculate_unified_peg_positions(
     adjust_film_width_val = 0,
     adjust_film_height_val = 0,
     positioning_style = "omega", // ["omega", "lpl"]
-    film_peg_distance = undef  // Required for omega style, ignored for lpl style
-) = 
+    film_peg_distance = undef // Required for omega style, ignored for lpl style
+) =
     let (
         film_height_raw = get_film_format_height(film_format_str) + adjust_film_height_val,
         film_width_raw = get_film_format_width(film_format_str) + adjust_film_width_val,
         effective_orientation = get_effective_orientation(film_format_str, orientation_str),
         peg_radius = peg_diameter / 2,
-        
+
         // Calculate positions based on style
         pos_x = (positioning_style == "omega") ?
             calculate_omega_style_peg_coordinate(
-                is_dominant_film_dimension = (effective_orientation == "vertical"),
-                film_width_or_equiv_half = film_width_raw / 2,
-                film_peg_distance_half = film_peg_distance / 2,
-                peg_radius = peg_radius,
-                omega_internal_gap_value = calculate_internal_peg_gap(film_format_str, peg_gap_val)
-            ) :
-            calculate_lpl_style_peg_coordinate(
-                effective_orientation = effective_orientation,
-                film_height = film_height_raw,
-                film_width = film_width_raw,
-                peg_radius = peg_radius,
-                peg_gap = peg_gap_val,
-                is_x_coordinate = true
-            ),
-            
+                is_dominant_film_dimension=(effective_orientation == "vertical"),
+                film_width_or_equiv_half=film_width_raw / 2,
+                film_peg_distance_half=film_peg_distance / 2,
+                peg_radius=peg_radius,
+                omega_internal_gap_value=calculate_internal_peg_gap(film_format_str, peg_gap_val)
+            )
+        : calculate_lpl_style_peg_coordinate(
+            effective_orientation=effective_orientation,
+            film_height=film_height_raw,
+            film_width=film_width_raw,
+            peg_radius=peg_radius,
+            peg_gap=peg_gap_val,
+            is_x_coordinate=true
+        ),
         pos_y = (positioning_style == "omega") ?
             calculate_omega_style_peg_coordinate(
-                is_dominant_film_dimension = (effective_orientation == "horizontal"),
-                film_width_or_equiv_half = film_width_raw / 2,
-                film_peg_distance_half = film_peg_distance / 2,
-                peg_radius = peg_radius,
-                omega_internal_gap_value = calculate_internal_peg_gap(film_format_str, peg_gap_val)
-            ) :
-            calculate_lpl_style_peg_coordinate(
-                effective_orientation = effective_orientation,
-                film_height = film_height_raw,
-                film_width = film_width_raw,
-                peg_radius = peg_radius,
-                peg_gap = peg_gap_val,
-                is_x_coordinate = false
+                is_dominant_film_dimension=(effective_orientation == "horizontal"),
+                film_width_or_equiv_half=film_width_raw / 2,
+                film_peg_distance_half=film_peg_distance / 2,
+                peg_radius=peg_radius,
+                omega_internal_gap_value=calculate_internal_peg_gap(film_format_str, peg_gap_val)
             )
-    )
-    [pos_x, pos_y];
+        : calculate_lpl_style_peg_coordinate(
+            effective_orientation=effective_orientation,
+            film_height=film_height_raw,
+            film_width=film_width_raw,
+            peg_radius=peg_radius,
+            peg_gap=peg_gap_val,
+            is_x_coordinate=false
+        )
+    ) [pos_x, pos_y];
 
 // Generate peg features (printed pegs or holes for pegs/inserts)
 module generate_peg_features(
@@ -188,40 +176,40 @@ module generate_peg_features(
         if (_top_or_bottom == "top") {
             if (_printed_or_heat_set == "printed") {
                 pegs_feature(
-                    is_hole = true,
-                    peg_diameter = _peg_dia,
-                    peg_height = _peg_h,
-                    peg_pos_x = _peg_x,
-                    peg_pos_y = _peg_y,
-                    z_offset = _z_off
+                    is_hole=true,
+                    peg_diameter=_peg_dia,
+                    peg_height=_peg_h,
+                    peg_pos_x=_peg_x,
+                    peg_pos_y=_peg_y,
+                    z_offset=_z_off
                 );
             } else {
                 heat_set_pegs_socket_head_opening(
-                    peg_height = _peg_h,
-                    peg_pos_x = _peg_x,
-                    peg_pos_y = _peg_y,
-                    z_offset = _z_off
+                    peg_height=_peg_h,
+                    peg_pos_x=_peg_x,
+                    peg_pos_y=_peg_y,
+                    z_offset=_z_off
                 );
             }
         } else {
             if (_printed_or_heat_set == "heat_set") {
                 heat_set_pegs_holes(
-                    peg_height = _peg_h,
-                    peg_pos_x = _peg_x,
-                    peg_pos_y = _peg_y,
-                    z_offset = _z_off
+                    peg_height=_peg_h,
+                    peg_pos_x=_peg_x,
+                    peg_pos_y=_peg_y,
+                    z_offset=_z_off
                 );
             }
         }
     } else {
         if (_top_or_bottom == "bottom" && _printed_or_heat_set == "printed") {
             pegs_feature(
-                is_hole = false,
-                peg_diameter = _peg_dia,
-                peg_height = _peg_h,
-                peg_pos_x = _peg_x,
-                peg_pos_y = _peg_y,
-                z_offset = _z_off
+                is_hole=false,
+                peg_diameter=_peg_dia,
+                peg_height=_peg_h,
+                peg_pos_x=_peg_x,
+                peg_pos_y=_peg_y,
+                z_offset=_z_off
             );
         }
     }
@@ -234,7 +222,7 @@ module instantiate_alignment_board_by_type(board_type_str) {
     } else if (board_type_str == "lpl-saunders") {
         lpl_saunders_alignment_board();
     } else if (board_type_str == "beseler-23c") {
-        beseler_23c_alignment_board(); 
+        beseler_23c_alignment_board();
     } else {
         echo(str("Warning: Unknown alignment board type specified: ", board_type_str));
     }
@@ -251,14 +239,14 @@ module generate_all_peg_features(
     _peg_z_offset_param
 ) {
     generate_peg_features(
-        _top_or_bottom = _top_or_bottom,
-        _printed_or_heat_set = _peg_style_param,
-        _peg_dia = _peg_diameter_param,
-        _peg_h = _peg_actual_height_param,
-        _peg_x = _peg_pos_x_param,
-        _peg_y = _peg_pos_y_param,
-        _z_off = _peg_z_offset_param,
-        _is_subtraction_pass = true
+        _top_or_bottom=_top_or_bottom,
+        _printed_or_heat_set=_peg_style_param,
+        _peg_dia=_peg_diameter_param,
+        _peg_h=_peg_actual_height_param,
+        _peg_x=_peg_pos_x_param,
+        _peg_y=_peg_pos_y_param,
+        _z_off=_peg_z_offset_param,
+        _is_subtraction_pass=true
     );
 }
 
@@ -273,14 +261,14 @@ module generate_additive_peg_features(
     _peg_z_offset_param
 ) {
     generate_peg_features(
-        _top_or_bottom = _top_or_bottom,
-        _printed_or_heat_set = _peg_style_param,
-        _peg_dia = _peg_diameter_param,
-        _peg_h = _peg_actual_height_param,
-        _peg_x = _peg_pos_x_param,
-        _peg_y = _peg_pos_y_param,
-        _z_off = _peg_z_offset_param,
-        _is_subtraction_pass = false
+        _top_or_bottom=_top_or_bottom,
+        _printed_or_heat_set=_peg_style_param,
+        _peg_dia=_peg_diameter_param,
+        _peg_h=_peg_actual_height_param,
+        _peg_x=_peg_pos_x_param,
+        _peg_y=_peg_pos_y_param,
+        _z_off=_peg_z_offset_param,
+        _is_subtraction_pass=false
     );
 }
 
@@ -303,11 +291,11 @@ module carrier_base_processing(
         children(0);
 
         film_opening(
-            opening_height = _opening_height_param,
-            opening_width = _opening_width_param,
-            carrier_height = _carrier_material_height,
-            cut_through_extension = _opening_cut_through_ext_param,
-            frame_fillet = _opening_fillet_param
+            opening_height=_opening_height_param,
+            opening_width=_opening_width_param,
+            carrier_height=_carrier_material_height,
+            cut_through_extension=_opening_cut_through_ext_param,
+            frame_fillet=_opening_fillet_param
         );
 
         generate_all_peg_features(
@@ -346,14 +334,14 @@ module generate_test_frame(
         );
 
         difference() {
-            cuboid([_test_cuboid_depth, _test_cuboid_width, _frame_material_height], anchor = CENTER);
+            cuboid([_test_cuboid_depth, _test_cuboid_width, _frame_material_height], anchor=CENTER);
 
             film_opening(
-                opening_height = _film_opening_h,
-                opening_width = _film_opening_w,
-                carrier_height = _frame_material_height,
-                cut_through_extension = _film_opening_cut_ext,
-                frame_fillet = _film_opening_f
+                opening_height=_film_opening_h,
+                opening_width=_film_opening_w,
+                carrier_height=_frame_material_height,
+                cut_through_extension=_film_opening_cut_ext,
+                frame_fillet=_film_opening_f
             );
 
             generate_all_peg_features(
@@ -366,11 +354,11 @@ module generate_test_frame(
 
 // Creates the standard four-hole footprint for alignment board screws
 module alignment_footprint_holes(_screw_dia, _dist_for_x_coords, _dist_for_y_coords, _carrier_h, _cut_ext, _is_dent, _dent_depth) {
-    hole_radius = _is_dent ? _screw_dia/2 + DENT_TOLERANCE : _screw_dia/2;
+    hole_radius = _is_dent ? _screw_dia / 2 + DENT_TOLERANCE : _screw_dia / 2;
     actual_hole_height = _is_dent ? _dent_depth : _carrier_h + _cut_ext;
     use_center_alignment = !_is_dent;
-    z_val_for_hole = _is_dent ? (-_carrier_h / 2) : 0;
-    
+    z_val_for_hole = _is_dent ? ( -_carrier_h / 2) : 0;
+
     eff_spacing_x = _dist_for_x_coords / 2;
     eff_spacing_y = _dist_for_y_coords / 2;
 

@@ -64,7 +64,7 @@ PEG_Z_OFFSET = Top_or_Bottom == "bottom" ? CARRIER_HEIGHT / 2 : CARRIER_HEIGHT -
 
 // Peg constants (similar to Omega D)
 PEG_DIAMETER = 5.6; // [mm] Diameter of the pegs
-PEG_HEIGHT = 4;     // [mm] Height of the pegs
+PEG_HEIGHT = 4; // [mm] Height of the pegs
 TOP_PEG_HOLE_Z_OFFSET = 1; // [mm] Z offset for peg holes in the top carrier part, relative to CARRIER_HEIGHT. (e.g. Omega D uses 2mm for a 2mm thick carrier, meaning holes are at mid-plane if peg height matches carrier height)
 
 HANDLE_LENGTH = 50;
@@ -91,7 +91,7 @@ _is_top_piece_for_peg_z = (Top_or_Bottom == "top");
 
 // Z offset for pegs/holes
 _value_for_top_peg_z = CARRIER_HEIGHT - TOP_PEG_HOLE_Z_OFFSET; // Peg holes on top piece
-_value_for_bottom_peg_z = CARRIER_HEIGHT / 2;                 // Pegs on bottom piece (if implemented)
+_value_for_bottom_peg_z = CARRIER_HEIGHT / 2; // Pegs on bottom piece (if implemented)
 peg_z_offset_calc = get_peg_z_offset(_is_top_piece_for_peg_z, _value_for_top_peg_z, _value_for_bottom_peg_z);
 
 // Determine effective orientation (especially for "4x5", though Beseler doesn't list it, good practice)
@@ -99,11 +99,7 @@ effective_orientation = get_effective_orientation(Film_Format, Orientation);
 
 // Check if the selected format is a "filed" medium format
 IS_FILED_MEDIUM_FORMAT = Film_Format == "35mm filed" || // Add other filed formats if they exist for Beseler
-                         Film_Format == "6x4.5 filed" ||
-                         Film_Format == "6x6 filed" ||
-                         Film_Format == "6x7 filed" ||
-                         Film_Format == "6x8 filed" ||
-                         Film_Format == "6x9 filed";
+Film_Format == "6x4.5 filed" || Film_Format == "6x6 filed" || Film_Format == "6x7 filed" || Film_Format == "6x8 filed" || Film_Format == "6x9 filed";
 
 // Internal calculation for peg gap, adjusted for filed formats
 CALCULATED_INTERNAL_PEG_GAP = IS_FILED_MEDIUM_FORMAT ? (1 - Peg_Gap) - 1 : (1 - Peg_Gap);
@@ -117,31 +113,31 @@ if (Alignment_Board && Printed_or_Heat_Set_Pegs == "printed") {
     assert(false, "CARRIER OPTIONS ERROR: Alignment board included, so we can't use printed pegs! Please use heat-set pegs or disable the alignment board.");
 }
 peg_pos_x_calc = calculate_omega_style_peg_coordinate(
-    is_dominant_film_dimension = (effective_orientation == "vertical"), // X uses film width if vertical
-    film_width_or_equiv_half = _film_width_actual_half,
-    film_peg_distance_half = _film_peg_distance_actual_half,
-    peg_radius = _peg_radius,
-    omega_internal_gap_value = CALCULATED_INTERNAL_PEG_GAP
+    is_dominant_film_dimension=(effective_orientation == "vertical"), // X uses film width if vertical
+    film_width_or_equiv_half=_film_width_actual_half,
+    film_peg_distance_half=_film_peg_distance_actual_half,
+    peg_radius=_peg_radius,
+    omega_internal_gap_value=CALCULATED_INTERNAL_PEG_GAP
 );
 
 peg_pos_y_calc = calculate_omega_style_peg_coordinate(
-    is_dominant_film_dimension = (effective_orientation == "horizontal"), // Y uses film width if horizontal
-    film_width_or_equiv_half = _film_width_actual_half,
-    film_peg_distance_half = _film_peg_distance_actual_half,
-    peg_radius = _peg_radius,
-    omega_internal_gap_value = CALCULATED_INTERNAL_PEG_GAP
+    is_dominant_film_dimension=(effective_orientation == "horizontal"), // Y uses film width if horizontal
+    film_width_or_equiv_half=_film_width_actual_half,
+    film_peg_distance_half=_film_peg_distance_actual_half,
+    peg_radius=_peg_radius,
+    omega_internal_gap_value=CALCULATED_INTERNAL_PEG_GAP
 );
 
-$fn=200;
+$fn = 200;
 
 module handle() {
-    translate([0, CARRIER_DIAMETER/2, 0]) color("grey") cuboid([HANDLE_WIDTH, HANDLE_LENGTH*1.5, CARRIER_HEIGHT], anchor = CENTER, rounding = .5);
+    translate([0, CARRIER_DIAMETER / 2, 0]) color("grey") cuboid([HANDLE_WIDTH, HANDLE_LENGTH * 1.5, CARRIER_HEIGHT], anchor=CENTER, rounding=.5);
 }
 
 module base_shape() {
     color("grey") union() {
-        cyl(h=CARRIER_HEIGHT, r=CARRIER_DIAMETER/2, center = true, rounding = .5);
-    }
+            cyl(h=CARRIER_HEIGHT, r=CARRIER_DIAMETER / 2, center=true, rounding=.5);
+        }
 }
 
 // Main logic
@@ -152,32 +148,32 @@ module base_shape() {
 module bottom_carrier_assembly() {
     union() {
         carrier_base_processing(
-            _top_or_bottom = Top_or_Bottom,
-            _carrier_material_height = CARRIER_HEIGHT,
-            _opening_height_param = opening_height_actual,
-            _opening_width_param = opening_width_actual,
-            _opening_cut_through_ext_param = Film_Opening_Cut_Through_Extension,
-            _opening_fillet_param = Film_Opening_Frame_Fillet,
-            _peg_style_param = Printed_or_Heat_Set_Pegs,
-            _peg_diameter_param = PEG_DIAMETER,
-            _peg_actual_height_param = PEG_HEIGHT,
-            _peg_pos_x_param = peg_pos_x_calc,
-            _peg_pos_y_param = peg_pos_y_calc,
-            _peg_z_offset_param = peg_z_offset_calc
+            _top_or_bottom=Top_or_Bottom,
+            _carrier_material_height=CARRIER_HEIGHT,
+            _opening_height_param=opening_height_actual,
+            _opening_width_param=opening_width_actual,
+            _opening_cut_through_ext_param=Film_Opening_Cut_Through_Extension,
+            _opening_fillet_param=Film_Opening_Frame_Fillet,
+            _peg_style_param=Printed_or_Heat_Set_Pegs,
+            _peg_diameter_param=PEG_DIAMETER,
+            _peg_actual_height_param=PEG_HEIGHT,
+            _peg_pos_x_param=peg_pos_x_calc,
+            _peg_pos_y_param=peg_pos_y_calc,
+            _peg_z_offset_param=peg_z_offset_calc
         ) {
             base_shape(); // Beseler's base_shape
             // No Beseler-specific subtractions comparable to Omega-D's registration holes were in the original main diff block.
             // Text etching is not explicitly in the main body difference of the original Beseler file.
         }
-        
+
         // Beseler-specific additions (handle, alignment board)
         handle();
 
         // Beseler's unique alignment board logic for the bottom piece
         if (Alignment_Board) {
             difference() {
-                translate([0, 0, CARRIER_HEIGHT/2]) beseler_23c_alignment_board(); 
-                translate([0, 0, -2]) base_shape(); 
+                translate([0, 0, CARRIER_HEIGHT / 2]) beseler_23c_alignment_board();
+                translate([0, 0, -2]) base_shape();
             }
         }
     }
@@ -192,21 +188,22 @@ if (Top_or_Bottom == "bottom") {
     } else {
         bottom_carrier_assembly();
     }
-} else { // topOrBottom == "top" (Original Beseler file only had "bottom" or "top" for main logic, no test frames explicitly)
+} else {
+    // topOrBottom == "top" (Original Beseler file only had "bottom" or "top" for main logic, no test frames explicitly)
     // For the top piece, it's mostly subtractions from the base_shape.
     carrier_base_processing(
-        _top_or_bottom = Top_or_Bottom,
-        _carrier_material_height = CARRIER_HEIGHT,
-        _opening_height_param = opening_height_actual,
-        _opening_width_param = opening_width_actual,
-        _opening_cut_through_ext_param = Film_Opening_Cut_Through_Extension,
-        _opening_fillet_param = Film_Opening_Frame_Fillet,
-        _peg_style_param = Printed_or_Heat_Set_Pegs,
-        _peg_diameter_param = PEG_DIAMETER,
-        _peg_actual_height_param = PEG_HEIGHT,
-        _peg_pos_x_param = peg_pos_x_calc,
-        _peg_pos_y_param = peg_pos_y_calc,
-        _peg_z_offset_param = peg_z_offset_calc
+        _top_or_bottom=Top_or_Bottom,
+        _carrier_material_height=CARRIER_HEIGHT,
+        _opening_height_param=opening_height_actual,
+        _opening_width_param=opening_width_actual,
+        _opening_cut_through_ext_param=Film_Opening_Cut_Through_Extension,
+        _opening_fillet_param=Film_Opening_Frame_Fillet,
+        _peg_style_param=Printed_or_Heat_Set_Pegs,
+        _peg_diameter_param=PEG_DIAMETER,
+        _peg_actual_height_param=PEG_HEIGHT,
+        _peg_pos_x_param=peg_pos_x_calc,
+        _peg_pos_y_param=peg_pos_y_calc,
+        _peg_z_offset_param=peg_z_offset_calc
     ) {
         base_shape(); // Beseler's base_shape
         // No specific subtractions for top piece in original main diff other than film opening and pegs.

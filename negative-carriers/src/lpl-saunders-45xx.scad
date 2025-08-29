@@ -77,7 +77,7 @@ Adjust_Film_Height = 0;
 Film_Opening_Frame_Fillet = 0.5;
 
 /* [Hidden] */
-$fn=100;
+$fn = 100;
 
 // LPL Saunders carrier base dimensions
 LPL_CARRIER_DIAMETER = 215;
@@ -120,11 +120,7 @@ if (Alignment_Board && Printed_or_Heat_Set_Pegs == "printed") {
 }
 
 // Film format type detection
-IS_FILED_MEDIUM_FORMAT = Film_Format == "6x4.5 filed" ||
-    Film_Format == "6x6 filed" ||
-    Film_Format == "6x7 filed" ||
-    Film_Format == "6x8 filed" ||
-    Film_Format == "6x9 filed";
+IS_FILED_MEDIUM_FORMAT = Film_Format == "6x4.5 filed" || Film_Format == "6x6 filed" || Film_Format == "6x7 filed" || Film_Format == "6x8 filed" || Film_Format == "6x9 filed";
 
 // Peg gap calculation adjusted for filed medium formats
 CALCULATED_INTERNAL_PEG_GAP = IS_FILED_MEDIUM_FORMAT ? (1 - Peg_Gap) - 1 : (1 - Peg_Gap);
@@ -185,31 +181,31 @@ type_max_y = type_center_y + type_rotated_size_y / 2;
 
 // Validate text fits within safe area boundaries using shared validation
 validate_text_bounds(
-    text_string = Owner_Name,
-    font_face = Fontface,
-    font_size = 10,
-    center_x = owner_center_x,
-    center_y = owner_center_y,
-    rotation_angle = 270,
-    safe_min_x = safe_min_x,
-    safe_max_x = safe_max_x,
-    safe_min_y = safe_min_y,
-    safe_max_y = safe_max_y,
-    text_label = "Owner Name"
+    text_string=Owner_Name,
+    font_face=Fontface,
+    font_size=10,
+    center_x=owner_center_x,
+    center_y=owner_center_y,
+    rotation_angle=270,
+    safe_min_x=safe_min_x,
+    safe_max_x=safe_max_x,
+    safe_min_y=safe_min_y,
+    safe_max_y=safe_max_y,
+    text_label="Owner Name"
 );
 
 validate_text_bounds(
-    text_string = SELECTED_TYPE_NAME,
-    font_face = Fontface,
-    font_size = 10,
-    center_x = type_center_x,
-    center_y = type_center_y,
-    rotation_angle = 270,
-    safe_min_x = safe_min_x,
-    safe_max_x = safe_max_x,
-    safe_min_y = safe_min_y,
-    safe_max_y = safe_max_y,
-    text_label = "Type Name"
+    text_string=SELECTED_TYPE_NAME,
+    font_face=Fontface,
+    font_size=10,
+    center_x=type_center_x,
+    center_y=type_center_y,
+    rotation_angle=270,
+    safe_min_x=safe_min_x,
+    safe_max_x=safe_max_x,
+    safe_min_y=safe_min_y,
+    safe_max_y=safe_max_y,
+    text_label="Type Name"
 );
 
 // Multi-material text depth calculations
@@ -229,34 +225,37 @@ type_etch_pos = [type_etch_top_position, -65, TEXT_ETCH_Z_POSITION];
 type_etch_rot = [0, 0, 90];
 
 // Peg positioning calculations using updated constants
-peg_z_offset_calc = (Top_or_Bottom == "top") ? 
-    (LPL_CARRIER_HEIGHT - 0) : 
-    CARRIER_HALF_HEIGHT;
+peg_z_offset_calc =
+    (Top_or_Bottom == "top") ?
+        (LPL_CARRIER_HEIGHT - 0)
+    : CARRIER_HALF_HEIGHT;
 
 // peg_pos_x_final and peg_pos_y_final are half the distance between opposite peg centers.
 // Assumes FILM_FORMAT_WIDTH_RAW is the film's narrow dimension and LPL_PEG_DISTANCE is the longitudinal peg pitch.
 // Peg_Gap is added to position pegs further from the film edge.
-peg_pos_x_final = effective_orientation == "vertical" ?
-    (FILM_FORMAT_WIDTH_RAW/2 + LPL_PEG_DIAMETER/2 + Peg_Gap) :
-    (FILM_FORMAT_HEIGHT_RAW/2 + LPL_PEG_DIAMETER/2 + Peg_Gap);
+peg_pos_x_final =
+    effective_orientation == "vertical" ?
+        (FILM_FORMAT_WIDTH_RAW / 2 + LPL_PEG_DIAMETER / 2 + Peg_Gap)
+    : (FILM_FORMAT_HEIGHT_RAW / 2 + LPL_PEG_DIAMETER / 2 + Peg_Gap);
 
-peg_pos_y_final = effective_orientation == "vertical" ?
-    (FILM_FORMAT_HEIGHT_RAW/2 + LPL_PEG_DIAMETER/2 + Peg_Gap) :
-    (FILM_FORMAT_WIDTH_RAW/2 + LPL_PEG_DIAMETER/2 + Peg_Gap);
+peg_pos_y_final =
+    effective_orientation == "vertical" ?
+        (FILM_FORMAT_HEIGHT_RAW / 2 + LPL_PEG_DIAMETER / 2 + Peg_Gap)
+    : (FILM_FORMAT_WIDTH_RAW / 2 + LPL_PEG_DIAMETER / 2 + Peg_Gap);
 
 /**
  * Creates edge cuts for the LPL Saunders carrier
  * Removes material from the circular base to create the characteristic shape
  */
 module carrier_edge_cuts() {
-    translate([0, LPL_EDGE_CUTS_DISTANCE, 0]) 
-        cuboid([LPL_EDGE_CUTS_WIDTH, LPL_EDGE_CUTS_HEIGHT, LPL_CARRIER_HEIGHT + 0.1], anchor = CENTER);
-    translate([0, -LPL_EDGE_CUTS_DISTANCE, 0]) 
-        cuboid([LPL_EDGE_CUTS_WIDTH, LPL_EDGE_CUTS_HEIGHT, LPL_CARRIER_HEIGHT + 0.1], anchor = CENTER);
-    translate([LPL_EDGE_CUTS_DISTANCE, 0, 0]) 
-        cuboid([LPL_EDGE_CUTS_HEIGHT, LPL_EDGE_CUTS_WIDTH, LPL_CARRIER_HEIGHT + 0.1], anchor = CENTER);
-    translate([-LPL_EDGE_CUTS_DISTANCE, 0, 0]) 
-        cuboid([LPL_EDGE_CUTS_HEIGHT, LPL_EDGE_CUTS_WIDTH, LPL_CARRIER_HEIGHT + 0.1], anchor = CENTER);
+    translate([0, LPL_EDGE_CUTS_DISTANCE, 0])
+        cuboid([LPL_EDGE_CUTS_WIDTH, LPL_EDGE_CUTS_HEIGHT, LPL_CARRIER_HEIGHT + 0.1], anchor=CENTER);
+    translate([0, -LPL_EDGE_CUTS_DISTANCE, 0])
+        cuboid([LPL_EDGE_CUTS_WIDTH, LPL_EDGE_CUTS_HEIGHT, LPL_CARRIER_HEIGHT + 0.1], anchor=CENTER);
+    translate([LPL_EDGE_CUTS_DISTANCE, 0, 0])
+        cuboid([LPL_EDGE_CUTS_HEIGHT, LPL_EDGE_CUTS_WIDTH, LPL_CARRIER_HEIGHT + 0.1], anchor=CENTER);
+    translate([-LPL_EDGE_CUTS_DISTANCE, 0, 0])
+        cuboid([LPL_EDGE_CUTS_HEIGHT, LPL_EDGE_CUTS_WIDTH, LPL_CARRIER_HEIGHT + 0.1], anchor=CENTER);
 }
 
 /**
@@ -265,7 +264,7 @@ module carrier_edge_cuts() {
  */
 module base_shape() {
     difference() {
-        cyl(h = LPL_CARRIER_HEIGHT, r = LPL_CARRIER_DIAMETER/2, anchor = CENTER);
+        cyl(h=LPL_CARRIER_HEIGHT, r=LPL_CARRIER_DIAMETER / 2, anchor=CENTER);
         carrier_edge_cuts();
     }
 }
@@ -275,16 +274,20 @@ module base_shape() {
  * Position varies based on top or bottom carrier
  */
 module handle() {
-    if(Top_or_Bottom == "top") {
-        translate([LPL_CARRIER_DIAMETER/2, LPL_HANDLE_X_OFFSET, 0]) 
-            cuboid([LPL_HANDLE_WIDTH, LPL_HANDLE_HEIGHT, LPL_CARRIER_HEIGHT], 
-                   anchor = CENTER, rounding = 2, 
-                   edges=[FWD+RIGHT,BACK+LEFT, FWD+LEFT, BACK+RIGHT]);
+    if (Top_or_Bottom == "top") {
+        translate([LPL_CARRIER_DIAMETER / 2, LPL_HANDLE_X_OFFSET, 0])
+            cuboid(
+                [LPL_HANDLE_WIDTH, LPL_HANDLE_HEIGHT, LPL_CARRIER_HEIGHT],
+                anchor=CENTER, rounding=2,
+                edges=[FWD + RIGHT, BACK + LEFT, FWD + LEFT, BACK + RIGHT]
+            );
     } else {
-        translate([LPL_CARRIER_DIAMETER/2, -LPL_HANDLE_X_OFFSET, 0]) 
-            cuboid([LPL_HANDLE_WIDTH, LPL_HANDLE_HEIGHT, LPL_CARRIER_HEIGHT], 
-                   anchor = CENTER, rounding = 2, 
-                   edges=[FWD+RIGHT,BACK+LEFT, FWD+LEFT, BACK+RIGHT]);
+        translate([LPL_CARRIER_DIAMETER / 2, -LPL_HANDLE_X_OFFSET, 0])
+            cuboid(
+                [LPL_HANDLE_WIDTH, LPL_HANDLE_HEIGHT, LPL_CARRIER_HEIGHT],
+                anchor=CENTER, rounding=2,
+                edges=[FWD + RIGHT, BACK + LEFT, FWD + LEFT, BACK + RIGHT]
+            );
     }
 }
 
@@ -296,9 +299,9 @@ module handle() {
  * @param width Arrow width
  */
 module arrow_etch(etch_depth = 0.5, length = 5, width = 3) {
-    translate([-10 ,0, .5]) 
-        linear_extrude(height = etch_depth + 0.1) 
-            polygon(points=[ [-length/2, 0], [length/2, width/2], [length/2, -width/2] ]);
+    translate([-10, 0, .5])
+        linear_extrude(height=etch_depth + 0.1)
+            polygon(points=[[-length / 2, 0], [length / 2, width / 2], [length / 2, -width / 2]]);
 }
 
 /**
@@ -308,21 +311,21 @@ module arrow_etch(etch_depth = 0.5, length = 5, width = 3) {
 module generate_multi_material_text_parts() {
     owner_text_solid_pos = [owner_etch_bottom_position, -75, TEXT_SOLID_Z_POSITION];
     type_text_solid_pos = [type_etch_top_position, -75, TEXT_SOLID_Z_POSITION];
-    
+
     generate_shared_multi_material_text_parts(
-        owner_name = Owner_Name,
-        type_name = SELECTED_TYPE_NAME,
-        enable_owner_etch = Enable_Owner_Name_Etch,
-        enable_type_etch = Enable_Type_Name_Etch,
-        owner_position = owner_text_solid_pos,
-        type_position = type_text_solid_pos,
-        owner_rotation = owner_etch_rot,
-        type_rotation = type_etch_rot,
-        font_face = Fontface,
-        font_size = Font_Size,
-        text_height = TEXT_SOLID_HEIGHT,
-        text_as_separate_parts = Text_As_Separate_Parts,
-        which_part = _WhichPart
+        owner_name=Owner_Name,
+        type_name=SELECTED_TYPE_NAME,
+        enable_owner_etch=Enable_Owner_Name_Etch,
+        enable_type_etch=Enable_Type_Name_Etch,
+        owner_position=owner_text_solid_pos,
+        type_position=type_text_solid_pos,
+        owner_rotation=owner_etch_rot,
+        type_rotation=type_etch_rot,
+        font_face=Fontface,
+        font_size=Font_Size,
+        text_height=TEXT_SOLID_HEIGHT,
+        text_as_separate_parts=Text_As_Separate_Parts,
+        which_part=_WhichPart
     );
 }
 
@@ -332,17 +335,17 @@ module generate_multi_material_text_parts() {
  */
 module generate_text_etch_subtractions() {
     generate_shared_text_etch_subtractions(
-        owner_name = Owner_Name,
-        type_name = SELECTED_TYPE_NAME,
-        enable_owner_etch = Enable_Owner_Name_Etch,
-        enable_type_etch = Enable_Type_Name_Etch,
-        owner_position = owner_etch_pos,
-        type_position = type_etch_pos,
-        owner_rotation = owner_etch_rot,
-        type_rotation = type_etch_rot,
-        font_face = Fontface,
-        font_size = Font_Size,
-        etch_depth = TEXT_SUBTRACT_DEPTH
+        owner_name=Owner_Name,
+        type_name=SELECTED_TYPE_NAME,
+        enable_owner_etch=Enable_Owner_Name_Etch,
+        enable_type_etch=Enable_Type_Name_Etch,
+        owner_position=owner_etch_pos,
+        type_position=type_etch_pos,
+        owner_rotation=owner_etch_rot,
+        type_rotation=type_etch_rot,
+        font_face=Fontface,
+        font_size=Font_Size,
+        etch_depth=TEXT_SUBTRACT_DEPTH
     );
 }
 
@@ -365,70 +368,71 @@ module Part(DoPart) {
  */
 module bottom_carrier_assembly() {
     Part("Base") union() {
-        carrier_base_processing(
-            _top_or_bottom = Top_or_Bottom,
-            _carrier_material_height = LPL_CARRIER_HEIGHT,
-            _opening_height_param = adjusted_opening_height,
-            _opening_width_param = adjusted_opening_width,
-            _opening_cut_through_ext_param = CUT_THROUGH_EXTENSION,
-            _opening_fillet_param = Film_Opening_Frame_Fillet,
-            _peg_style_param = Printed_or_Heat_Set_Pegs,
-            _peg_diameter_param = LPL_PEG_DIAMETER,
-            _peg_actual_height_param = LPL_PEG_HEIGHT,
-            _peg_pos_x_param = peg_pos_x_final,
-            _peg_pos_y_param = peg_pos_y_final,
-            _peg_z_offset_param = peg_z_offset_calc - 0.1
-        ) {
-            difference() {
-                base_shape();
-                if (!Alignment_Board) {
-                    // If Alignment_Board is OFF, and type implies screws, punch the alignment footprint holes
-                    if (Alignment_Board_Type == "omega" || Alignment_Board_Type == "lpl-saunders") {
-                        alignment_footprint_holes(
-                            _screw_dia = LPL_ALIGNMENT_SCREW_DIAMETER,
-                            _dist_for_x_coords = LPL_ALIGNMENT_SCREW_PATTERN_DIST_X,
-                            _dist_for_y_coords = LPL_ALIGNMENT_SCREW_PATTERN_DIST_Y,
-                            _carrier_h = LPL_CARRIER_HEIGHT,
-                            _cut_ext = CUT_THROUGH_EXTENSION,
-                            _is_dent = false, // Bottom piece gets through-holes
-                            _dent_depth = 1
-                        );
+            carrier_base_processing(
+                _top_or_bottom=Top_or_Bottom,
+                _carrier_material_height=LPL_CARRIER_HEIGHT,
+                _opening_height_param=adjusted_opening_height,
+                _opening_width_param=adjusted_opening_width,
+                _opening_cut_through_ext_param=CUT_THROUGH_EXTENSION,
+                _opening_fillet_param=Film_Opening_Frame_Fillet,
+                _peg_style_param=Printed_or_Heat_Set_Pegs,
+                _peg_diameter_param=LPL_PEG_DIAMETER,
+                _peg_actual_height_param=LPL_PEG_HEIGHT,
+                _peg_pos_x_param=peg_pos_x_final,
+                _peg_pos_y_param=peg_pos_y_final,
+                _peg_z_offset_param=peg_z_offset_calc - 0.1
+            ) {
+                difference() {
+                    base_shape();
+                    if (!Alignment_Board) {
+                        // If Alignment_Board is OFF, and type implies screws, punch the alignment footprint holes
+                        if (Alignment_Board_Type == "omega" || Alignment_Board_Type == "lpl-saunders") {
+                            alignment_footprint_holes(
+                                _screw_dia=LPL_ALIGNMENT_SCREW_DIAMETER,
+                                _dist_for_x_coords=LPL_ALIGNMENT_SCREW_PATTERN_DIST_X,
+                                _dist_for_y_coords=LPL_ALIGNMENT_SCREW_PATTERN_DIST_Y,
+                                _carrier_h=LPL_CARRIER_HEIGHT,
+                                _cut_ext=CUT_THROUGH_EXTENSION,
+                                _is_dent=false, // Bottom piece gets through-holes
+                                _dent_depth=1
+                            );
+                        }
                     }
-                }
-                generate_text_etch_subtractions();
-                // Add directional arrow for 6x6 formats
-                if (Film_Format == "6x6" || Film_Format == "6x6 filed") {
-                    arrowOffset = 5;
-                    if (Orientation == "vertical") {
-                        currentOpeningWidth = FILM_FORMAT_WIDTH_RAW;
-                        arrowPosX = 0;
-                        arrowPosY = currentOpeningWidth / 2 + arrowOffset + ARROW_LENGTH / 2;
-                        translate([arrowPosX + 10, -arrowPosY , 0])
-                            arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
-                    } else {
-                        currentOpeningHeight = FILM_FORMAT_HEIGHT_RAW;
-                        arrowPosX = 0;
-                        arrowPosY = -currentOpeningHeight / 2 - arrowOffset - ARROW_LENGTH / 2;
-                        translate([arrowPosX, arrowPosY, 0])
-                        rotate([0, 0, 90])
-                            arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
+                    generate_text_etch_subtractions();
+                    // Add directional arrow for 6x6 formats
+                    if (Film_Format == "6x6" || Film_Format == "6x6 filed") {
+                        arrowOffset = 5;
+                        if (Orientation == "vertical") {
+                            currentOpeningWidth = FILM_FORMAT_WIDTH_RAW;
+                            arrowPosX = 0;
+                            arrowPosY = currentOpeningWidth / 2 + arrowOffset + ARROW_LENGTH / 2;
+                            translate([arrowPosX + 10, -arrowPosY, 0])
+                                arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
+                        } else {
+                            currentOpeningHeight = FILM_FORMAT_HEIGHT_RAW;
+                            arrowPosX = 0;
+                            arrowPosY = -currentOpeningHeight / 2 - arrowOffset - ARROW_LENGTH / 2;
+                            translate([arrowPosX, arrowPosY, 0])
+                                rotate([0, 0, 90])
+                                    arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
+                        }
                     }
                 }
             }
-        }
 
-        handle(); // Add the handle to the carrier part
+            handle(); // Add the handle to the carrier part
 
-        // Add alignment board if enabled
-        if (Alignment_Board) {
-            _z_trans_val = (Alignment_Board_Type == "omega") ? -1.4 :
-                           (Alignment_Board_Type == "lpl-saunders") ? -LPL_CARRIER_HEIGHT :
-                           (Alignment_Board_Type == "beseler-23c") ? -LPL_CARRIER_HEIGHT :
-                           0; 
-            translate([0, 0, _z_trans_val]) 
-                instantiate_alignment_board_by_type(Alignment_Board_Type);
+            // Add alignment board if enabled
+            if (Alignment_Board) {
+                _z_trans_val =
+                    (Alignment_Board_Type == "omega") ? -1.4
+                    : (Alignment_Board_Type == "lpl-saunders") ? -LPL_CARRIER_HEIGHT
+                    : (Alignment_Board_Type == "beseler-23c") ? -LPL_CARRIER_HEIGHT
+                    : 0;
+                translate([0, 0, _z_trans_val])
+                    instantiate_alignment_board_by_type(Alignment_Board_Type);
+            }
         }
-    }
 }
 
 // Main carrier generation logic
@@ -445,30 +449,29 @@ if (Top_or_Bottom == "bottom") {
     generate_multi_material_text_parts();
 } else if (Top_or_Bottom == "top") {
     Part("Base") carrier_base_processing(
-        _top_or_bottom = Top_or_Bottom,
-        _carrier_material_height = LPL_CARRIER_HEIGHT,
-        _opening_height_param = adjusted_opening_height,
-        _opening_width_param = adjusted_opening_width,
-        _opening_cut_through_ext_param = CUT_THROUGH_EXTENSION,
-        _opening_fillet_param = Film_Opening_Frame_Fillet,
-        _peg_style_param = Printed_or_Heat_Set_Pegs,
-        _peg_diameter_param = LPL_PEG_DIAMETER,
-        _peg_actual_height_param = LPL_PEG_HEIGHT,
-        _peg_pos_x_param = peg_pos_x_final,
-        _peg_pos_y_param = peg_pos_y_final,
-        _peg_z_offset_param = peg_z_offset_calc - 1
-    ) {
-        union() {
-            difference() {
-                base_shape();
-                generate_text_etch_subtractions();
+            _top_or_bottom=Top_or_Bottom,
+            _carrier_material_height=LPL_CARRIER_HEIGHT,
+            _opening_height_param=adjusted_opening_height,
+            _opening_width_param=adjusted_opening_width,
+            _opening_cut_through_ext_param=CUT_THROUGH_EXTENSION,
+            _opening_fillet_param=Film_Opening_Frame_Fillet,
+            _peg_style_param=Printed_or_Heat_Set_Pegs,
+            _peg_diameter_param=LPL_PEG_DIAMETER,
+            _peg_actual_height_param=LPL_PEG_HEIGHT,
+            _peg_pos_x_param=peg_pos_x_final,
+            _peg_pos_y_param=peg_pos_y_final,
+            _peg_z_offset_param=peg_z_offset_calc - 1
+        ) {
+            union() {
+                difference() {
+                    base_shape();
+                    generate_text_etch_subtractions();
+                }
+                handle(); // Add the handle to the carrier part
             }
-            handle(); // Add the handle to the carrier part
         }
-    }
 
     generate_multi_material_text_parts();
-
 } else if (Top_or_Bottom == "frameAndPegTestBottom" || Top_or_Bottom == "frameAndPegTestTop") {
     // Generate test pieces for fit validation
     testPiecePadding = 10;
@@ -478,19 +481,19 @@ if (Top_or_Bottom == "bottom") {
     effective_test_top_bottom = (Top_or_Bottom == "frameAndPegTestTop") ? "top" : "bottom";
 
     generate_test_frame(
-        _effective_test_piece_role = effective_test_top_bottom,
-        _frame_material_height = LPL_CARRIER_HEIGHT,
-        _film_opening_h = adjusted_opening_height,
-        _film_opening_w = adjusted_opening_width,
-        _film_opening_cut_ext = CUT_THROUGH_EXTENSION,
-        _film_opening_f = Film_Opening_Frame_Fillet,
-        _peg_style = Printed_or_Heat_Set_Pegs,
-        _peg_dia_val = LPL_PEG_DIAMETER,
-        _peg_h_val = LPL_PEG_HEIGHT,
-        _peg_x_val = peg_pos_x_final,
-        _peg_y_val = peg_pos_y_final,
-        _peg_z_val = test_peg_z_offset,
-        _test_cuboid_width = testPieceWidth,
-        _test_cuboid_depth = testPieceDepth
+        _effective_test_piece_role=effective_test_top_bottom,
+        _frame_material_height=LPL_CARRIER_HEIGHT,
+        _film_opening_h=adjusted_opening_height,
+        _film_opening_w=adjusted_opening_width,
+        _film_opening_cut_ext=CUT_THROUGH_EXTENSION,
+        _film_opening_f=Film_Opening_Frame_Fillet,
+        _peg_style=Printed_or_Heat_Set_Pegs,
+        _peg_dia_val=LPL_PEG_DIAMETER,
+        _peg_h_val=LPL_PEG_HEIGHT,
+        _peg_x_val=peg_pos_x_final,
+        _peg_y_val=peg_pos_y_final,
+        _peg_z_val=test_peg_z_offset,
+        _test_cuboid_width=testPieceWidth,
+        _test_cuboid_depth=testPieceDepth
     );
 }
