@@ -162,34 +162,6 @@ type_max_x = type_center_x + type_rotated_size_x / 2;
 type_min_y = type_center_y - type_rotated_size_y / 2;
 type_max_y = type_center_y + type_rotated_size_y / 2;
 
-// Validate text fits within safe area boundaries using shared validation
-validate_text_bounds(
-    text_string = Owner_Name,
-    font_face = Fontface,
-    font_size = 10,
-    center_x = owner_center_x,
-    center_y = owner_center_y,
-    rotation_angle = 270,
-    safe_min_x = safe_min_x,
-    safe_max_x = safe_max_x,
-    safe_min_y = safe_min_y,
-    safe_max_y = safe_max_y,
-    text_label = "Owner Name"
-);
-
-validate_text_bounds(
-    text_string = SELECTED_TYPE_NAME,
-    font_face = Fontface,
-    font_size = 10,
-    center_x = type_center_x,
-    center_y = type_center_y,
-    rotation_angle = 270,
-    safe_min_x = safe_min_x,
-    safe_max_x = safe_max_x,
-    safe_min_y = safe_min_y,
-    safe_max_y = safe_max_y,
-    text_label = "Type Name"
-);
 
 // Multi-material text depth calculations
 TEXT_SOLID_HEIGHT = Layer_Height_mm * Text_Layer_Multiple;
@@ -312,6 +284,18 @@ module registration_holes() {
 }
 
 /**
+ * Creates a separation hole for the top carrier for easy separation of the two carriers
+ */
+module separation_hole() {
+    translate([-115, -70, 0]) {
+        cylinder(h=OMEGA_D_CARRIER_HEIGHT + 1, r=10, center = true);
+    }
+    // translate([85, 70, 0]) {
+    //     cylinder(h=OMEGA_D_CARRIER_HEIGHT + 1, r=10, center = true);
+    // }
+}
+
+/**
  * Creates a left-pointing arrow shape for directional etching
  * Used to indicate film orientation on 6x6 format carriers
  * @param etch_depth Depth of the etched arrow
@@ -349,15 +333,16 @@ peg_positions = calculate_unified_peg_positions(
 peg_pos_x_calc = peg_positions[0];
 peg_pos_y_calc = peg_positions[1];
 
+text_etch_y_translate = -90;
 // Text etching position calculations
 owner_etch_bottom_margin = 5;
 owner_etch_bottom_position = safe_max_y - owner_etch_bottom_margin;
-owner_etch_pos = [owner_etch_bottom_position, -95, TEXT_ETCH_Z_POSITION];
+owner_etch_pos = [owner_etch_bottom_position, text_etch_y_translate, TEXT_ETCH_Z_POSITION];
 owner_etch_rot = [0, 0, 270];
 
 type_etch_top_margin = 5;
 type_etch_top_position = safe_min_y + type_etch_top_margin;
-type_etch_pos = [type_etch_top_position, -95, TEXT_ETCH_Z_POSITION];
+type_etch_pos = [type_etch_top_position, text_etch_y_translate, TEXT_ETCH_Z_POSITION];
 type_etch_rot = [0, 0, 270];
 
 /**
@@ -446,6 +431,7 @@ if (Top_or_Bottom == "bottom") {
     ) {
         difference() {
             base_shape();
+            separation_hole();
             registration_holes(); 
             generate_alignment_footprint_holes(is_dent_holes = true);
             generate_text_etch_subtractions();

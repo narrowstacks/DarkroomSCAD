@@ -98,6 +98,81 @@ function calculate_omega_style_peg_coordinate(is_dominant_film_dimension, film_w
         (film_width_or_equiv_half + peg_radius) :
         (film_peg_distance_half + peg_radius - omega_internal_gap_value);
 
+// Calculate internal peg gap for filed medium formats
+function calculate_internal_peg_gap(film_format_str, peg_gap_val) =
+    let (
+        is_filed = film_format_str == "6x4.5 filed" ||
+                   film_format_str == "6x6 filed" ||
+                   film_format_str == "6x7 filed" ||
+                   film_format_str == "6x8 filed" ||
+                   film_format_str == "6x9 filed" ||
+                   film_format_str == "35mm filed"
+    )
+    is_filed ? (1 - peg_gap_val) - 1 : (1 - peg_gap_val);
+
+// Calculate LPL-style peg coordinate (simpler approach based on film dimensions + peg radius + gap)
+function calculate_lpl_style_peg_coordinate(effective_orientation, film_height, film_width, peg_radius, peg_gap, is_x_coordinate) =
+    let (
+        use_width = (effective_orientation == "vertical" && is_x_coordinate) ||
+                   (effective_orientation == "horizontal" && !is_x_coordinate),
+        film_dimension = use_width ? film_width : film_height
+    )
+    film_dimension / 2 + peg_radius + peg_gap;
+
+// Unified peg positioning function that can handle both Omega-D and LPL-Saunders approaches
+function calculate_unified_peg_positions(
+    film_format_str,
+    orientation_str,
+    peg_diameter,
+    peg_gap_val,
+    adjust_film_width_val = 0,
+    adjust_film_height_val = 0,
+    positioning_style = "omega", // ["omega", "lpl"]
+    film_peg_distance = undef  // Required for omega style, ignored for lpl style
+) = 
+    let (
+        film_height_raw = get_film_format_height(film_format_str) + adjust_film_height_val,
+        film_width_raw = get_film_format_width(film_format_str) + adjust_film_width_val,
+        effective_orientation = get_effective_orientation(film_format_str, orientation_str),
+        peg_radius = peg_diameter / 2,
+        
+        // Calculate positions based on style
+        pos_x = (positioning_style == "omega") ?
+            calculate_omega_style_peg_coordinate(
+                is_dominant_film_dimension = (effective_orientation == "vertical"),
+                film_width_or_equiv_half = film_width_raw / 2,
+                film_peg_distance_half = film_peg_distance / 2,
+                peg_radius = peg_radius,
+                omega_internal_gap_value = calculate_internal_peg_gap(film_format_str, peg_gap_val)
+            ) :
+            calculate_lpl_style_peg_coordinate(
+                effective_orientation = effective_orientation,
+                film_height = film_height_raw,
+                film_width = film_width_raw,
+                peg_radius = peg_radius,
+                peg_gap = peg_gap_val,
+                is_x_coordinate = true
+            ),
+            
+        pos_y = (positioning_style == "omega") ?
+            calculate_omega_style_peg_coordinate(
+                is_dominant_film_dimension = (effective_orientation == "horizontal"),
+                film_width_or_equiv_half = film_width_raw / 2,
+                film_peg_distance_half = film_peg_distance / 2,
+                peg_radius = peg_radius,
+                omega_internal_gap_value = calculate_internal_peg_gap(film_format_str, peg_gap_val)
+            ) :
+            calculate_lpl_style_peg_coordinate(
+                effective_orientation = effective_orientation,
+                film_height = film_height_raw,
+                film_width = film_width_raw,
+                peg_radius = peg_radius,
+                peg_gap = peg_gap_val,
+                is_x_coordinate = false
+            )
+    )
+    [pos_x, pos_y];
+
 // Generate peg features (printed pegs or holes for pegs/inserts)
 module generate_peg_features(
     _top_or_bottom,
