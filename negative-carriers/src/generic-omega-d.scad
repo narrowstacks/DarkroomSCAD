@@ -37,8 +37,6 @@ include <common/text-etching.scad>
  *   [20] = owner_etch_bottom_margin (default: 5)
  *   [21] = type_etch_top_margin (default: 5)
  *
- * @param film_format - Film format string
- * @param orientation - Film orientation string  
  * @param top_or_bottom - "top" or "bottom"
  * @param printed_or_heat_set_pegs - "printed" or "heat_set"
  * @param alignment_board - true/false
@@ -55,14 +53,14 @@ include <common/text-etching.scad>
  * @param layer_height_mm - Layer height for multi-material
  * @param text_layer_multiple - Text layer count multiplier
  * @param which_part - "All", "Base", "OwnerText", "TypeText"
- * @param peg_gap - Peg gap adjustment
- * @param adjust_film_width - Film width adjustment
- * @param adjust_film_height - Film height adjustment
+ * @param opening_height - Pre-calculated film opening height
+ * @param opening_width - Pre-calculated film opening width
+ * @param peg_pos_x - Pre-calculated peg X position
+ * @param peg_pos_y - Pre-calculated peg Y position
+ * @param film_format_for_arrows - Film format string (for directional arrows only)
  */
 module generic_omega_d_carrier(
     config,
-    film_format,
-    orientation,
     top_or_bottom,
     printed_or_heat_set_pegs,
     alignment_board,
@@ -79,9 +77,12 @@ module generic_omega_d_carrier(
     layer_height_mm,
     text_layer_multiple,
     which_part,
-    peg_gap,
-    adjust_film_width,
-    adjust_film_height
+    // Pre-calculated values from carrier.scad
+    opening_height,
+    opening_width,
+    peg_pos_x,
+    peg_pos_y,
+    film_format_for_arrows
 ) {
     // Extract configuration parameters
     CARRIER_LENGTH = config[0];
@@ -112,51 +113,19 @@ module generic_omega_d_carrier(
     REG_HOLE_SLOT_LENGTH_EXTENSION = 0;
     REG_HOLE_CYL_Y_OFFSET = 3.1;
 
-    // Direction arrow dimensions for 6x6 format
-    ARROW_LENGTH = 8;
-    ARROW_WIDTH = 5;
-    ARROW_ETCH_DEPTH = 0.5;
+    // Direction arrow dimensions for 6x6 format (now using centralized values from carrier-features.scad)
+    // ARROW_LENGTH, ARROW_WIDTH, and ARROW_ETCH_DEPTH are now defined in carrier-features.scad
 
     // Z-axis positioning calculations
     TEXT_ETCH_Z_POSITION = CARRIER_HEIGHT / 2 - (text_etch_depth + 0.1);
     CARRIER_HALF_HEIGHT = CARRIER_HEIGHT / 2;
 
-    // Film format dimensions from film-sizes.scad
-    FILM_FORMAT_HEIGHT = get_film_format_height(film_format);
-    FILM_FORMAT_WIDTH = get_film_format_width(film_format);
-    FILM_FORMAT_PEG_DISTANCE = get_film_format_peg_distance(film_format);
-
-    // Validate film format selection
-    assert(FILM_FORMAT_HEIGHT != undef, str("Unknown or unsupported film_format selected: ", film_format));
-    assert(FILM_FORMAT_WIDTH != undef, str("Unknown or unsupported film_format selected: ", film_format));
-    assert(FILM_FORMAT_PEG_DISTANCE != undef, str("Unknown or unsupported film_format selected: ", film_format));
-
     if (alignment_board && printed_or_heat_set_pegs == "printed") {
         assert(false, "CARRIER OPTIONS ERROR: Alignment board included, so we can't use printed pegs! Please use heat-set pegs or disable the alignment board.");
     }
 
-    // Film opening calculations using carrier-features.scad functions
-    effective_orientation = get_effective_orientation(film_format, orientation);
-    adjusted_opening_height = get_final_opening_height(film_format, orientation, adjust_film_height);
-    adjusted_opening_width = get_final_opening_width(film_format, orientation, adjust_film_width);
-
-    // Peg positioning calculations
+    // Peg positioning calculations (Z-offset only, X/Y positions come from carrier.scad)
     peg_z_offset_calc = (top_or_bottom == "top") ? (CARRIER_HEIGHT - TOP_PEG_HOLE_Z_OFFSET) : CARRIER_HALF_HEIGHT;
-
-    // Calculate peg positions using the unified positioning function
-    peg_positions = calculate_unified_peg_positions(
-        film_format_str=film_format,
-        orientation_str=orientation,
-        peg_diameter=PEG_DIAMETER,
-        peg_gap_val=peg_gap,
-        adjust_film_width_val=adjust_film_width,
-        adjust_film_height_val=adjust_film_height,
-        positioning_style="omega",
-        film_peg_distance=FILM_FORMAT_PEG_DISTANCE
-    );
-
-    peg_pos_x_calc = peg_positions[0];
-    peg_pos_y_calc = peg_positions[1];
 
     // Text positioning calculations
     owner_metrics = textmetrics(text=owner_name, font=fontface, size=font_size, halign="center", valign="center");
@@ -253,20 +222,8 @@ module generic_omega_d_carrier(
         }
     }
 
-    /**
-     * Creates a left-pointing arrow shape for directional etching
-     */
-    module arrow_etch(etch_depth = 0.5, length = 5, width = 3) {
-        translate([-10, 0, .5])
-            linear_extrude(height=etch_depth + 0.1)
-                polygon(
-                    points=[
-                        [-length / 2, 0],
-                        [length / 2, width / 2],
-                        [length / 2, -width / 2],
-                    ]
-                );
-    }
+    // Arrow etching functionality now provided by carrier-features.scad
+    // The arrow_etch module and related functions are centralized there
 
     /**
      * Generates alignment board footprint holes
@@ -339,15 +296,15 @@ module generic_omega_d_carrier(
                 carrier_base_processing(
                     _top_or_bottom=top_or_bottom,
                     _carrier_material_height=CARRIER_HEIGHT,
-                    _opening_height_param=adjusted_opening_height,
-                    _opening_width_param=adjusted_opening_width,
+                    _opening_height_param=opening_height,
+                    _opening_width_param=opening_width,
                     _opening_cut_through_ext_param=CUT_THROUGH_EXTENSION,
                     _opening_fillet_param=FRAME_FILLET,
                     _peg_style_param=printed_or_heat_set_pegs,
                     _peg_diameter_param=PEG_DIAMETER,
                     _peg_actual_height_param=PEG_HEIGHT,
-                    _peg_pos_x_param=peg_pos_x_calc,
-                    _peg_pos_y_param=peg_pos_y_calc,
+                    _peg_pos_x_param=peg_pos_x,
+                    _peg_pos_y_param=peg_pos_y,
                     _peg_z_offset_param=peg_z_offset_calc + 0.1
                 ) {
                     difference() {
@@ -355,24 +312,17 @@ module generic_omega_d_carrier(
                         registration_holes();
                         generate_alignment_footprint_holes(is_dent_holes=false);
                         generate_text_etch_subtractions();
-                        // Add directional arrow for 6x6 formats
-                        if (film_format == "6x6" || film_format == "6x6 filed") {
-                            arrowOffset = 5;
-                            if (orientation == "vertical") {
-                                currentOpeningWidth = FILM_FORMAT_WIDTH;
-                                arrowPosX = 0;
-                                arrowPosY = currentOpeningWidth / 2 + arrowOffset + ARROW_LENGTH / 2;
-                                translate([arrowPosX + 10, -arrowPosY, 0])
-                                    arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
-                            } else {
-                                currentOpeningHeight = FILM_FORMAT_HEIGHT;
-                                arrowPosX = 0;
-                                arrowPosY = -currentOpeningHeight / 2 - arrowOffset - ARROW_LENGTH / 2;
-                                translate([arrowPosX, arrowPosY, 0])
-                                    rotate([0, 0, 90])
-                                        arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
-                            }
-                        }
+                        // Add directional arrow for appropriate formats using centralized module
+                        generate_directional_arrow_etch(
+                            film_format_str=film_format_for_arrows,
+                            orientation_str="vertical", // Omega-D carriers are always vertical orientation
+                            opening_width=opening_width,
+                            opening_height=opening_height,
+                            arrow_length=ARROW_LENGTH,
+                            arrow_width=ARROW_WIDTH,
+                            arrow_etch_depth=ARROW_ETCH_DEPTH,
+                            arrow_offset=5
+                        );
                     }
                 }
 
@@ -402,15 +352,15 @@ module generic_omega_d_carrier(
             carrier_base_processing(
                 _top_or_bottom=top_or_bottom,
                 _carrier_material_height=CARRIER_HEIGHT,
-                _opening_height_param=adjusted_opening_height,
-                _opening_width_param=adjusted_opening_width,
+                _opening_height_param=opening_height,
+                _opening_width_param=opening_width,
                 _opening_cut_through_ext_param=CUT_THROUGH_EXTENSION,
                 _opening_fillet_param=FRAME_FILLET,
                 _peg_style_param=printed_or_heat_set_pegs,
                 _peg_diameter_param=PEG_DIAMETER,
                 _peg_actual_height_param=PEG_HEIGHT,
-                _peg_pos_x_param=peg_pos_x_calc,
-                _peg_pos_y_param=peg_pos_y_calc,
+                _peg_pos_x_param=peg_pos_x,
+                _peg_pos_y_param=peg_pos_y,
                 _peg_z_offset_param=peg_z_offset_calc
             ) {
                 difference() {

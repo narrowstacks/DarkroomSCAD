@@ -51,14 +51,14 @@ include <common/text-etching.scad>
  * @param layer_height_mm - Layer height for multi-material
  * @param text_layer_multiple - Text layer count multiplier
  * @param which_part - "All", "Base", "OwnerText", "TypeText"
- * @param peg_gap - Peg gap adjustment
- * @param adjust_film_width - Film width adjustment
- * @param adjust_film_height - Film height adjustment
+ * @param opening_height - Pre-calculated film opening height
+ * @param opening_width - Pre-calculated film opening width
+ * @param peg_pos_x - Pre-calculated peg X position
+ * @param peg_pos_y - Pre-calculated peg Y position
+ * @param film_format_for_arrows - Film format string (for directional arrows only)
  */
 module generic_beseler_23c_carrier(
     config,
-    film_format,
-    orientation,
     top_or_bottom,
     printed_or_heat_set_pegs,
     alignment_board,
@@ -74,9 +74,12 @@ module generic_beseler_23c_carrier(
     layer_height_mm,
     text_layer_multiple,
     which_part,
-    peg_gap,
-    adjust_film_width,
-    adjust_film_height
+    // Pre-calculated values from carrier.scad
+    opening_height,
+    opening_width,
+    peg_pos_x,
+    peg_pos_y,
+    film_format_for_arrows
 ) {
     // Extract configuration parameters
     CARRIER_DIAMETER = config[0];
@@ -109,53 +112,20 @@ module generic_beseler_23c_carrier(
         assert(false, "CARRIER OPTIONS ERROR: Alignment board included, so we can't use printed pegs! Please use heat-set pegs or disable the alignment board.");
     }
 
-    // Get film dimensions by calling functions from film-sizes.scad
-    FILM_FORMAT_HEIGHT = get_film_format_height(film_format);
-    FILM_FORMAT_WIDTH = get_film_format_width(film_format);
-    FILM_FORMAT_PEG_DISTANCE = get_film_format_peg_distance(film_format);
+    // Use pre-calculated values from carrier.scad
+    opening_width_actual = opening_width;
+    opening_height_actual = opening_height;
+    peg_pos_x_calc = peg_pos_x;
+    peg_pos_y_calc = peg_pos_y;
 
-    // Determine actual opening dimensions based on orientation
-    opening_width_actual = get_final_opening_width(film_format, orientation, adjust_film_width);
-    opening_height_actual = get_final_opening_height(film_format, orientation, adjust_film_height);
-
-    // Determine effective orientation
-    effective_orientation = get_effective_orientation(film_format, orientation);
-
-    // Check if the selected format is a "filed" medium format
-    IS_FILED_MEDIUM_FORMAT = film_format == "35mm filed" || 
-        film_format == "6x4.5 filed" || film_format == "6x6 filed" || 
-        film_format == "6x7 filed" || film_format == "6x8 filed" || film_format == "6x9 filed";
-
-    // Internal calculation for peg gap, adjusted for filed formats
-    CALCULATED_INTERNAL_PEG_GAP = IS_FILED_MEDIUM_FORMAT ? (1 - peg_gap) - 1 : (1 - peg_gap);
-
-    // Calculate peg positions using Omega-style rules
-    _peg_radius = PEG_DIAMETER / 2;
-    _film_width_actual_half = (get_film_format_width(film_format) + adjust_film_width) / 2;
-    _film_peg_distance_actual_half = FILM_FORMAT_PEG_DISTANCE / 2;
-
-    peg_pos_x_calc = calculate_omega_style_peg_coordinate(
-        is_dominant_film_dimension=(effective_orientation == "vertical"), // X uses film width if vertical
-        film_width_or_equiv_half=_film_width_actual_half,
-        film_peg_distance_half=_film_peg_distance_actual_half,
-        peg_radius=_peg_radius,
-        omega_internal_gap_value=CALCULATED_INTERNAL_PEG_GAP
-    );
-
-    peg_pos_y_calc = calculate_omega_style_peg_coordinate(
-        is_dominant_film_dimension=(effective_orientation == "horizontal"), // Y uses film width if horizontal
-        film_width_or_equiv_half=_film_width_actual_half,
-        film_peg_distance_half=_film_peg_distance_actual_half,
-        peg_radius=_peg_radius,
-        omega_internal_gap_value=CALCULATED_INTERNAL_PEG_GAP
-    );
+    // ARROW_LENGTH, ARROW_WIDTH, and ARROW_ETCH_DEPTH are now defined in carrier-features.scad
 
     // Text positioning and boundary calculations (using circular boundary)
     owner_metrics = textmetrics(text=owner_name, font=fontface, size=font_size, halign="center", valign="center");
     type_metrics = textmetrics(text=selected_type_name, font=fontface, size=font_size, halign="center", valign="center");
 
     // Safe circular area boundaries for text placement
-    safe_circle_radius = CARRIER_DIAMETER / 2 - SAFE_TEXT_MARGIN; 
+    safe_circle_radius = CARRIER_DIAMETER / 2 - SAFE_TEXT_MARGIN;
     safe_min_x = -safe_circle_radius;
     safe_max_x = safe_circle_radius;
     safe_min_y = -safe_circle_radius;
@@ -190,8 +160,8 @@ module generic_beseler_23c_carrier(
      * Creates the handle for the Beseler 23C carrier
      */
     module handle() {
-        translate([0, CARRIER_DIAMETER / 2, 0]) 
-            color("grey") 
+        translate([0, CARRIER_DIAMETER / 2, 0])
+            color("grey")
                 cuboid([HANDLE_WIDTH, HANDLE_LENGTH * 1.5, CARRIER_HEIGHT], anchor=CENTER, rounding=.5);
     }
 
@@ -199,7 +169,7 @@ module generic_beseler_23c_carrier(
      * Creates the basic Beseler 23C carrier shape
      */
     module base_shape() {
-        color("grey") 
+        color("grey")
             union() {
                 cyl(h=CARRIER_HEIGHT, r=CARRIER_DIAMETER / 2, center=true, rounding=.5);
             }
@@ -271,6 +241,17 @@ module generic_beseler_23c_carrier(
                     difference() {
                         base_shape();
                         generate_text_etch_subtractions();
+                        // Add directional arrow for appropriate formats using centralized module
+                        generate_directional_arrow_etch(
+                            film_format_str=film_format_for_arrows,
+                            orientation_str="vertical", // Use consistent orientation for arrows
+                            opening_width=opening_width_actual,
+                            opening_height=opening_height_actual,
+                            arrow_length=ARROW_LENGTH,
+                            arrow_width=ARROW_WIDTH,
+                            arrow_etch_depth=ARROW_ETCH_DEPTH,
+                            arrow_offset=5
+                        );
                     }
                 }
 
@@ -318,10 +299,45 @@ module generic_beseler_23c_carrier(
                 difference() {
                     base_shape();
                     generate_text_etch_subtractions();
+                    // Add directional arrow for appropriate formats using centralized module
+                    generate_directional_arrow_etch(
+                        film_format_str=film_format_for_arrows,
+                        orientation_str="vertical", // Use consistent orientation for arrows
+                        opening_width=opening_width_actual,
+                        opening_height=opening_height_actual,
+                        arrow_length=ARROW_LENGTH,
+                        arrow_width=ARROW_WIDTH,
+                        arrow_etch_depth=ARROW_ETCH_DEPTH,
+                        arrow_offset=5
+                    );
                 }
             }
-        
+
         handle();
         generate_multi_material_text_parts();
+    } else if (top_or_bottom == "frameAndPegTestBottom" || top_or_bottom == "frameAndPegTestTop") {
+        // Generate test pieces for fit validation
+        testPiecePadding = 10;
+        testPieceWidth = 2 * peg_pos_y_calc + PEG_DIAMETER + testPiecePadding * 2;
+        testPieceDepth = 2 * peg_pos_x_calc + PEG_DIAMETER + testPiecePadding * 2;
+        test_peg_z_offset = CARRIER_HALF_HEIGHT;
+        effective_test_top_bottom = (top_or_bottom == "frameAndPegTestTop") ? "top" : "bottom";
+
+        generate_test_frame(
+            _effective_test_piece_role=effective_test_top_bottom,
+            _frame_material_height=CARRIER_HEIGHT,
+            _film_opening_h=opening_height_actual,
+            _film_opening_w=opening_width_actual,
+            _film_opening_cut_ext=FILM_OPENING_CUT_THROUGH_EXTENSION,
+            _film_opening_f=FILM_OPENING_FRAME_FILLET,
+            _peg_style=printed_or_heat_set_pegs,
+            _peg_dia_val=PEG_DIAMETER,
+            _peg_h_val=PEG_HEIGHT,
+            _peg_x_val=peg_pos_x_calc,
+            _peg_y_val=peg_pos_y_calc,
+            _peg_z_val=test_peg_z_offset,
+            _test_cuboid_width=testPieceWidth,
+            _test_cuboid_depth=testPieceDepth
+        );
     }
 }

@@ -69,22 +69,34 @@ function get_adjusted_dimension(base_dim, adjustment_val) =
     base_dim + adjustment_val;
 
 // Get final adjusted opening dimension
-function get_final_opening_dimension(is_height, film_format_str, orientation_str, adjust_val) =
+// For custom formats, pass custom_film_height and custom_film_width to override defaults
+function get_final_opening_dimension(is_height, film_format_str, orientation_str, adjust_val, custom_film_height = undef, custom_film_width = undef) =
     let (
-        _film_h_raw = get_film_format_height(film_format_str),
-        _film_w_raw = get_film_format_width(film_format_str),
+        _film_h_raw = get_film_format_height(film_format_str, custom_film_height),
+        _film_w_raw = get_film_format_width(film_format_str, custom_film_width),
         _eff_orientation = get_effective_orientation(film_format_str, orientation_str),
         _calc_opening_dim = is_height ?
             get_calculated_opening_height(_eff_orientation, _film_h_raw, _film_w_raw)
         : get_calculated_opening_width(_eff_orientation, _film_h_raw, _film_w_raw)
     ) get_adjusted_dimension(_calc_opening_dim, adjust_val);
 
-// Wrapper functions for backward compatibility
-function get_final_opening_height(film_format_str, orientation_str, adjust_h_val) =
-    get_final_opening_dimension(true, film_format_str, orientation_str, adjust_h_val);
+// Wrapper functions for backward compatibility and custom format support
+function get_final_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height = undef, custom_film_width = undef) =
+    get_final_opening_dimension(true, film_format_str, orientation_str, adjust_h_val, custom_film_height, custom_film_width);
 
-function get_final_opening_width(film_format_str, orientation_str, adjust_w_val) =
-    get_final_opening_dimension(false, film_format_str, orientation_str, adjust_w_val);
+function get_final_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height = undef, custom_film_width = undef) =
+    get_final_opening_dimension(false, film_format_str, orientation_str, adjust_w_val, custom_film_height, custom_film_width);
+
+// For custom formats: use custom opening dimensions directly if provided, otherwise calculate from film stock 
+function get_custom_aware_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height = undef, custom_film_width = undef, custom_opening_height = undef) =
+    (film_format_str == "custom" && custom_opening_height != undef) ?
+        custom_opening_height
+    : get_final_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height, custom_film_width);
+
+function get_custom_aware_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height = undef, custom_film_width = undef, custom_opening_width = undef) =
+    (film_format_str == "custom" && custom_opening_width != undef) ?
+        custom_opening_width
+    : get_final_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height, custom_film_width);
 
 // Calculate Z offset for pegs/holes
 function get_peg_z_offset(is_top_piece, z_value_for_top, z_value_for_bottom) =
@@ -367,5 +379,80 @@ module alignment_footprint_holes(_screw_dia, _dist_for_x_coords, _dist_for_y_coo
             translate([eff_spacing_x * x_mult, eff_spacing_y * y_mult, z_val_for_hole])
                 cylinder(h=actual_hole_height, r=hole_radius, center=use_center_alignment);
         }
+    }
+}
+
+// ============================================================================
+// DIRECTIONAL ARROW ETCHING FUNCTIONALITY
+// ============================================================================
+
+// Default arrow dimensions - can be overridden by calling modules
+ARROW_LENGTH = 8;
+ARROW_WIDTH = 5;
+ARROW_ETCH_DEPTH = 0.5;
+
+/**
+ * Creates a left-pointing arrow shape for directional etching
+ * Used to indicate film orientation on square format carriers (like 6x6)
+ * @param etch_depth Depth of the etched arrow
+ * @param length Arrow length
+ * @param width Arrow width
+ */
+module arrow_etch(etch_depth = 0.5, length = 5, width = 3) {
+    translate([-10, 0, .5])
+        linear_extrude(height=etch_depth + 0.1)
+            polygon(points=[[-length / 2, 0], [length / 2, width / 2], [length / 2, -width / 2]]);
+}
+
+/**
+ * Determines if a film format needs directional arrows
+ * Currently only 6x6 formats need arrows since they're square
+ */
+function needs_directional_arrow(film_format_str) =
+    film_format_str == "6x6" || film_format_str == "6x6 filed";
+
+/**
+ * Calculates arrow position and rotation based on film format and orientation
+ * Returns [x_pos, y_pos, rotation_angle]
+ */
+function calculate_arrow_position(film_format_str, orientation_str, opening_width, opening_height, arrow_length = 8, arrow_offset = 5) =
+    let (
+        effective_orientation = get_effective_orientation(film_format_str, orientation_str)
+    )
+    // For 6x6, opening is square so we can use either dimension
+    (effective_orientation == "vertical") ?
+        [10, -(opening_width / 2 + arrow_offset + arrow_length / 2), 0] // Vertical: arrow points left, positioned below
+    : [0, -(opening_height / 2 + arrow_offset + arrow_length / 2), 90]; // Horizontal: arrow points up, positioned to the right
+
+/**
+ * Generates directional arrow etching for appropriate film formats
+ * This is the main function that should be called by carrier implementations
+ * @param film_format_str The film format string (e.g., "6x6", "35mm")
+ * @param orientation_str The orientation string ("vertical" or "horizontal")
+ * @param opening_width Width of the film opening
+ * @param opening_height Height of the film opening
+ * @param arrow_length Length of the arrow (default: 8)
+ * @param arrow_width Width of the arrow (default: 5)
+ * @param arrow_etch_depth Depth of the arrow etching (default: 0.5)
+ * @param arrow_offset Distance from opening edge to arrow (default: 5)
+ */
+module generate_directional_arrow_etch(
+    film_format_str,
+    orientation_str = "vertical",
+    opening_width = 56,
+    opening_height = 56,
+    arrow_length = 8,
+    arrow_width = 5,
+    arrow_etch_depth = 0.5,
+    arrow_offset = 5
+) {
+    if (needs_directional_arrow(film_format_str)) {
+        arrow_pos = calculate_arrow_position(
+            film_format_str, orientation_str, opening_width, opening_height, arrow_length, arrow_offset
+        );
+
+        translate([arrow_pos[0], arrow_pos[1], 0])
+            rotate([0, 0, arrow_pos[2]])
+                arrow_etch(etch_depth=arrow_etch_depth, length=arrow_length, width=arrow_width);
     }
 }

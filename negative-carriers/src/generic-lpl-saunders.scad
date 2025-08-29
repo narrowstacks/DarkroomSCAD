@@ -39,8 +39,6 @@ include <common/text-etching.scad>
  *   [21] = multi_material_text_y_offset_owner (default: -75)
  *   [22] = multi_material_text_y_offset_type (default: -75)
  *
- * @param film_format - Film format string
- * @param orientation - Film orientation string  
  * @param top_or_bottom - "top" or "bottom"
  * @param printed_or_heat_set_pegs - "printed" or "heat_set"
  * @param alignment_board - true/false
@@ -57,16 +55,14 @@ include <common/text-etching.scad>
  * @param layer_height_mm - Layer height for multi-material
  * @param text_layer_multiple - Text layer count multiplier
  * @param which_part - "All", "Base", "OwnerText", "TypeText"
- * @param peg_gap - Peg gap adjustment
- * @param adjust_film_width - Film width adjustment
- * @param adjust_film_height - Film height adjustment
- * @param custom_film_format_opening_height - Custom format opening height
- * @param custom_film_format_opening_width - Custom format opening width
+ * @param opening_height - Pre-calculated film opening height
+ * @param opening_width - Pre-calculated film opening width
+ * @param peg_pos_x - Pre-calculated peg X position
+ * @param peg_pos_y - Pre-calculated peg Y position
+ * @param film_format_for_arrows - Film format string (for directional arrows only)
  */
 module generic_lpl_saunders_carrier(
     config,
-    film_format,
-    orientation,
     top_or_bottom,
     printed_or_heat_set_pegs,
     alignment_board,
@@ -83,11 +79,12 @@ module generic_lpl_saunders_carrier(
     layer_height_mm,
     text_layer_multiple,
     which_part,
-    peg_gap,
-    adjust_film_width,
-    adjust_film_height,
-    custom_film_format_opening_height,
-    custom_film_format_opening_width
+    // Pre-calculated values from carrier.scad
+    opening_height,
+    opening_width,
+    peg_pos_x,
+    peg_pos_y,
+    film_format_for_arrows
 ) {
     // Extract configuration parameters
     CARRIER_DIAMETER = config[0];
@@ -117,10 +114,8 @@ module generic_lpl_saunders_carrier(
     // General modeling constants
     CUT_THROUGH_EXTENSION = 1;
 
-    // Direction arrow dimensions for 6x6 format
-    ARROW_LENGTH = 8;
-    ARROW_WIDTH = 5;
-    ARROW_ETCH_DEPTH = 0.5;
+    // Direction arrow dimensions for 6x6 format (now using centralized values from carrier-features.scad)
+    // ARROW_LENGTH, ARROW_WIDTH, and ARROW_ETCH_DEPTH are now defined in carrier-features.scad
 
     // Z-axis positioning calculations
     TEXT_ETCH_Z_POSITION = CARRIER_HEIGHT / 2 - (text_etch_depth + 0.1);
@@ -130,29 +125,12 @@ module generic_lpl_saunders_carrier(
         assert(false, "CARRIER OPTIONS ERROR: Alignment board included, so we can't use printed pegs! Please use heat-set pegs or disable the alignment board.");
     }
 
-    // Film format type detection
-    IS_FILED_MEDIUM_FORMAT = film_format == "6x4.5 filed" || film_format == "6x6 filed" || film_format == "6x7 filed" || film_format == "6x8 filed" || film_format == "6x9 filed";
-
-    // Get film dimensions by calling functions from film-sizes.scad
-    FILM_FORMAT_HEIGHT_RAW = (film_format == "custom") ? custom_film_format_opening_height : get_film_format_height(film_format);
-    FILM_FORMAT_WIDTH_RAW = (film_format == "custom") ? custom_film_format_opening_width : get_film_format_width(film_format);
-
-    // Assert that the functions returned valid values (not undef)
-    assert(FILM_FORMAT_HEIGHT_RAW != undef, str("Unknown or unsupported film_format selected for HEIGHT: ", film_format));
-    assert(FILM_FORMAT_WIDTH_RAW != undef, str("Unknown or unsupported film_format selected for WIDTH: ", film_format));
-
-    effective_orientation = get_effective_orientation(film_format, orientation);
-
-    // Adjusted film opening dimensions (incorporating user adjustments)
-    adjusted_opening_height = get_final_opening_height(film_format, orientation, adjust_film_height);
-    adjusted_opening_width = get_final_opening_width(film_format, orientation, adjust_film_width);
-
     // Text positioning and boundary calculations
     owner_metrics = textmetrics(text=owner_name, font=fontface, size=font_size, halign="center", valign="center");
     type_metrics = textmetrics(text=selected_type_name, font=fontface, size=font_size, halign="center", valign="center");
 
     // Safe circular area boundaries for text placement (LPL uses circular carrier)
-    safe_circle_radius = CARRIER_DIAMETER / 2 - SAFE_TEXT_MARGIN; 
+    safe_circle_radius = CARRIER_DIAMETER / 2 - SAFE_TEXT_MARGIN;
     safe_min_x = -safe_circle_radius;
     safe_max_x = safe_circle_radius;
     safe_min_y = -safe_circle_radius;
@@ -161,7 +139,7 @@ module generic_lpl_saunders_carrier(
     // Owner name text boundaries (rotated 90 degrees for LPL)
     owner_rotated_size_x = owner_metrics.size[1];
     owner_rotated_size_y = owner_metrics.size[0];
-    owner_center_x = -60;  // Move closer to center to fit within safe area
+    owner_center_x = -60; // Move closer to center to fit within safe area
     owner_center_y = -35;
     owner_min_x = owner_center_x - owner_rotated_size_x / 2;
     owner_max_x = owner_center_x + owner_rotated_size_x / 2;
@@ -171,7 +149,7 @@ module generic_lpl_saunders_carrier(
     // Type name text boundaries (rotated 90 degrees for LPL)
     type_rotated_size_x = type_metrics.size[1];
     type_rotated_size_y = type_metrics.size[0];
-    type_center_x = -60;  // Move closer to center to fit within safe area
+    type_center_x = -60; // Move closer to center to fit within safe area
     type_center_y = 40;
     type_min_x = type_center_x - type_rotated_size_x / 2;
     type_max_x = type_center_x + type_rotated_size_x / 2;
@@ -221,17 +199,8 @@ module generic_lpl_saunders_carrier(
     type_etch_pos = [type_etch_top_position, TEXT_ETCH_Y_TRANSLATE_TYPE, TEXT_ETCH_Z_POSITION];
     type_etch_rot = [0, 0, 90];
 
-    // Peg positioning calculations
+    // Peg positioning calculations (Z-offset only, X/Y positions come from carrier.scad)
     peg_z_offset_calc = (top_or_bottom == "top") ? (CARRIER_HEIGHT - 0) : CARRIER_HALF_HEIGHT;
-
-    // Calculate peg positions for LPL style
-    peg_pos_x_final = effective_orientation == "vertical" ?
-        (FILM_FORMAT_WIDTH_RAW / 2 + PEG_DIAMETER / 2 + peg_gap) :
-        (FILM_FORMAT_HEIGHT_RAW / 2 + PEG_DIAMETER / 2 + peg_gap);
-
-    peg_pos_y_final = effective_orientation == "vertical" ?
-        (FILM_FORMAT_HEIGHT_RAW / 2 + PEG_DIAMETER / 2 + peg_gap) :
-        (FILM_FORMAT_WIDTH_RAW / 2 + PEG_DIAMETER / 2 + peg_gap);
 
     /**
      * Local Part module for compatibility
@@ -289,14 +258,8 @@ module generic_lpl_saunders_carrier(
         }
     }
 
-    /**
-     * Creates a left-pointing arrow shape for directional etching
-     */
-    module arrow_etch(etch_depth = 0.5, length = 5, width = 3) {
-        translate([-10, 0, .5])
-            linear_extrude(height=etch_depth + 0.1)
-                polygon(points=[[-length / 2, 0], [length / 2, width / 2], [length / 2, -width / 2]]);
-    }
+    // Arrow etching functionality now provided by carrier-features.scad
+    // The arrow_etch module and related functions are centralized there
 
     /**
      * Generates multi-material text parts
@@ -345,20 +308,20 @@ module generic_lpl_saunders_carrier(
      * Generates the bottom carrier assembly
      */
     module bottom_carrier_assembly() {
-        Part("Base") 
+        Part("Base")
             union() {
                 carrier_base_processing(
                     _top_or_bottom=top_or_bottom,
                     _carrier_material_height=CARRIER_HEIGHT,
-                    _opening_height_param=adjusted_opening_height,
-                    _opening_width_param=adjusted_opening_width,
+                    _opening_height_param=opening_height,
+                    _opening_width_param=opening_width,
                     _opening_cut_through_ext_param=CUT_THROUGH_EXTENSION,
                     _opening_fillet_param=FILM_OPENING_FRAME_FILLET,
                     _peg_style_param=printed_or_heat_set_pegs,
                     _peg_diameter_param=PEG_DIAMETER,
                     _peg_actual_height_param=PEG_HEIGHT,
-                    _peg_pos_x_param=peg_pos_x_final,
-                    _peg_pos_y_param=peg_pos_y_final,
+                    _peg_pos_x_param=peg_pos_x,
+                    _peg_pos_y_param=peg_pos_y,
                     _peg_z_offset_param=peg_z_offset_calc - 0.1
                 ) {
                     difference() {
@@ -378,24 +341,17 @@ module generic_lpl_saunders_carrier(
                             }
                         }
                         generate_text_etch_subtractions();
-                        // Add directional arrow for 6x6 formats
-                        if (film_format == "6x6" || film_format == "6x6 filed") {
-                            arrowOffset = 5;
-                            if (orientation == "vertical") {
-                                currentOpeningWidth = FILM_FORMAT_WIDTH_RAW;
-                                arrowPosX = 0;
-                                arrowPosY = currentOpeningWidth / 2 + arrowOffset + ARROW_LENGTH / 2;
-                                translate([arrowPosX + 10, -arrowPosY, 0])
-                                    arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
-                            } else {
-                                currentOpeningHeight = FILM_FORMAT_HEIGHT_RAW;
-                                arrowPosX = 0;
-                                arrowPosY = -currentOpeningHeight / 2 - arrowOffset - ARROW_LENGTH / 2;
-                                translate([arrowPosX, arrowPosY, 0])
-                                    rotate([0, 0, 90])
-                                        arrow_etch(etch_depth=ARROW_ETCH_DEPTH, length=ARROW_LENGTH, width=ARROW_WIDTH);
-                            }
-                        }
+                        // Add directional arrow for appropriate formats using centralized module
+                        generate_directional_arrow_etch(
+                            film_format_str=film_format_for_arrows,
+                            orientation_str="vertical", // LPL-Saunders carriers use vertical orientation
+                            opening_width=opening_width,
+                            opening_height=opening_height,
+                            arrow_length=ARROW_LENGTH,
+                            arrow_width=ARROW_WIDTH,
+                            arrow_etch_depth=ARROW_ETCH_DEPTH,
+                            arrow_offset=5
+                        );
                     }
                 }
 
@@ -427,19 +383,19 @@ module generic_lpl_saunders_carrier(
 
         generate_multi_material_text_parts();
     } else if (top_or_bottom == "top") {
-        Part("Base") 
+        Part("Base")
             carrier_base_processing(
                 _top_or_bottom=top_or_bottom,
                 _carrier_material_height=CARRIER_HEIGHT,
-                _opening_height_param=adjusted_opening_height,
-                _opening_width_param=adjusted_opening_width,
+                _opening_height_param=opening_height,
+                _opening_width_param=opening_width,
                 _opening_cut_through_ext_param=CUT_THROUGH_EXTENSION,
                 _opening_fillet_param=FILM_OPENING_FRAME_FILLET,
                 _peg_style_param=printed_or_heat_set_pegs,
                 _peg_diameter_param=PEG_DIAMETER,
                 _peg_actual_height_param=PEG_HEIGHT,
-                _peg_pos_x_param=peg_pos_x_final,
-                _peg_pos_y_param=peg_pos_y_final,
+                _peg_pos_x_param=peg_pos_x,
+                _peg_pos_y_param=peg_pos_y,
                 _peg_z_offset_param=peg_z_offset_calc - 1
             ) {
                 union() {

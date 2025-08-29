@@ -3,8 +3,8 @@
 // Called from main carrier.scad with configuration parameters
 
 include <BOSL2/std.scad>
-include <src/common/film-sizes.scad>
-include <src/common/carrier-features.scad>
+include <common/film-sizes.scad>
+include <common/carrier-features.scad>
 
 /**
  * Generic test frame carrier generation module
@@ -19,8 +19,10 @@ include <src/common/carrier-features.scad>
  * @param peg_gap - Peg gap adjustment
  * @param adjust_film_width - Film width adjustment
  * @param adjust_film_height - Film height adjustment
- * @param custom_film_format_opening_height - Custom opening height (if needed)
- * @param custom_film_format_opening_width - Custom opening width (if needed)
+ * @param custom_film_height - Custom film stock height (for custom format)
+ * @param custom_film_width - Custom film stock width (for custom format)
+ * @param custom_opening_height - Custom opening height (for custom format)
+ * @param custom_opening_width - Custom opening width (for custom format)
  */
 module generic_test_frame_carrier(
     config,
@@ -31,46 +33,41 @@ module generic_test_frame_carrier(
     peg_gap,
     adjust_film_width,
     adjust_film_height,
-    custom_film_format_opening_height = undef,
-    custom_film_format_opening_width = undef
+    custom_film_height,
+    custom_film_width,
+    custom_opening_height,
+    custom_opening_width
 ) {
     // Extract simplified configuration parameters
     CARRIER_HEIGHT = config[0];
     PEG_DIAMETER = config[1];
     PEG_HEIGHT = config[2];
-    
+
     // Use standard values for test frames
     CUT_THROUGH_EXTENSION = 1; // Standard extension for all test frames
     FRAME_FILLET = 0.5; // Standard fillet for test frames
 
-    // Get film dimensions
+    // Get film dimensions using film-sizes.scad functions
     FILM_FORMAT_HEIGHT = get_film_format_height(film_format);
     FILM_FORMAT_WIDTH = get_film_format_width(film_format);
     FILM_FORMAT_PEG_DISTANCE = get_film_format_peg_distance(film_format);
 
-    // Determine actual opening dimensions based on orientation
-    opening_width_actual = (film_format == "custom" && custom_film_format_opening_width != undef) ?
-        custom_film_format_opening_width :
-        get_final_opening_width(film_format, orientation, adjust_film_width);
-    
-    opening_height_actual = (film_format == "custom" && custom_film_format_opening_height != undef) ?
-        custom_film_format_opening_height :
-        get_final_opening_height(film_format, orientation, adjust_film_height);
+    // Determine actual opening dimensions using carrier-features.scad functions
+    opening_width_actual = get_final_opening_width(film_format, orientation, adjust_film_width);
+    opening_height_actual = get_final_opening_height(film_format, orientation, adjust_film_height);
 
     // Determine effective orientation
     effective_orientation = get_effective_orientation(film_format, orientation);
 
     // Check if the selected format is a "filed" medium format
-    IS_FILED_MEDIUM_FORMAT = film_format == "35mm filed" || 
-        film_format == "6x4.5 filed" || film_format == "6x6 filed" || 
-        film_format == "6x7 filed" || film_format == "6x8 filed" || film_format == "6x9 filed";
+    IS_FILED_MEDIUM_FORMAT = film_format == "35mm filed" || film_format == "6x4.5 filed" || film_format == "6x6 filed" || film_format == "6x7 filed" || film_format == "6x8 filed" || film_format == "6x9 filed";
 
     // Internal calculation for peg gap, adjusted for filed formats
     CALCULATED_INTERNAL_PEG_GAP = IS_FILED_MEDIUM_FORMAT ? (1 - peg_gap) - 1 : (1 - peg_gap);
 
     // Calculate peg positions using standard Omega-style positioning (works for all carriers)
     _peg_radius = PEG_DIAMETER / 2;
-    _film_width_actual_half = (get_film_format_width(film_format) + adjust_film_width) / 2;
+    _film_width_actual_half = (FILM_FORMAT_WIDTH + adjust_film_width) / 2;
     _film_peg_distance_actual_half = FILM_FORMAT_PEG_DISTANCE / 2;
 
     peg_pos_x_calc = calculate_omega_style_peg_coordinate(
