@@ -53,7 +53,7 @@ Adjust_Film_Height = 0;
 
 /* [Carrier Etchings] */
 // Font to use for the etchings
-Fontface = "Futura";
+Fontface = "Lucida Console";
 // Font size for etchings
 Font_Size = 10;
 

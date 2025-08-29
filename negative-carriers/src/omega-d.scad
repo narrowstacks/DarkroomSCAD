@@ -47,7 +47,7 @@ Custom_Type_Name = "CUSTOM";
 
 /* [Name and Format Etchings Settings] */
 // Font to use for the etchings
-Fontface = "Futura";
+Fontface = "Lucida Console";
 // Font size for etchings
 Font_Size = 10;
 // Depth for etching
