@@ -14,7 +14,7 @@ Top_or_Bottom = "bottom"; // ["top", "bottom", "frameAndPegTestBottom", "frameAn
 // Orientation of the film in the carrier
 Orientation = "vertical"; // ["vertical", "horizontal"]
 // Printed or heat-set pegs?
-Printed_or_Heat_Set_Pegs = "printed"; // ["printed", "heat_set"]
+Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
 // Include the alignment board?
 Alignment_Board = true; // [true, false]
 // Type of alignment board- both are compatible with each other, just different styles
@@ -53,17 +53,18 @@ Font_Size = 10;
 // Depth for etching
 TEXT_ETCH_DEPTH = 1;
 
-/* [Multi-Material Text] */
-// Render text as separate parts for multi-material printing
-Text_As_Separate_Parts = false; // [true, false]
-// Desired slicer layer height (mm)
-Layer_Height_mm = 0.27;
-// Number of layers for text thickness (multiple of layer height)
-Text_Layer_Multiple = 1;
+// Fix this later
+// /* [Multi-Material Text] */
+// // Render text as separate parts for multi-material printing
+// Text_As_Separate_Parts = false; // [true, false]
+// // Desired slicer layer height (mm)
+// Layer_Height_mm = 0.27;
+// // Number of layers for text thickness (multiple of layer height)
+// Text_Layer_Multiple = 1;
 
-/* [Multi-Material Output Selector] */
-// Select which part to render when exporting STLs
-_WhichPart = "All"; // ["All", "Base", "OwnerText", "TypeText"]
+// /* [Multi-Material Output Selector] */
+// // Select which part to render when exporting STLs
+// _WhichPart = "All"; // ["All", "Base", "OwnerText", "TypeText"]
 
 /* [Adjustments] */
 // Leave at 0 for default gap. Measured in mm. Add positive values to increase the gap between pegs and film edge, subtract (use negative values) to decrease it. Default 0 allows for little wiggle.
@@ -78,6 +79,9 @@ Film_Opening_Frame_Fillet = 0.5;
 
 /* [Hidden] */
 $fn = 100;
+
+// Move to above hidden when fixed
+_WhichPart = "All";
 
 // LPL Saunders carrier base dimensions
 LPL_CARRIER_DIAMETER = 215;
