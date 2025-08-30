@@ -14,11 +14,13 @@ include <src/common/text-etching.scad>
 
 // Carrier configuration system
 include <src/carrier-configs.scad>
-// Generic carrier templates
-include <src/generic-omega-d.scad>
-include <src/generic-lpl-saunders.scad>
-include <src/generic-beseler-23c.scad>
-include <src/generic-test-frame.scad>
+// Universal carrier assembly system
+include <src/common/universal-carrier-assembly.scad>
+// Base shape generators
+include <src/omega-d-base-shape.scad>
+include <src/lpl-saunders-base-shape.scad>
+include <src/beseler-23c-base-shape.scad>
+include <src/test-frame-base-shape.scad>
 
 /* [Carrier Type] */
 Carrier_Type = "omega-d"; // ["omega-d", "lpl-saunders-45xx", "beseler-23c", "beseler-45", "frameAndPegTest"]
@@ -143,10 +145,11 @@ peg_pos_y_calc = peg_positions[1];
 // CARRIER DISPATCH LOGIC
 // ============================================================================
 
-// Dispatch to appropriate carrier implementation based on Carrier_Type
+// Dispatch to appropriate base shape and assemble with universal system
 if (Carrier_Type == "omega-d") {
-    generic_omega_d_carrier(
+    universal_carrier_assembly(
         config=carrier_config,
+        carrier_type=Carrier_Type,
         top_or_bottom=Top_or_Bottom,
         printed_or_heat_set_pegs=Printed_or_Heat_Set_Pegs,
         alignment_board=Alignment_Board,
@@ -170,8 +173,9 @@ if (Carrier_Type == "omega-d") {
         film_format_for_arrows=Film_Format
     );
 } else if (Carrier_Type == "lpl-saunders-45xx") {
-    generic_lpl_saunders_carrier(
+    universal_carrier_assembly(
         config=carrier_config,
+        carrier_type=Carrier_Type,
         top_or_bottom=Top_or_Bottom,
         printed_or_heat_set_pegs=Printed_or_Heat_Set_Pegs,
         alignment_board=Alignment_Board,
@@ -195,11 +199,13 @@ if (Carrier_Type == "omega-d") {
         film_format_for_arrows=Film_Format
     );
 } else if (Carrier_Type == "beseler-23c") {
-    generic_beseler_23c_carrier(
+    universal_carrier_assembly(
         config=carrier_config,
+        carrier_type=Carrier_Type,
         top_or_bottom=Top_or_Bottom,
         printed_or_heat_set_pegs=Printed_or_Heat_Set_Pegs,
         alignment_board=Alignment_Board,
+        alignment_board_type=Alignment_Board_Type,
         flip_bottom_for_printing=Flip_Bottom_For_Printing,
         enable_owner_name_etch=Enable_Owner_Name_Etch,
         owner_name=Owner_Name,
@@ -222,15 +228,31 @@ if (Carrier_Type == "omega-d") {
     // Future implementation placeholder
     assert(false, str("CARRIER TYPE ERROR: '", Carrier_Type, "' is not yet implemented. Use one of: omega-d, lpl-saunders-45xx, beseler-23c"));
 } else if (is_test_frame_type(Carrier_Type)) {
-    // Handle generic test frame type
-    generic_test_frame_carrier(
+    // Handle test frame types with universal assembly
+    universal_carrier_assembly(
         config=carrier_config,
+        carrier_type=Carrier_Type,
         top_or_bottom=Top_or_Bottom,
         printed_or_heat_set_pegs=Printed_or_Heat_Set_Pegs,
+        alignment_board=false, // Test frames don't use alignment boards
+        alignment_board_type="none",
+        flip_bottom_for_printing=false, // Test frames don't need flipping
+        enable_owner_name_etch=false, // Test frames don't have text
+        owner_name="",
+        enable_type_name_etch=false,
+        selected_type_name="",
+        fontface=Fontface,
+        font_size=Font_Size,
+        text_etch_depth=TEXT_ETCH_DEPTH,
+        text_as_separate_parts=false,
+        layer_height_mm=Layer_Height_mm,
+        text_layer_multiple=Text_Layer_Multiple,
+        which_part=_WhichPart,
         opening_height=adjusted_opening_height,
         opening_width=adjusted_opening_width,
         peg_pos_x=peg_pos_x_calc,
-        peg_pos_y=peg_pos_y_calc
+        peg_pos_y=peg_pos_y_calc,
+        film_format_for_arrows=Film_Format
     );
 } else {
     assert(false, str("CARRIER TYPE ERROR: Unknown carrier type '", Carrier_Type, "'. Supported types: ", get_supported_carrier_types()));
