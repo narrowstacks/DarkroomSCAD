@@ -79,67 +79,41 @@ module universal_carrier_assembly(
     opening_width,
     peg_pos_x,
     peg_pos_y,
-    film_format_for_arrows
+    film_format_for_arrows,
+
+    // Text position customization (user offsets applied to defaults)
+    owner_text_offset = [0, 0], // [dx, dy] in mm
+    type_text_offset = [0, 0] // [dx, dy] in mm
 ) {
     // Universal constants that apply to all carrier types
     CUT_THROUGH_EXTENSION = 1;
 
-    // Extract carrier height from config (position varies by carrier type)
-    CARRIER_HEIGHT =
-        (carrier_type == "omega-d") ? config[2]
-        : (carrier_type == "lpl-saunders-45xx") ? config[1]
-        : (carrier_type == "beseler-23c") ? config[1]
-        : config[1]; // Default fallback
+    // Carrier height per type
+    CARRIER_HEIGHT = get_carrier_height(carrier_type);
 
     // Extract peg parameters from config (positions vary by carrier type)
-    PEG_DIAMETER =
-        (carrier_type == "omega-d") ? config[7]
-        : (carrier_type == "lpl-saunders-45xx") ? config[8]
-        : (carrier_type == "beseler-23c") ? config[2]
-        : config[1]; // Default fallback for test frames
-
-    PEG_HEIGHT =
-        (carrier_type == "omega-d") ? config[8]
-        : (carrier_type == "lpl-saunders-45xx") ? config[9]
-        : (carrier_type == "beseler-23c") ? config[3]
-        : config[2]; // Default fallback for test frames
+    PEG_DIAMETER = DEFAULT_PEG_DIAMETER;
+    PEG_HEIGHT = DEFAULT_PEG_HEIGHT;
 
     // Extract film opening fillet from config (positions vary by carrier type)
-    FILM_OPENING_FRAME_FILLET =
-        (carrier_type == "omega-d") ? config[6]
-        : (carrier_type == "lpl-saunders-45xx") ? config[20]
-        : (carrier_type == "beseler-23c") ? config[8]
-        : 0.5; // Default fallback
+    FILM_OPENING_FRAME_FILLET = get_film_opening_frame_fillet(carrier_type);
 
     // Alignment screw parameters (positions vary by carrier type)
-    ALIGNMENT_SCREW_DIAMETER =
-        (carrier_type == "omega-d") ? config[15]
-        : (carrier_type == "lpl-saunders-45xx") ? config[10]
-        : 2; // Default fallback
-
-    ALIGNMENT_SCREW_PATTERN_DIST_X =
-        (carrier_type == "omega-d") ? config[17] // Note: omega uses Y for X pattern
-        : (carrier_type == "lpl-saunders-45xx") ? config[11]
-        : 82; // Default fallback
-
-    ALIGNMENT_SCREW_PATTERN_DIST_Y =
-        (carrier_type == "omega-d") ? config[16] // Note: omega uses X for Y pattern
-        : (carrier_type == "lpl-saunders-45xx") ? config[12]
-        : 113; // Default fallback
+    ALIGNMENT_SCREW_DIAMETER = get_alignment_screw_diameter(carrier_type);
+    ALIGNMENT_SCREW_PATTERN_DIST_X = get_alignment_screw_pattern_dist_x(carrier_type);
+    ALIGNMENT_SCREW_PATTERN_DIST_Y = get_alignment_screw_pattern_dist_y(carrier_type);
 
     // Z-axis positioning calculations
     TEXT_ETCH_Z_POSITION = CARRIER_HEIGHT / 2 - (text_etch_depth + 0.1);
     CARRIER_HALF_HEIGHT = CARRIER_HEIGHT / 2;
 
     // Peg Z positioning (varies by top/bottom and carrier type)
-    TOP_PEG_HOLE_Z_OFFSET =
-        (carrier_type == "omega-d") ? config[18]
-        : (carrier_type == "beseler-23c") ? config[4]
-        : 2; // Default fallback
+    TOP_PEG_HOLE_Z_OFFSET = get_top_peg_hole_z_offset(carrier_type);
 
-    peg_z_offset_calc = (top_or_bottom == "top") ?
-        (CARRIER_HEIGHT - TOP_PEG_HOLE_Z_OFFSET) :
-        CARRIER_HALF_HEIGHT;
+    peg_z_offset_calc =
+        (top_or_bottom == "top") ?
+            (CARRIER_HEIGHT - TOP_PEG_HOLE_Z_OFFSET)
+        : CARRIER_HALF_HEIGHT;
 
     // Multi-material text calculations
     TEXT_SOLID_HEIGHT = layer_height_mm * text_layer_multiple;
@@ -167,24 +141,27 @@ module universal_carrier_assembly(
      * Calculates safe text placement based on carrier type and geometry
      */
     function get_universal_text_positions() =
-        let(
+        let (
             // Get carrier-specific text positioning parameters
-            owner_text_config = get_owner_text_config(carrier_type, config),
-            type_text_config = get_type_text_config(carrier_type, config),
+            owner_text_config = get_owner_text_settings(carrier_type),
+            type_text_config = get_type_text_settings(carrier_type),
 
             // Calculate text boundaries and positions
             owner_metrics = textmetrics(text=owner_name, font=fontface, size=font_size, halign="center", valign="center"),
             type_metrics = textmetrics(text=selected_type_name, font=fontface, size=font_size, halign="center", valign="center"),
 
             // Position calculations (carrier-type specific)
-            owner_position = calculate_text_position(carrier_type, "owner", owner_text_config, owner_metrics, TEXT_ETCH_Z_POSITION),
-            type_position = calculate_text_position(carrier_type, "type", type_text_config, type_metrics, TEXT_ETCH_Z_POSITION),
+            owner_position = calculate_text_position(carrier_type, "owner", owner_text_config, owner_metrics, TEXT_ETCH_Z_POSITION, opening_width),
+            type_position = calculate_text_position(carrier_type, "type", type_text_config, type_metrics, TEXT_ETCH_Z_POSITION, opening_width),
+
+            // Apply user offsets
+            owner_position_adj = [owner_position[0] + owner_text_offset[0], owner_position[1] + owner_text_offset[1], owner_position[2]],
+            type_position_adj = [type_position[0] + type_text_offset[0], type_position[1] + type_text_offset[1], type_position[2]],
 
             // Rotation calculations (carrier-type specific)
             owner_rotation = get_text_rotation(carrier_type, "owner"),
             type_rotation = get_text_rotation(carrier_type, "type")
-        )
-        [owner_position, type_position, owner_rotation, type_rotation];
+        ) [owner_position_adj, type_position_adj, owner_rotation, type_rotation];
 
     /**
      * Universal text etch generation
@@ -391,7 +368,6 @@ module universal_carrier_assembly(
 
         // Generate multi-material text parts
         generate_universal_multi_material_text();
-
     } else if (top_or_bottom == "top") {
         universal_top_carrier_assembly();
 
@@ -405,38 +381,50 @@ module universal_carrier_assembly(
 // ============================================================================
 
 /**
- * Get owner text configuration for specific carrier type
+ * Text settings are provided by carrier-configs via dedicated getters
  */
-function get_owner_text_config(carrier_type, config) =
-    (carrier_type == "omega-d") ? [config[19], config[20]] // [y_translate, bottom_margin]
-    : (carrier_type == "lpl-saunders-45xx") ? [config[13], config[15], config[17], config[19], config[21]] // [y_translate, bottom_margin, additional_offset, safe_margin, multi_material_y_offset]
-    : (carrier_type == "beseler-23c") ? [config[9], config[11], config[13], config[15], config[16]] // [y_translate, bottom_margin, additional_offset, safe_margin, multi_material_y_offset]
-    : [0, 5]; // Default fallback
-
-/**
- * Get type text configuration for specific carrier type
- */
-function get_type_text_config(carrier_type, config) =
-    (carrier_type == "omega-d") ? [config[19], config[21]] // [y_translate, top_margin]
-    : (carrier_type == "lpl-saunders-45xx") ? [config[14], config[16], config[18], config[19], config[22]] // [y_translate, top_margin, additional_offset, safe_margin, multi_material_y_offset]
-    : (carrier_type == "beseler-23c") ? [config[10], config[12], config[14], config[15], config[17]] // [y_translate, top_margin, additional_offset, safe_margin, multi_material_y_offset]
-    : [0, 5]; // Default fallback
+function get_owner_text_settings(carrier_type) = carrier_owner_text_settings(carrier_type);
+function get_type_text_settings(carrier_type) = carrier_type_text_settings(carrier_type);
 
 /**
  * Calculate text position based on carrier type and text configuration
  */
-function calculate_text_position(carrier_type, text_type, text_config, text_metrics, z_position) =
-    // This is a placeholder - actual implementation would need the specific positioning logic
-    // from each carrier type, adapted to work with the universal system
-    [0, 0, z_position]; // Simplified for now
+function calculate_text_position(carrier_type, text_type, text_config, text_metrics, z_position, opening_width) =
+    // Special handling: Beseler 23C text should live on the handle by default
+    (carrier_type == "beseler-23c") ?
+        let (
+            // Beseler 23C base shape constants (mirrors beseler-23c-base-shape.scad)
+            // Using local constants avoids coupling to base-shape scopes
+            BESELER_23C_DIAMETER = 160,
+            BESELER_HANDLE_WIDTH = 42,
+
+            // Handle center is located on the negative X side of the disc
+            handle_center_x = -BESELER_23C_DIAMETER / 2,
+
+            // Separate owner/type horizontally relative to handle center so
+            // their default haligns (owner=right, type=left) keep text on the handle
+            x_offset = (text_type == "owner") ? 5 : -35,
+
+            // Stack the two lines vertically within the handle area
+            y_offset = (text_type == "owner") ? (BESELER_HANDLE_WIDTH / 3) : ( -BESELER_HANDLE_WIDTH / 8)
+        ) [handle_center_x + x_offset, y_offset, z_position]
+    :
+    // Default handling for other carriers: place text to the left/right of the opening
+    let (
+        // Extract settings
+        y_translate = (len(text_config) > 0) ? text_config[0] : 0,
+        safe_margin = (len(text_config) > 3) ? text_config[3] : 13,
+        // Position to left/right of opening by a safe margin
+        x_base = (text_type == "owner") ? -(opening_width / 2 + safe_margin) : (opening_width / 2 + safe_margin)
+    ) [x_base, y_translate, z_position];
 
 /**
  * Get text rotation based on carrier type
  */
 function get_text_rotation(carrier_type, text_type) =
     (carrier_type == "omega-d") ? [0, 0, 270]
-    : (carrier_type == "lpl-saunders-45xx") ? [0, 0, 90]
-    : (carrier_type == "beseler-23c") ? [0, 0, 90]
+    : (carrier_type == "lpl-saunders-45xx") ? [0, 0, 270]
+    : (carrier_type == "beseler-23c") ? [0, 0, 0] // Horizontal text on the handle
     : [0, 0, 0]; // Default fallback
 
 /**
@@ -444,13 +432,17 @@ function get_text_rotation(carrier_type, text_type) =
  */
 function get_alignment_board_z_offset(carrier_type, alignment_board_type, carrier_height) =
     (carrier_type == "omega-d") ?
-        ((alignment_board_type == "omega") ? -1.4
-         : (alignment_board_type == "lpl-saunders") ? 0.15
-         : 0)
+        (
+            (alignment_board_type == "omega") ? -1.4
+            : (alignment_board_type == "lpl-saunders") ? 0.15
+            : 0
+        )
     : (carrier_type == "lpl-saunders-45xx") ?
-        ((alignment_board_type == "omega") ? -1.4
-         : (alignment_board_type == "lpl-saunders") ? -carrier_height
-         : (alignment_board_type == "beseler-23c") ? -carrier_height
-         : 0)
+        (
+            (alignment_board_type == "omega") ? -1.4
+            : (alignment_board_type == "lpl-saunders") ? -carrier_height
+            : (alignment_board_type == "beseler-23c") ? -carrier_height
+            : 0
+        )
     : (carrier_type == "beseler-23c") ? carrier_height / 2
     : 0; // Default fallback
