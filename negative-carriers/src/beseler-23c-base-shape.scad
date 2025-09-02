@@ -3,6 +3,7 @@
 // Handles only the physical shape and handle
 
 include <BOSL2/std.scad>
+include <carrier-configs.scad>
 
 /**
  * Beseler 23C base shape module
@@ -16,19 +17,23 @@ include <BOSL2/std.scad>
  * @param top_or_bottom - "top" or "bottom" (currently no difference, but maintained for consistency)
  */
 module beseler_23c_base_shape(config, top_or_bottom) {
-    // Extract configuration parameters
-    CARRIER_DIAMETER = config[0];
-    CARRIER_HEIGHT = config[1];
-    HANDLE_LENGTH = config[5];
-    HANDLE_WIDTH = config[6];
+    // Keep carrier height from config to remain consistent with universal assembly calculations
+    CARRIER_HEIGHT = get_carrier_height("beseler-23c");
+
+    // Base geometry constants (moved from carrier-configs)
+    CARRIER_DIAMETER = 160;
+    HANDLE_LENGTH = 50;
+    HANDLE_WIDTH = 42;
 
     /**
      * Creates the handle for the Beseler 23C carrier
      */
     module handle() {
-        translate([0, CARRIER_DIAMETER / 2, 0])
-            color("grey")
-                cuboid([HANDLE_WIDTH, HANDLE_LENGTH * 1.5, CARRIER_HEIGHT], anchor=CENTER, rounding=.5);
+        rotate([0, 0, 90]) {
+            translate([0, CARRIER_DIAMETER / 2, 0])
+                color("grey")
+                    cuboid([HANDLE_WIDTH, HANDLE_LENGTH * 1.5, CARRIER_HEIGHT], anchor=CENTER, rounding=.5);
+        }
     }
 
     /**

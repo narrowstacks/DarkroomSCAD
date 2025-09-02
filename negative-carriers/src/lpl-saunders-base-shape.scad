@@ -3,6 +3,7 @@
 // Handles only the physical shape, edge cuts, and handle
 
 include <BOSL2/std.scad>
+include <carrier-configs.scad>
 
 /**
  * LPL Saunders base shape module
@@ -20,15 +21,17 @@ include <BOSL2/std.scad>
  * @param top_or_bottom - "top" or "bottom" (affects handle positioning)
  */
 module lpl_saunders_base_shape(config, top_or_bottom) {
-    // Extract configuration parameters
-    CARRIER_DIAMETER = config[0];
-    CARRIER_HEIGHT = config[1];
-    HANDLE_WIDTH = config[2];
-    HANDLE_HEIGHT = config[3];
-    HANDLE_X_OFFSET = config[4];
-    EDGE_CUTS_WIDTH = config[5];
-    EDGE_CUTS_HEIGHT = config[6];
-    EDGE_CUTS_DISTANCE = config[7];
+    // Keep carrier height from config to remain consistent with universal assembly calculations
+    CARRIER_HEIGHT = get_carrier_height("lpl-saunders-45xx");
+
+    // Base geometry constants (moved from carrier-configs)
+    CARRIER_DIAMETER = 215;
+    HANDLE_WIDTH = 60;
+    HANDLE_HEIGHT = 40;
+    HANDLE_X_OFFSET = 10;
+    EDGE_CUTS_WIDTH = 120;
+    EDGE_CUTS_HEIGHT = 120;
+    EDGE_CUTS_DISTANCE = 149.135;
 
     /**
      * Creates edge cuts for the LPL Saunders carrier
@@ -59,14 +62,14 @@ module lpl_saunders_base_shape(config, top_or_bottom) {
      */
     module handle() {
         if (top_or_bottom == "top") {
-            translate([CARRIER_DIAMETER / 2, HANDLE_X_OFFSET, 0])
+            translate([-1 * (CARRIER_DIAMETER / 2), HANDLE_X_OFFSET, 0])
                 cuboid(
                     [HANDLE_WIDTH, HANDLE_HEIGHT, CARRIER_HEIGHT],
                     anchor=CENTER, rounding=2,
                     edges=[FWD + RIGHT, BACK + LEFT, FWD + LEFT, BACK + RIGHT]
                 );
         } else {
-            translate([CARRIER_DIAMETER / 2, -HANDLE_X_OFFSET, 0])
+            translate([-1 * (CARRIER_DIAMETER / 2), -HANDLE_X_OFFSET, 0])
                 cuboid(
                     [HANDLE_WIDTH, HANDLE_HEIGHT, CARRIER_HEIGHT],
                     anchor=CENTER, rounding=2,

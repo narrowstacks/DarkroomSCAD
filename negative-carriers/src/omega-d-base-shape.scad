@@ -3,6 +3,7 @@
 // Handles only the physical shape, registration holes, and separation holes
 
 include <BOSL2/std.scad>
+include <carrier-configs.scad>
 
 /**
  * Omega-D base shape module
@@ -24,19 +25,24 @@ include <BOSL2/std.scad>
  * @param top_or_bottom - "top" or "bottom" (affects separation hole inclusion)
  */
 module omega_d_base_shape(config, top_or_bottom) {
-    // Extract configuration parameters
-    CARRIER_LENGTH = config[0];
-    CARRIER_WIDTH = config[1];
-    CARRIER_HEIGHT = config[2];
-    CARRIER_CIRCLE_DIAMETER = config[3];
-    CARRIER_RECT_OFFSET = config[4];
-    CARRIER_FILLET = config[5];
-    REG_HOLE_DIAMETER = config[9];
-    REG_HOLE_DISTANCE = config[10];
-    REG_HOLE_X_LENGTH = config[11];
-    REG_HOLE_OFFSET = config[12];
-    REG_HOLE_TOP_X_OFFSET = config[13];
-    REG_HOLE_BOTTOM_X_OFFSET = config[14];
+    // Use internal constants for base geometry to avoid relying on global config indices
+    // Keep carrier height from config to remain consistent with universal assembly calculations
+    CARRIER_HEIGHT = get_carrier_height("omega-d");
+
+    // Base geometry constants (moved from carrier-configs)
+    CARRIER_LENGTH = 202;
+    CARRIER_WIDTH = 139;
+    CARRIER_CIRCLE_DIAMETER = 168;
+    CARRIER_RECT_OFFSET = 13.5;
+    CARRIER_FILLET = 5;
+
+    // Registration hole geometry (moved from carrier-configs)
+    REG_HOLE_DIAMETER = 6.2;
+    REG_HOLE_DISTANCE = 130;
+    REG_HOLE_X_LENGTH = 5;
+    REG_HOLE_OFFSET = 4.5;
+    REG_HOLE_TOP_X_OFFSET = 5;
+    REG_HOLE_BOTTOM_X_OFFSET = -7;
 
     // Constants
     CUT_THROUGH_EXTENSION = 1;

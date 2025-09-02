@@ -2,6 +2,8 @@
 include <BOSL2/std.scad>
 
 // Constants for common dimensions and tolerances
+DEFAULT_PEG_DIAMETER = 5.6;
+DEFAULT_PEG_HEIGHT = 4;
 PEG_HOLE_TOLERANCE = 0.25; // Additional radius for peg holes
 PEG_HEIGHT_ADJUSTMENT = 0.2; // Extra height for proper OpenSCAD preview
 TEXT_ETCH_OVEREXTRUDE = 0.2; // Extra extrusion for reliable subtraction

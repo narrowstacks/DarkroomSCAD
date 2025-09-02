@@ -73,6 +73,13 @@ Font_Size = 10;
 // Depth for etching
 TEXT_ETCH_DEPTH = 1;
 
+/* [Text Position Offsets] */
+// Adjust text location relative to carrier defaults (mm)
+Owner_Text_X_Offset = 0; // negative=left, positive=right
+Owner_Text_Y_Offset = 0; // negative=down, positive=up
+Type_Text_X_Offset = 0; // negative=left, positive=right
+Type_Text_Y_Offset = 0; // negative=down, positive=up
+
 /* [Multi-Material Text] */
 // Render text as separate parts for multi-material printing
 Text_As_Separate_Parts = false; // [true, false]
@@ -103,7 +110,7 @@ $fn = 100;
 // Validate the selected carrier type
 validate_carrier_config(Carrier_Type);
 
-// Get configuration for the selected carrier type
+// Get configuration for the selected carrier type (now minimal; base geometry lives in carrier files)
 carrier_config = get_carrier_config(Carrier_Type);
 
 // Generate carrier type name for etching
@@ -119,12 +126,7 @@ adjusted_opening_height = get_custom_aware_opening_height(Film_Format, Orientati
 adjusted_opening_width = get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width);
 
 // Get peg diameter from config (index varies by carrier type)
-peg_diameter =
-    (Carrier_Type == "omega-d") ? carrier_config[7]
-    : (Carrier_Type == "lpl-saunders-45xx") ? carrier_config[8]
-    : (Carrier_Type == "beseler-23c") ? carrier_config[2]
-    : (is_test_frame_type(Carrier_Type)) ? carrier_config[1]
-    : 5.6; // Default fallback
+peg_diameter = (Carrier_Type == "frameAndPegTest") ? carrier_config[1] : DEFAULT_PEG_DIAMETER;
 
 // Calculate peg positions once for all carriers using unified approach
 peg_positions = calculate_unified_peg_positions(
@@ -170,7 +172,9 @@ if (Carrier_Type == "omega-d") {
         opening_width=adjusted_opening_width,
         peg_pos_x=peg_pos_x_calc,
         peg_pos_y=peg_pos_y_calc,
-        film_format_for_arrows=Film_Format
+        film_format_for_arrows=Film_Format,
+        owner_text_offset=[Owner_Text_X_Offset, Owner_Text_Y_Offset],
+        type_text_offset=[Type_Text_X_Offset, Type_Text_Y_Offset]
     );
 } else if (Carrier_Type == "lpl-saunders-45xx") {
     universal_carrier_assembly(
@@ -196,7 +200,9 @@ if (Carrier_Type == "omega-d") {
         opening_width=adjusted_opening_width,
         peg_pos_x=peg_pos_x_calc,
         peg_pos_y=peg_pos_y_calc,
-        film_format_for_arrows=Film_Format
+        film_format_for_arrows=Film_Format,
+        owner_text_offset=[Owner_Text_X_Offset, Owner_Text_Y_Offset],
+        type_text_offset=[Type_Text_X_Offset, Type_Text_Y_Offset]
     );
 } else if (Carrier_Type == "beseler-23c") {
     universal_carrier_assembly(
@@ -222,7 +228,9 @@ if (Carrier_Type == "omega-d") {
         opening_width=adjusted_opening_width,
         peg_pos_x=peg_pos_x_calc,
         peg_pos_y=peg_pos_y_calc,
-        film_format_for_arrows=Film_Format
+        film_format_for_arrows=Film_Format,
+        owner_text_offset=[Owner_Text_X_Offset, Owner_Text_Y_Offset],
+        type_text_offset=[Type_Text_X_Offset, Type_Text_Y_Offset]
     );
 } else if (Carrier_Type == "beseler-45") {
     // Future implementation placeholder
@@ -252,7 +260,9 @@ if (Carrier_Type == "omega-d") {
         opening_width=adjusted_opening_width,
         peg_pos_x=peg_pos_x_calc,
         peg_pos_y=peg_pos_y_calc,
-        film_format_for_arrows=Film_Format
+        film_format_for_arrows=Film_Format,
+        owner_text_offset=[Owner_Text_X_Offset, Owner_Text_Y_Offset],
+        type_text_offset=[Type_Text_X_Offset, Type_Text_Y_Offset]
     );
 } else {
     assert(false, str("CARRIER TYPE ERROR: Unknown carrier type '", Carrier_Type, "'. Supported types: ", get_supported_carrier_types()));
