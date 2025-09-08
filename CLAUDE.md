@@ -21,14 +21,18 @@ The project follows a hierarchical modular structure:
 ### Core Architecture
 
 - `negative-carriers/carrier.scad` - Main parametric interface with all configuration options
-- `negative-carriers/src/*.scad` - Enlarger-specific implementations (omega-d, lpl-saunders-45xx, beseler-23c)
+- `negative-carriers/src/carrier-configs.scad` - Centralized carrier-specific configuration system
+- `negative-carriers/src/common/universal-carrier-assembly.scad` - Universal assembly system for all carrier types
+- `negative-carriers/src/*-base-shape.scad` - Enlarger-specific base geometry modules
 - `negative-carriers/src/common/*.scad` - Shared modules and functionality
+- `negative-carriers/src/old/*.scad` - Legacy enlarger-specific implementations (preserved for reference)
 
 ### Key Shared Modules
 
 - `film-sizes.scad` - Defines dimensions for all supported film formats (35mm, medium format, 4x5)
 - `carrier-features.scad` - Core geometric functions for film openings, pegs, heat-set inserts
 - `text-etching.scad` - Text etching and multi-material printing support
+- `universal-carrier-assembly.scad` - Central assembly system combining base shapes with common features
 - `*-alignment-board.scad` - Enlarger-specific alignment board geometries
 
 ### Enlarger Support
@@ -36,22 +40,34 @@ The project follows a hierarchical modular structure:
 - **Omega-D**: Full implementation with alignment board support
 - **LPL Saunders 45xx**: Complete carrier system
 - **Beseler 23C**: Basic implementation
+- **Beseler 45**: Additional Beseler variant support
+- **Frame and Peg Test**: Testing carrier type for validation and prototyping
+
+*Note: Legacy individual implementations are preserved in `src/old/` for reference*
 
 ## File Organization
 
 ```
 negative-carriers/
-├── carrier.scad                    # Main parametric interface
+├── carrier.scad                           # Main parametric interface
 └── src/
-    ├── omega-d.scad               # Omega-D specific implementation
-    ├── lpl-saunders-45xx.scad     # LPL Saunders implementation  
-    ├── beseler-23c.scad           # Beseler implementation
-    ├── omega-d.json               # Configuration data
-    └── common/                    # Shared functionality
-        ├── film-sizes.scad        # Film format dimensions
-        ├── carrier-features.scad  # Core geometric modules
-        ├── text-etching.scad      # Text/etching functionality
-        └── *-alignment-board.scad # Enlarger-specific boards
+    ├── carrier-configs.scad               # Centralized configuration system
+    ├── omega-d-base-shape.scad            # Omega-D base geometry
+    ├── lpl-saunders-base-shape.scad       # LPL Saunders base geometry
+    ├── beseler-23c-base-shape.scad        # Beseler 23C base geometry
+    ├── test-frame-base-shape.scad         # Test frame base geometry
+    ├── omega-d.json                       # Configuration data
+    ├── enlarger-parts/                    # Additional enlarger components
+    ├── old/                               # Legacy implementations
+    │   ├── omega-d.scad                   # Original Omega-D implementation
+    │   ├── lpl-saunders-45xx.scad         # Original LPL implementation
+    │   └── beseler-23c.scad               # Original Beseler implementation
+    └── common/                            # Shared functionality
+        ├── film-sizes.scad                # Film format dimensions
+        ├── carrier-features.scad          # Core geometric modules
+        ├── text-etching.scad              # Text/etching functionality
+        ├── universal-carrier-assembly.scad # Universal assembly system
+        └── *-alignment-board.scad         # Enlarger-specific boards
 ```
 
 ## Development Workflow
@@ -75,9 +91,12 @@ negative-carriers/
 
 All enlarger implementations share these core parameters:
 
+- `Carrier_Type`: Enlarger type selection ("omega-d", "lpl-saunders-45xx", "beseler-23c", "beseler-45", "frameAndPegTest")
 - `Top_or_Bottom`: Carrier part selection
 - `Film_Format`: Supported formats from film-sizes.scad
 - `Orientation`: Film orientation (vertical/horizontal)
+- `Alignment_Board`: Enable/disable alignment board inclusion
+- `Alignment_Board_Type`: Alignment board style ("omega", "lpl-saunders", "beseler-23c")
 - `Printed_or_Heat_Set_Pegs`: Peg attachment method
 - `Owner_Name`, `Type_Name`: Text etching options
 - `Fontface`, `Font_Size`, `TEXT_ETCH_DEPTH`: Typography settings
@@ -103,7 +122,10 @@ Defined in `carrier-features.scad`:
 When working with individual `.scad` files, ensure these includes are present:
 
 - `include <BOSL2/std.scad>`
-- `include <common/film-sizes.scad>`
-- `include <common/carrier-features.scad>`
-- `include <common/text-etching.scad>`
+- `include <src/carrier-configs.scad>`
+- `include <src/common/universal-carrier-assembly.scad>`
+- `include <src/common/film-sizes.scad>`
+- `include <src/common/carrier-features.scad>`
+- `include <src/common/text-etching.scad>`
+- Base shape includes: `include <src/*-base-shape.scad>`
 - Enlarger-specific alignment board includes as needed
