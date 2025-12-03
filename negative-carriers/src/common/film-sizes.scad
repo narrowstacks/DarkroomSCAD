@@ -43,8 +43,8 @@ thirtyFiveStandardHeight = 36;
 thirtyFiveStandardWidth = 24;
 
 // 35mm filed carrier
-thirtyFiveFiledHeight = 38;
-thirtyFiveFiledWidth = 27;
+thirtyFiveFiledHeight = 40;
+thirtyFiveFiledWidth = 28;
 
 // half frame width
 halfFrameWidth = 24;
