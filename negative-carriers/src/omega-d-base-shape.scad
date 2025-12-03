@@ -54,8 +54,7 @@ module omega_d_base_shape(config, top_or_bottom) {
      * Combines circular and rectangular sections with rounded edges
      */
     module base_geometry() {
-        color("grey")
-            union() {
+        union() {
                 cylinder(h=CARRIER_HEIGHT, r=CARRIER_CIRCLE_DIAMETER / 2, center=true);
                 translate([-CARRIER_RECT_OFFSET, 0, 0])
                     cuboid(
@@ -78,21 +77,17 @@ module omega_d_base_shape(config, top_or_bottom) {
         translate([0, -1.5, 0]) {
             // Top registration hole
             union() {
-                color("red")
-                    translate([REG_HOLE_TOP_X_OFFSET + (REG_HOLE_DISTANCE / 2) + REG_HOLE_DIAMETER / 2, -REG_HOLE_DISTANCE / 2, 0])
-                        cuboid([REG_HOLE_DIAMETER, REG_HOLE_DIAMETER + REG_HOLE_SLOT_LENGTH_EXTENSION, CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor=CENTER);
-                color("red")
-                    translate([REG_HOLE_TOP_X_OFFSET + (REG_HOLE_DISTANCE / 2) + REG_HOLE_DIAMETER / 2, -REG_HOLE_DISTANCE / 2 + REG_HOLE_CYL_Y_OFFSET, 0])
-                        cylinder(h=CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=REG_HOLE_DIAMETER / 2, center=true);
+                translate([REG_HOLE_TOP_X_OFFSET + (REG_HOLE_DISTANCE / 2) + REG_HOLE_DIAMETER / 2, -REG_HOLE_DISTANCE / 2, 0])
+                    cuboid([REG_HOLE_DIAMETER, REG_HOLE_DIAMETER + REG_HOLE_SLOT_LENGTH_EXTENSION, CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor=CENTER);
+                translate([REG_HOLE_TOP_X_OFFSET + (REG_HOLE_DISTANCE / 2) + REG_HOLE_DIAMETER / 2, -REG_HOLE_DISTANCE / 2 + REG_HOLE_CYL_Y_OFFSET, 0])
+                    cylinder(h=CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=REG_HOLE_DIAMETER / 2, center=true);
             }
             // Bottom registration hole
             union() {
-                color("red")
-                    translate([REG_HOLE_BOTTOM_X_OFFSET - (REG_HOLE_DISTANCE / 2) - REG_HOLE_DIAMETER / 2, -REG_HOLE_DISTANCE / 2, 0])
-                        cuboid([REG_HOLE_DIAMETER, REG_HOLE_DIAMETER + REG_HOLE_SLOT_LENGTH_EXTENSION, CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor=CENTER);
-                color("red")
-                    translate([REG_HOLE_BOTTOM_X_OFFSET - (REG_HOLE_DISTANCE / 2) - REG_HOLE_DIAMETER / 2, -REG_HOLE_DISTANCE / 2 + REG_HOLE_CYL_Y_OFFSET, 0])
-                        cylinder(h=CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=REG_HOLE_DIAMETER / 2, center=true);
+                translate([REG_HOLE_BOTTOM_X_OFFSET - (REG_HOLE_DISTANCE / 2) - REG_HOLE_DIAMETER / 2, -REG_HOLE_DISTANCE / 2, 0])
+                    cuboid([REG_HOLE_DIAMETER, REG_HOLE_DIAMETER + REG_HOLE_SLOT_LENGTH_EXTENSION, CARRIER_HEIGHT + CUT_THROUGH_EXTENSION], anchor=CENTER);
+                translate([REG_HOLE_BOTTOM_X_OFFSET - (REG_HOLE_DISTANCE / 2) - REG_HOLE_DIAMETER / 2, -REG_HOLE_DISTANCE / 2 + REG_HOLE_CYL_Y_OFFSET, 0])
+                    cylinder(h=CARRIER_HEIGHT + CUT_THROUGH_EXTENSION, r=REG_HOLE_DIAMETER / 2, center=true);
             }
         }
     }

@@ -102,7 +102,7 @@ Adjust_Film_Height = 0;
 
 /* [Render Quality] */
 // Use "preview" for faster F5 preview, "final" for smooth F6 renders
-Render_Quality = "preview"; // ["preview", "final"]
+Render_Quality = "final"; // ["final", "preview"]
 
 /* [Hidden] */
 // Variable resolution: 50 for preview speed, 100 for final quality

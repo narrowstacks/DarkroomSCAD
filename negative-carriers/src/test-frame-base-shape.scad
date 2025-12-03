@@ -29,6 +29,5 @@ module test_frame_base_shape(config, top_or_bottom, opening_width, opening_heigh
     CARRIER_HEIGHT = 2; // Standard test frame height
 
     // Generate simple rectangular test frame
-    color("grey")
-        cuboid([testPieceDepth, testPieceWidth, CARRIER_HEIGHT], anchor=CENTER, rounding=1);
+    cuboid([testPieceDepth, testPieceWidth, CARRIER_HEIGHT], anchor=CENTER, rounding=1);
 }

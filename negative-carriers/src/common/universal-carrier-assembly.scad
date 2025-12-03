@@ -126,7 +126,10 @@ module universal_carrier_assembly(
     }
 
     // Pre-calculate text positions ONCE for performance (avoids duplicate textmetrics calls)
-    _cached_text_positions = _calculate_text_positions_once();
+    // Only calculate when text etching is enabled - textmetrics() is expensive
+    _cached_text_positions = (enable_owner_name_etch || enable_type_name_etch)
+        ? _calculate_text_positions_once()
+        : [[0,0,0], [0,0,0], [0,0,0], [0,0,0]]; // Dummy values when text disabled
 
     function _calculate_text_positions_once() =
         let (

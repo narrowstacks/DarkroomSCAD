@@ -76,7 +76,7 @@ function get_film_format_height(format, custom_film_height = undef) =
     : format == "custom" ? (custom_film_height != undef ? custom_film_height : customFilmFormatHeight)
     : undef; // Indicate error for unknown format
 
-// Function to get the film format width based on the selected format string  
+// Function to get the film format width based on the selected format string
 // For custom format, pass custom_film_width parameter to override default
 function get_film_format_width(format, custom_film_width = undef) =
     format == "35mm" ? thirtyFiveStandardWidth

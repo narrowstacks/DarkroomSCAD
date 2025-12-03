@@ -31,8 +31,7 @@ module beseler_23c_base_shape(config, top_or_bottom) {
     module handle() {
         rotate([0, 0, 90]) {
             translate([0, CARRIER_DIAMETER / 2, 0])
-                color("grey")
-                    cuboid([HANDLE_WIDTH, HANDLE_LENGTH * 1.5, CARRIER_HEIGHT], anchor=CENTER, rounding=.5);
+                cuboid([HANDLE_WIDTH, HANDLE_LENGTH * 1.5, CARRIER_HEIGHT], anchor=CENTER, rounding=.5);
         }
     }
 
@@ -40,10 +39,7 @@ module beseler_23c_base_shape(config, top_or_bottom) {
      * Creates the basic Beseler 23C carrier shape
      */
     module base_geometry() {
-        color("grey")
-            union() {
-                cyl(h=CARRIER_HEIGHT, r=CARRIER_DIAMETER / 2, center=true, rounding=.5);
-            }
+        cyl(h=CARRIER_HEIGHT, r=CARRIER_DIAMETER / 2, center=true, rounding=.5);
     }
 
     // Generate the complete Beseler 23C base shape with handle
