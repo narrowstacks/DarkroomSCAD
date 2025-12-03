@@ -52,11 +52,3 @@ module beseler_23c_base_shape(config, top_or_bottom) {
         handle();
     }
 }
-
-/**
- * Wrapper function that can be called as base_shape_module parameter
- */
-module beseler_23c_base_shape_wrapper() {
-    // This will be called from universal carrier assembly with config in scope
-    beseler_23c_base_shape(config, top_or_bottom);
-}

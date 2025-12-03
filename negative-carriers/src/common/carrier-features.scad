@@ -21,11 +21,12 @@ module pegs_feature(is_hole = false, peg_diameter, peg_height, peg_pos_x, peg_po
     radius = is_hole ? peg_diameter / 2 + PEG_HOLE_TOLERANCE : peg_diameter / 2;
     effective_peg_height = peg_height + PEG_HEIGHT_ADJUSTMENT;
 
+    // Use $fn=32 for small peg cylinders - sufficient quality at lower cost
     union() {
-        translate([peg_pos_x, peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true);
-        translate([peg_pos_x, -peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true);
-        translate([-peg_pos_x, peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true);
-        translate([-peg_pos_x, -peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true);
+        translate([peg_pos_x, peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true, $fn=32);
+        translate([peg_pos_x, -peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true, $fn=32);
+        translate([-peg_pos_x, peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true, $fn=32);
+        translate([-peg_pos_x, -peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true, $fn=32);
     }
 }
 
@@ -376,10 +377,11 @@ module alignment_footprint_holes(_screw_dia, _dist_for_x_coords, _dist_for_y_coo
     eff_spacing_x = _dist_for_x_coords / 2;
     eff_spacing_y = _dist_for_y_coords / 2;
 
+    // Use $fn=24 for small screw holes - sufficient quality at lower cost
     for (x_mult = [-1, 1]) {
         for (y_mult = [-1, 1]) {
             translate([eff_spacing_x * x_mult, eff_spacing_y * y_mult, z_val_for_hole])
-                cylinder(h=actual_hole_height, r=hole_radius, center=use_center_alignment);
+                cylinder(h=actual_hole_height, r=hole_radius, center=use_center_alignment, $fn=24);
         }
     }
 }

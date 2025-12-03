@@ -1,6 +1,6 @@
 include <BOSL2/std.scad>
 
-$fn = 100;
+// $fn inherited from carrier.scad for variable preview/final quality
 
 CIRCLE_DIAMETER = 161.5;
 TOP_BOTTOM_CUT = 10.75;

@@ -32,11 +32,3 @@ module test_frame_base_shape(config, top_or_bottom, opening_width, opening_heigh
     color("grey")
         cuboid([testPieceDepth, testPieceWidth, CARRIER_HEIGHT], anchor=CENTER, rounding=1);
 }
-
-/**
- * Wrapper function that can be called as base_shape_module parameter
- */
-module test_frame_base_shape_wrapper() {
-    // This will be called from universal carrier assembly with config in scope
-    test_frame_base_shape(config, top_or_bottom, opening_width, opening_height, peg_pos_x, peg_pos_y);
-}

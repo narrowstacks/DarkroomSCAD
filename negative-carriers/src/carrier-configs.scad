@@ -18,43 +18,22 @@ function get_carrier_config(carrier_type) =
     : undef; // Return undef for unknown carrier types
 
 // ----------------------------------------------------------------------------
-// Carrier-independent getters for shared parameters
+// Universal carrier constants (same for all carriers)
+// Using constants instead of per-carrier functions reduces code duplication
 // ----------------------------------------------------------------------------
 
-// Material thickness for each carrier type
-function get_carrier_height(carrier_type) =
-    (carrier_type == "omega-d") ? 2
-    : (carrier_type == "lpl-saunders-45xx") ? 2
-    : (carrier_type == "beseler-23c") ? 2
-    : (carrier_type == "frameAndPegTest") ? 2
-    : 2;
+UNIVERSAL_CARRIER_HEIGHT = 2;
+UNIVERSAL_FILM_OPENING_FRAME_FILLET = 0.5;
+UNIVERSAL_ALIGNMENT_SCREW_DIAMETER = 2;
+UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X = 82;
+UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y = 113;
 
-// Film opening frame fillet (applied to opening edges)
-function get_film_opening_frame_fillet(carrier_type) =
-    (carrier_type == "omega-d") ? 0.5
-    : (carrier_type == "lpl-saunders-45xx") ? 0.5
-    : (carrier_type == "beseler-23c") ? 0.5
-    : 0.5;
-
-// Alignment screw parameters
-function get_alignment_screw_diameter(carrier_type) =
-    (carrier_type == "omega-d") ? 2
-    : (carrier_type == "lpl-saunders-45xx") ? 2
-    : (carrier_type == "beseler-23c") ? 2
-    : 2;
-
-// Pattern distances are canonical X and Y spacing for the 4-hole footprint
-function get_alignment_screw_pattern_dist_x(carrier_type) =
-    (carrier_type == "omega-d") ? 82
-    : (carrier_type == "lpl-saunders-45xx") ? 82
-    : (carrier_type == "beseler-23c") ? 82
-    : 82;
-
-function get_alignment_screw_pattern_dist_y(carrier_type) =
-    (carrier_type == "omega-d") ? 113
-    : (carrier_type == "lpl-saunders-45xx") ? 113
-    : (carrier_type == "beseler-23c") ? 113
-    : 113;
+// Getter functions maintained for backward compatibility (return universal values)
+function get_carrier_height(carrier_type) = UNIVERSAL_CARRIER_HEIGHT;
+function get_film_opening_frame_fillet(carrier_type) = UNIVERSAL_FILM_OPENING_FRAME_FILLET;
+function get_alignment_screw_diameter(carrier_type) = UNIVERSAL_ALIGNMENT_SCREW_DIAMETER;
+function get_alignment_screw_pattern_dist_x(carrier_type) = UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X;
+function get_alignment_screw_pattern_dist_y(carrier_type) = UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y;
 
 // Z offset for top peg holes (varies by carrier style)
 function get_top_peg_hole_z_offset(carrier_type) =
@@ -65,23 +44,19 @@ function get_top_peg_hole_z_offset(carrier_type) =
 // ----------------------------------------------------------------------------
 // Text etching settings per carrier
 // Returned arrays are intentionally small, only for text placement logic
+// Returns [y_translate, margin, additional_offset?, safe_margin?, multi_material_y_offset?]
 // ----------------------------------------------------------------------------
 
-// Owner text settings per carrier
-// Returns [y_translate, bottom_margin, additional_offset?, safe_margin?, multi_material_y_offset?]
-function carrier_owner_text_settings(carrier_type) =
-    (carrier_type == "omega-d") ? [-90, 5] // simple: [y_translate, bottom_margin]
-    : (carrier_type == "lpl-saunders-45xx") ? [-65, 5, 30, 20, -75]
-    : (carrier_type == "beseler-23c") ? [-65, 5, 20, 13, -75]
-    : [0, 5];
-
-// Type text settings per carrier
-// Returns [y_translate, top_margin, additional_offset?, safe_margin?, multi_material_y_offset?]
-function carrier_type_text_settings(carrier_type) =
+// Unified text settings lookup (owner and type use identical positioning)
+function _get_text_settings(carrier_type) =
     (carrier_type == "omega-d") ? [-90, 5]
     : (carrier_type == "lpl-saunders-45xx") ? [-65, 5, 30, 20, -75]
     : (carrier_type == "beseler-23c") ? [-65, 5, 20, 13, -75]
     : [0, 5];
+
+// Owner and type text use the same positioning config
+function carrier_owner_text_settings(carrier_type) = _get_text_settings(carrier_type);
+function carrier_type_text_settings(carrier_type) = _get_text_settings(carrier_type);
 
 // (All LPL base geometry lives in lpl-saunders-base-shape.scad)
 
@@ -118,32 +93,33 @@ function get_carrier_type_display_name(carrier_type) =
     : carrier_type == "beseler-45" ? "BESELER 45"
     : "UNKNOWN";
 
-/**
- * Check if a carrier type supports alignment boards
- * @param carrier_type - String identifier for the carrier type
- * @return true if the carrier supports alignment boards
- */
-function carrier_supports_alignment_board(carrier_type) =
+// ----------------------------------------------------------------------------
+// Carrier feature support
+// These carriers have full feature support (alignment boards, text, test frames)
+// ----------------------------------------------------------------------------
+
+// Helper to check if carrier has full feature support
+function _is_full_feature_carrier(carrier_type) =
     carrier_type == "omega-d" || carrier_type == "lpl-saunders-45xx" || carrier_type == "beseler-23c";
 
 /**
+ * Check if a carrier type supports alignment boards
+ */
+function carrier_supports_alignment_board(carrier_type) = _is_full_feature_carrier(carrier_type);
+
+/**
+ * Check if a carrier type supports multi-material text printing
+ */
+function carrier_supports_multi_material_text(carrier_type) = _is_full_feature_carrier(carrier_type);
+
+/**
  * Get default alignment board type for a carrier
- * @param carrier_type - String identifier for the carrier type
- * @return Default alignment board type string
  */
 function get_default_alignment_board_type(carrier_type) =
     carrier_type == "omega-d" ? "omega"
     : carrier_type == "lpl-saunders-45xx" ? "lpl-saunders"
     : carrier_type == "beseler-23c" ? "beseler-23c"
     : "omega"; // Default fallback
-
-/**
- * Check if a carrier type supports multi-material text printing
- * @param carrier_type - String identifier for the carrier type
- * @return true if the carrier supports multi-material text
- */
-function carrier_supports_multi_material_text(carrier_type) =
-    carrier_type == "omega-d" || carrier_type == "lpl-saunders-45xx" || carrier_type == "beseler-23c";
 
 /**
  * Validate that a carrier type is supported
@@ -181,11 +157,8 @@ function get_carrier_film_format_restrictions(carrier_type) =
 
 /**
  * Check if a carrier type supports test frame generation
- * @param carrier_type - String identifier for the carrier type
- * @return true if the carrier supports frameAndPegTest modes
  */
-function carrier_supports_test_frames(carrier_type) =
-    carrier_type == "omega-d" || carrier_type == "lpl-saunders-45xx" || carrier_type == "beseler-23c";
+function carrier_supports_test_frames(carrier_type) = _is_full_feature_carrier(carrier_type);
 
 /**
  * Check if a carrier type is a test frame type

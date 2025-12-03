@@ -100,8 +100,13 @@ Adjust_Film_Width = 0;
 // Leave at 0 for no adjustment. Measured in mm. Add positive values to increase the film height, subtract (use negative values) to decrease it.
 Adjust_Film_Height = 0;
 
+/* [Render Quality] */
+// Use "preview" for faster F5 preview, "final" for smooth F6 renders
+Render_Quality = "preview"; // ["preview", "final"]
+
 /* [Hidden] */
-$fn = 100;
+// Variable resolution: 50 for preview speed, 100 for final quality
+$fn = (Render_Quality == "final") ? 100 : 50;
 
 // ============================================================================
 // MAIN CARRIER GENERATION LOGIC
@@ -147,24 +152,33 @@ peg_pos_y_calc = peg_positions[1];
 // CARRIER DISPATCH LOGIC
 // ============================================================================
 
-// Dispatch to appropriate base shape and assemble with universal system
-if (Carrier_Type == "omega-d") {
+// Helper module to avoid repeating 27 parameters for each carrier type
+module dispatch_to_universal_assembly(
+    _alignment_board = Alignment_Board,
+    _alignment_board_type = Alignment_Board_Type,
+    _flip_bottom = Flip_Bottom_For_Printing,
+    _enable_owner_etch = Enable_Owner_Name_Etch,
+    _owner_name = Owner_Name,
+    _enable_type_etch = Enable_Type_Name_Etch,
+    _type_name = SELECTED_TYPE_NAME,
+    _text_as_separate = Text_As_Separate_Parts
+) {
     universal_carrier_assembly(
         config=carrier_config,
         carrier_type=Carrier_Type,
         top_or_bottom=Top_or_Bottom,
         printed_or_heat_set_pegs=Printed_or_Heat_Set_Pegs,
-        alignment_board=Alignment_Board,
-        alignment_board_type=Alignment_Board_Type,
-        flip_bottom_for_printing=Flip_Bottom_For_Printing,
-        enable_owner_name_etch=Enable_Owner_Name_Etch,
-        owner_name=Owner_Name,
-        enable_type_name_etch=Enable_Type_Name_Etch,
-        selected_type_name=SELECTED_TYPE_NAME,
+        alignment_board=_alignment_board,
+        alignment_board_type=_alignment_board_type,
+        flip_bottom_for_printing=_flip_bottom,
+        enable_owner_name_etch=_enable_owner_etch,
+        owner_name=_owner_name,
+        enable_type_name_etch=_enable_type_etch,
+        selected_type_name=_type_name,
         fontface=Fontface,
         font_size=Font_Size,
         text_etch_depth=TEXT_ETCH_DEPTH,
-        text_as_separate_parts=Text_As_Separate_Parts,
+        text_as_separate_parts=_text_as_separate,
         layer_height_mm=Layer_Height_mm,
         text_layer_multiple=Text_Layer_Multiple,
         which_part=_WhichPart,
@@ -176,93 +190,26 @@ if (Carrier_Type == "omega-d") {
         owner_text_offset=[Owner_Text_X_Offset, Owner_Text_Y_Offset],
         type_text_offset=[Type_Text_X_Offset, Type_Text_Y_Offset]
     );
-} else if (Carrier_Type == "lpl-saunders-45xx") {
-    universal_carrier_assembly(
-        config=carrier_config,
-        carrier_type=Carrier_Type,
-        top_or_bottom=Top_or_Bottom,
-        printed_or_heat_set_pegs=Printed_or_Heat_Set_Pegs,
-        alignment_board=Alignment_Board,
-        alignment_board_type=Alignment_Board_Type,
-        flip_bottom_for_printing=Flip_Bottom_For_Printing,
-        enable_owner_name_etch=Enable_Owner_Name_Etch,
-        owner_name=Owner_Name,
-        enable_type_name_etch=Enable_Type_Name_Etch,
-        selected_type_name=SELECTED_TYPE_NAME,
-        fontface=Fontface,
-        font_size=Font_Size,
-        text_etch_depth=TEXT_ETCH_DEPTH,
-        text_as_separate_parts=Text_As_Separate_Parts,
-        layer_height_mm=Layer_Height_mm,
-        text_layer_multiple=Text_Layer_Multiple,
-        which_part=_WhichPart,
-        opening_height=adjusted_opening_height,
-        opening_width=adjusted_opening_width,
-        peg_pos_x=peg_pos_x_calc,
-        peg_pos_y=peg_pos_y_calc,
-        film_format_for_arrows=Film_Format,
-        owner_text_offset=[Owner_Text_X_Offset, Owner_Text_Y_Offset],
-        type_text_offset=[Type_Text_X_Offset, Type_Text_Y_Offset]
-    );
-} else if (Carrier_Type == "beseler-23c") {
-    universal_carrier_assembly(
-        config=carrier_config,
-        carrier_type=Carrier_Type,
-        top_or_bottom=Top_or_Bottom,
-        printed_or_heat_set_pegs=Printed_or_Heat_Set_Pegs,
-        alignment_board=Alignment_Board,
-        alignment_board_type=Alignment_Board_Type,
-        flip_bottom_for_printing=Flip_Bottom_For_Printing,
-        enable_owner_name_etch=Enable_Owner_Name_Etch,
-        owner_name=Owner_Name,
-        enable_type_name_etch=Enable_Type_Name_Etch,
-        selected_type_name=SELECTED_TYPE_NAME,
-        fontface=Fontface,
-        font_size=Font_Size,
-        text_etch_depth=TEXT_ETCH_DEPTH,
-        text_as_separate_parts=Text_As_Separate_Parts,
-        layer_height_mm=Layer_Height_mm,
-        text_layer_multiple=Text_Layer_Multiple,
-        which_part=_WhichPart,
-        opening_height=adjusted_opening_height,
-        opening_width=adjusted_opening_width,
-        peg_pos_x=peg_pos_x_calc,
-        peg_pos_y=peg_pos_y_calc,
-        film_format_for_arrows=Film_Format,
-        owner_text_offset=[Owner_Text_X_Offset, Owner_Text_Y_Offset],
-        type_text_offset=[Type_Text_X_Offset, Type_Text_Y_Offset]
-    );
+}
+
+// Dispatch to appropriate carrier assembly
+if (Carrier_Type == "omega-d" || Carrier_Type == "lpl-saunders-45xx" || Carrier_Type == "beseler-23c") {
+    // Standard carriers use all user-specified options
+    dispatch_to_universal_assembly();
 } else if (Carrier_Type == "beseler-45") {
     // Future implementation placeholder
     assert(false, str("CARRIER TYPE ERROR: '", Carrier_Type, "' is not yet implemented. Use one of: omega-d, lpl-saunders-45xx, beseler-23c"));
 } else if (is_test_frame_type(Carrier_Type)) {
-    // Handle test frame types with universal assembly
-    universal_carrier_assembly(
-        config=carrier_config,
-        carrier_type=Carrier_Type,
-        top_or_bottom=Top_or_Bottom,
-        printed_or_heat_set_pegs=Printed_or_Heat_Set_Pegs,
-        alignment_board=false, // Test frames don't use alignment boards
-        alignment_board_type="none",
-        flip_bottom_for_printing=false, // Test frames don't need flipping
-        enable_owner_name_etch=false, // Test frames don't have text
-        owner_name="",
-        enable_type_name_etch=false,
-        selected_type_name="",
-        fontface=Fontface,
-        font_size=Font_Size,
-        text_etch_depth=TEXT_ETCH_DEPTH,
-        text_as_separate_parts=false,
-        layer_height_mm=Layer_Height_mm,
-        text_layer_multiple=Text_Layer_Multiple,
-        which_part=_WhichPart,
-        opening_height=adjusted_opening_height,
-        opening_width=adjusted_opening_width,
-        peg_pos_x=peg_pos_x_calc,
-        peg_pos_y=peg_pos_y_calc,
-        film_format_for_arrows=Film_Format,
-        owner_text_offset=[Owner_Text_X_Offset, Owner_Text_Y_Offset],
-        type_text_offset=[Type_Text_X_Offset, Type_Text_Y_Offset]
+    // Test frames have simplified options (no alignment board, no text)
+    dispatch_to_universal_assembly(
+        _alignment_board=false,
+        _alignment_board_type="none",
+        _flip_bottom=false,
+        _enable_owner_etch=false,
+        _owner_name="",
+        _enable_type_etch=false,
+        _type_name="",
+        _text_as_separate=false
     );
 } else {
     assert(false, str("CARRIER TYPE ERROR: Unknown carrier type '", Carrier_Type, "'. Supported types: ", get_supported_carrier_types()));

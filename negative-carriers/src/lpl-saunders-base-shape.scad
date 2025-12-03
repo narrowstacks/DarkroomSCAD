@@ -84,11 +84,3 @@ module lpl_saunders_base_shape(config, top_or_bottom) {
         handle();
     }
 }
-
-/**
- * Wrapper function that can be called as base_shape_module parameter
- */
-module lpl_saunders_base_shape_wrapper() {
-    // This will be called from universal carrier assembly with config in scope
-    lpl_saunders_base_shape(config, top_or_bottom);
-}

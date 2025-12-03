@@ -14,7 +14,7 @@ BIG_ALIGNMENT_SCREW_DIAMETER = 5; // Replaced by SCREW_DIAMETER
 BIG_ALIGNMENT_SCREW_DISTANCE_X = 101 + BIG_ALIGNMENT_SCREW_DIAMETER; // Re-interpreted for new hole pattern
 BIG_ALIGNMENT_SCREW_DISTANCE_Y = 97 + BIG_ALIGNMENT_SCREW_DIAMETER; // Re-interpreted for new hole pattern
 
-$fn = 100;
+// $fn inherited from carrier.scad for variable preview/final quality
 
 module opening_cutout() {
 
@@ -25,17 +25,19 @@ module opening_cutout() {
 }
 
 module alignment_screw_holes() {
-    color("red") translate([SMALL_ALIGNMENT_SCREW_DISTANCE_Y / 2, SMALL_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=SMALL_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER);
-    color("red") translate([SMALL_ALIGNMENT_SCREW_DISTANCE_Y / 2, -SMALL_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=SMALL_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER);
-    color("red") translate([-SMALL_ALIGNMENT_SCREW_DISTANCE_Y / 2, SMALL_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=SMALL_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER);
-    color("red") translate([-SMALL_ALIGNMENT_SCREW_DISTANCE_Y / 2, -SMALL_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=SMALL_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER);
+    // Use $fn=24 for small screw holes - sufficient quality at lower cost
+    color("red") translate([SMALL_ALIGNMENT_SCREW_DISTANCE_Y / 2, SMALL_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=SMALL_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
+    color("red") translate([SMALL_ALIGNMENT_SCREW_DISTANCE_Y / 2, -SMALL_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=SMALL_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
+    color("red") translate([-SMALL_ALIGNMENT_SCREW_DISTANCE_Y / 2, SMALL_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=SMALL_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
+    color("red") translate([-SMALL_ALIGNMENT_SCREW_DISTANCE_Y / 2, -SMALL_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=SMALL_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
 }
 
 module big_alignment_screw_holes() {
-    color("green") translate([BIG_ALIGNMENT_SCREW_DISTANCE_Y / 2, BIG_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=BIG_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER);
-    color("green") translate([BIG_ALIGNMENT_SCREW_DISTANCE_Y / 2, -BIG_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=BIG_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER);
-    color("green") translate([-BIG_ALIGNMENT_SCREW_DISTANCE_Y / 2, BIG_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=BIG_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER);
-    color("green") translate([-BIG_ALIGNMENT_SCREW_DISTANCE_Y / 2, -BIG_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=BIG_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER);
+    // Use $fn=24 for screw holes - sufficient quality at lower cost
+    color("green") translate([BIG_ALIGNMENT_SCREW_DISTANCE_Y / 2, BIG_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=BIG_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
+    color("green") translate([BIG_ALIGNMENT_SCREW_DISTANCE_Y / 2, -BIG_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=BIG_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
+    color("green") translate([-BIG_ALIGNMENT_SCREW_DISTANCE_Y / 2, BIG_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=BIG_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
+    color("green") translate([-BIG_ALIGNMENT_SCREW_DISTANCE_Y / 2, -BIG_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=BIG_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
 }
 
 module omega_board_edge_cuts() {

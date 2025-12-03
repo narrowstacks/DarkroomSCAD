@@ -125,22 +125,10 @@ module universal_carrier_assembly(
         assert(false, "CARRIER OPTIONS ERROR: Alignment board included, so we can't use printed pegs! Please use heat-set pegs or disable the alignment board.");
     }
 
-    /**
-     * Universal Part module for multi-material compatibility
-     */
-    module Part(DoPart) {
-        color(SharedPartColor(DoPart)) {
-            if (which_part == "All" || DoPart == which_part) {
-                children();
-            }
-        }
-    }
+    // Pre-calculate text positions ONCE for performance (avoids duplicate textmetrics calls)
+    _cached_text_positions = _calculate_text_positions_once();
 
-    /**
-     * Universal text positioning system
-     * Calculates safe text placement based on carrier type and geometry
-     */
-    function get_universal_text_positions() =
+    function _calculate_text_positions_once() =
         let (
             // Get carrier-specific text positioning parameters
             owner_text_config = get_owner_text_settings(carrier_type),
@@ -164,14 +152,26 @@ module universal_carrier_assembly(
         ) [owner_position_adj, type_position_adj, owner_rotation, type_rotation];
 
     /**
+     * Universal Part module for multi-material compatibility
+     */
+    module Part(DoPart) {
+        color(SharedPartColor(DoPart)) {
+            if (which_part == "All" || DoPart == which_part) {
+                children();
+            }
+        }
+    }
+
+    /**
      * Universal text etch generation
+     * Uses pre-cached text positions for performance
      */
     module generate_universal_text_etches() {
-        text_positions = get_universal_text_positions();
-        owner_pos = text_positions[0];
-        type_pos = text_positions[1];
-        owner_rot = text_positions[2];
-        type_rot = text_positions[3];
+        // Use cached positions (calculated once at module instantiation)
+        owner_pos = _cached_text_positions[0];
+        type_pos = _cached_text_positions[1];
+        owner_rot = _cached_text_positions[2];
+        type_rot = _cached_text_positions[3];
 
         generate_shared_text_etch_subtractions(
             owner_name=owner_name,
@@ -190,13 +190,14 @@ module universal_carrier_assembly(
 
     /**
      * Universal multi-material text generation
+     * Uses pre-cached text positions for performance
      */
     module generate_universal_multi_material_text() {
-        text_positions = get_universal_text_positions();
-        owner_pos = text_positions[0];
-        type_pos = text_positions[1];
-        owner_rot = text_positions[2];
-        type_rot = text_positions[3];
+        // Use cached positions (calculated once at module instantiation)
+        owner_pos = _cached_text_positions[0];
+        type_pos = _cached_text_positions[1];
+        owner_rot = _cached_text_positions[2];
+        type_rot = _cached_text_positions[3];
 
         // Adjust Z position for solid text parts
         owner_solid_pos = [owner_pos[0], owner_pos[1], TEXT_SOLID_Z_POSITION];

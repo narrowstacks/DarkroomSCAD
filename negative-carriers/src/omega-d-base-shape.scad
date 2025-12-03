@@ -117,11 +117,3 @@ module omega_d_base_shape(config, top_or_bottom) {
         }
     }
 }
-
-/**
- * Wrapper function that can be called as base_shape_module parameter
- */
-module omega_d_base_shape_wrapper() {
-    // This will be called from universal carrier assembly with config in scope
-    omega_d_base_shape(config, top_or_bottom);
-}
