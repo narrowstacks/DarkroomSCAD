@@ -14,15 +14,17 @@ include <src/common/text-etching.scad>
 
 // Carrier configuration system
 include <src/carrier-configs.scad>
-// Generic carrier templates
-include <src/generic-omega-d.scad>
-include <src/generic-lpl-saunders.scad>
-include <src/generic-beseler-23c.scad>
-include <src/generic-test-frame.scad>
+// Universal carrier assembly system
+include <src/common/universal-carrier-assembly.scad>
+// Base shape generators
+include <src/omega-d-base-shape.scad>
+include <src/lpl-saunders-base-shape.scad>
+include <src/beseler-23c-base-shape.scad>
+include <src/test-frame-base-shape.scad>
 
 /* [Carrier Type] */
 Carrier_Type = "omega-d"; // ["omega-d", "lpl-saunders-45xx", "beseler-23c", "beseler-45", "frameAndPegTest"]
-Orientation = "horizontal"; // ["horizontal, "vertical"]
+Orientation = "vertical"; // ["vertical", "horizontal"]
 
 /* [Carrier Options] */
 // Top or bottom of the carrier
@@ -40,13 +42,15 @@ Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
 /* [Film Format Selection] */
 Film_Format = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "4x5", "custom"]
 
-/* [Custom Film Format (LPL Saunders only)] */
-// If custom selected above: measurement of Custom Film Format (top to bottom)
-Custom_Film_Format_Width = 37;
-// Measurement of Custom Film Format carrier opening (top to bottom)
-Custom_Film_Format_Opening_Width = 24;
-// Measurement of Custom Film Format carrier opening (left to right)
-Custom_Film_Format_Opening_Height = 36;
+/* [Custom Film Format] */
+// Actual film stock width (for peg positioning)
+Custom_Film_Width = 37;
+// Actual film stock height (for film handling)
+Custom_Film_Height = 37;
+// Film opening width (the visible/cropped area)
+Custom_Opening_Width = 24;
+// Film opening height (the visible/cropped area)
+Custom_Opening_Height = 36;
 
 /* [Customization] */
 // Enable or disable the owner name etching
@@ -69,6 +73,13 @@ Font_Size = 10;
 // Depth for etching
 TEXT_ETCH_DEPTH = 1;
 
+/* [Text Position Offsets] */
+// Adjust text location relative to carrier defaults (mm)
+Owner_Text_X_Offset = 0; // negative=left, positive=right
+Owner_Text_Y_Offset = 0; // negative=down, positive=up
+Type_Text_X_Offset = 0; // negative=left, positive=right
+Type_Text_Y_Offset = 0; // negative=down, positive=up
+
 /* [Multi-Material Text] */
 // Render text as separate parts for multi-material printing
 Text_As_Separate_Parts = false; // [true, false]
@@ -89,8 +100,13 @@ Adjust_Film_Width = 0;
 // Leave at 0 for no adjustment. Measured in mm. Add positive values to increase the film height, subtract (use negative values) to decrease it.
 Adjust_Film_Height = 0;
 
+/* [Render Quality] */
+// Use "preview" for faster F5 preview, "final" for smooth F6 renders
+Render_Quality = "final"; // ["final", "preview"]
+
 /* [Hidden] */
-$fn = 100;
+// Variable resolution: 50 for preview speed, 100 for final quality
+$fn = (Render_Quality == "final") ? 100 : 50;
 
 // ============================================================================
 // MAIN CARRIER GENERATION LOGIC
@@ -99,105 +115,101 @@ $fn = 100;
 // Validate the selected carrier type
 validate_carrier_config(Carrier_Type);
 
-// Get configuration for the selected carrier type
+// Get configuration for the selected carrier type (now minimal; base geometry lives in carrier files)
 carrier_config = get_carrier_config(Carrier_Type);
 
 // Generate carrier type name for etching
 SELECTED_TYPE_NAME = get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format);
 
-// Dispatch to appropriate carrier implementation based on Carrier_Type
-if (Carrier_Type == "omega-d") {
-    generic_omega_d_carrier(
+// ============================================================================
+// UNIFIED FILM OPENING AND PEG CALCULATIONS
+// ============================================================================
+
+// Calculate film opening dimensions once for all carriers
+effective_orientation = get_effective_orientation(Film_Format, Orientation);
+adjusted_opening_height = get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Height);
+adjusted_opening_width = get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width);
+
+// Get peg diameter from config (index varies by carrier type)
+peg_diameter = (Carrier_Type == "frameAndPegTest") ? carrier_config[1] : DEFAULT_PEG_DIAMETER;
+
+// Calculate peg positions once for all carriers using unified approach
+peg_positions = calculate_unified_peg_positions(
+    film_format_str=Film_Format,
+    orientation_str=Orientation,
+    peg_diameter=peg_diameter,
+    peg_gap_val=Peg_Gap,
+    adjust_film_width_val=Adjust_Film_Width,
+    adjust_film_height_val=Adjust_Film_Height,
+    positioning_style="omega", // Use omega style for all carriers for consistency
+    film_peg_distance=get_film_format_peg_distance(Film_Format, Custom_Film_Width)
+);
+
+peg_pos_x_calc = peg_positions[0];
+peg_pos_y_calc = peg_positions[1];
+
+// ============================================================================
+// CARRIER DISPATCH LOGIC
+// ============================================================================
+
+// Helper module to avoid repeating 27 parameters for each carrier type
+module dispatch_to_universal_assembly(
+    _alignment_board = Alignment_Board,
+    _alignment_board_type = Alignment_Board_Type,
+    _flip_bottom = Flip_Bottom_For_Printing,
+    _enable_owner_etch = Enable_Owner_Name_Etch,
+    _owner_name = Owner_Name,
+    _enable_type_etch = Enable_Type_Name_Etch,
+    _type_name = SELECTED_TYPE_NAME,
+    _text_as_separate = Text_As_Separate_Parts
+) {
+    universal_carrier_assembly(
         config=carrier_config,
-        film_format=Film_Format,
-        orientation=Orientation,
+        carrier_type=Carrier_Type,
         top_or_bottom=Top_or_Bottom,
         printed_or_heat_set_pegs=Printed_or_Heat_Set_Pegs,
-        alignment_board=Alignment_Board,
-        alignment_board_type=Alignment_Board_Type,
-        flip_bottom_for_printing=Flip_Bottom_For_Printing,
-        enable_owner_name_etch=Enable_Owner_Name_Etch,
-        owner_name=Owner_Name,
-        enable_type_name_etch=Enable_Type_Name_Etch,
-        selected_type_name=SELECTED_TYPE_NAME,
+        alignment_board=_alignment_board,
+        alignment_board_type=_alignment_board_type,
+        flip_bottom_for_printing=_flip_bottom,
+        enable_owner_name_etch=_enable_owner_etch,
+        owner_name=_owner_name,
+        enable_type_name_etch=_enable_type_etch,
+        selected_type_name=_type_name,
         fontface=Fontface,
         font_size=Font_Size,
         text_etch_depth=TEXT_ETCH_DEPTH,
-        text_as_separate_parts=Text_As_Separate_Parts,
+        text_as_separate_parts=_text_as_separate,
         layer_height_mm=Layer_Height_mm,
         text_layer_multiple=Text_Layer_Multiple,
         which_part=_WhichPart,
-        peg_gap=Peg_Gap,
-        adjust_film_width=Adjust_Film_Width,
-        adjust_film_height=Adjust_Film_Height
+        opening_height=adjusted_opening_height,
+        opening_width=adjusted_opening_width,
+        peg_pos_x=peg_pos_x_calc,
+        peg_pos_y=peg_pos_y_calc,
+        film_format_for_arrows=Film_Format,
+        owner_text_offset=[Owner_Text_X_Offset, Owner_Text_Y_Offset],
+        type_text_offset=[Type_Text_X_Offset, Type_Text_Y_Offset]
     );
-} else if (Carrier_Type == "lpl-saunders-45xx") {
-    generic_lpl_saunders_carrier(
-        config=carrier_config,
-        film_format=Film_Format,
-        orientation=Orientation,
-        top_or_bottom=Top_or_Bottom,
-        printed_or_heat_set_pegs=Printed_or_Heat_Set_Pegs,
-        alignment_board=Alignment_Board,
-        alignment_board_type=Alignment_Board_Type,
-        flip_bottom_for_printing=Flip_Bottom_For_Printing,
-        enable_owner_name_etch=Enable_Owner_Name_Etch,
-        owner_name=Owner_Name,
-        enable_type_name_etch=Enable_Type_Name_Etch,
-        selected_type_name=SELECTED_TYPE_NAME,
-        fontface=Fontface,
-        font_size=Font_Size,
-        text_etch_depth=TEXT_ETCH_DEPTH,
-        text_as_separate_parts=Text_As_Separate_Parts,
-        layer_height_mm=Layer_Height_mm,
-        text_layer_multiple=Text_Layer_Multiple,
-        which_part=_WhichPart,
-        peg_gap=Peg_Gap,
-        adjust_film_width=Adjust_Film_Width,
-        adjust_film_height=Adjust_Film_Height,
-        custom_film_format_opening_height=Custom_Film_Format_Opening_Height,
-        custom_film_format_opening_width=Custom_Film_Format_Opening_Width
-    );
-} else if (Carrier_Type == "beseler-23c") {
-    generic_beseler_23c_carrier(
-        config=carrier_config,
-        film_format=Film_Format,
-        orientation=Orientation,
-        top_or_bottom=Top_or_Bottom,
-        printed_or_heat_set_pegs=Printed_or_Heat_Set_Pegs,
-        alignment_board=Alignment_Board,
-        flip_bottom_for_printing=Flip_Bottom_For_Printing,
-        enable_owner_name_etch=Enable_Owner_Name_Etch,
-        owner_name=Owner_Name,
-        enable_type_name_etch=Enable_Type_Name_Etch,
-        selected_type_name=SELECTED_TYPE_NAME,
-        fontface=Fontface,
-        font_size=Font_Size,
-        text_etch_depth=TEXT_ETCH_DEPTH,
-        text_as_separate_parts=Text_As_Separate_Parts,
-        layer_height_mm=Layer_Height_mm,
-        text_layer_multiple=Text_Layer_Multiple,
-        which_part=_WhichPart,
-        peg_gap=Peg_Gap,
-        adjust_film_width=Adjust_Film_Width,
-        adjust_film_height=Adjust_Film_Height
-    );
+}
+
+// Dispatch to appropriate carrier assembly
+if (Carrier_Type == "omega-d" || Carrier_Type == "lpl-saunders-45xx" || Carrier_Type == "beseler-23c") {
+    // Standard carriers use all user-specified options
+    dispatch_to_universal_assembly();
 } else if (Carrier_Type == "beseler-45") {
     // Future implementation placeholder
     assert(false, str("CARRIER TYPE ERROR: '", Carrier_Type, "' is not yet implemented. Use one of: omega-d, lpl-saunders-45xx, beseler-23c"));
 } else if (is_test_frame_type(Carrier_Type)) {
-    // Handle generic test frame type
-    generic_test_frame_carrier(
-        config=carrier_config,
-        film_format=Film_Format,
-        orientation=Orientation,
-        top_or_bottom=Top_or_Bottom,
-        printed_or_heat_set_pegs=Printed_or_Heat_Set_Pegs,
-        peg_gap=Peg_Gap,
-        adjust_film_width=Adjust_Film_Width,
-        adjust_film_height=Adjust_Film_Height,
-        custom_film_format_opening_height=Custom_Film_Format_Opening_Height,
-        custom_film_format_opening_width=Custom_Film_Format_Opening_Width
+    // Test frames have simplified options (no alignment board, no text)
+    dispatch_to_universal_assembly(
+        _alignment_board=false,
+        _alignment_board_type="none",
+        _flip_bottom=false,
+        _enable_owner_etch=false,
+        _owner_name="",
+        _enable_type_etch=false,
+        _type_name="",
+        _text_as_separate=false
     );
 } else {
     assert(false, str("CARRIER TYPE ERROR: Unknown carrier type '", Carrier_Type, "'. Supported types: ", get_supported_carrier_types()));
