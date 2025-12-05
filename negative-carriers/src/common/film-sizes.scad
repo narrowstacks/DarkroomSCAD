@@ -1,145 +1,88 @@
 /* [Hidden] */
-// film type measurements
-thirtyFiveFullHeight = 37;
-mediumFormatFullHeight = 62;
-fourByFiveFullWidth = 102;
-fourByFiveFullHeight = 127;
+// Film stock physical dimensions (full film width including perforations/edges)
+thirtyFiveFullHeight = 37;      // 35mm film strip width
+thirtyFiveStandardWidth=24;
+mediumFormatFullHeight = 62;    // 120/220 film width
+fourByFiveFullWidth = 102;      // 4x5 sheet film width
+fourByFiveFullHeight = 127;     // 4x5 sheet film height
 
-// 120/220 film height
-mediumFormatHeight = 56;
-mediumFormatFiledHeight = 58;
-
-// 6x4.5 film length
-mediumFormat6x45Length = 41.5;
-mediumFormat6x45FiledLength = 43.5;
-
-// 6x6 film length
-mediumFormat6x6Length = 56;
-mediumFormat6x6FiledLength = 58;
-
-// 6x7 film length
-mediumFormat6x7Length = 70;
-mediumFormat6x7FiledLength = 72;
-
-// 6x8 film length
-mediumFormat6x8Length = 77;
-mediumFormat6x8FiledLength = 79;
-
-// 6x9 film length
-mediumFormat6x9Length = 84;
-mediumFormat6x9FiledLength = 86;
-
-// Matt6x12Plus film length
-Matt6x12PlusLength = 125;
-Matt6x12PlusFiledLength = 128;
-
-// 4x5 film height
-fourByFiveHeight = 120;
-// 4x5 film width
-fourByFiveWidth = 95;
-
-// 35mm film height
-thirtyFiveStandardHeight = 36;
-thirtyFiveStandardWidth = 24;
-
-// 35mm filed carrier
-thirtyFiveFiledHeight = 40;
-thirtyFiveFiledWidth = 28;
-
-// half frame width
-halfFrameWidth = 24;
-halfFrameHeight = 18;
-
-// Custom film format defaults (matching 35mm format for consistent behavior)
+// Custom film format defaults
 customFilmFormatHeight = 37;
 customFilmFormatWidth = 37;
-customFilmFormatPegDistance = 37; // Default to 35mm dimensions for consistency
+customFilmFormatPegDistance = 37;
 
-// Function to get the film format height based on the selected format string
-// For custom format, pass custom_film_height parameter to override default
+// Film format lookup table
+// Each entry: [format_name, height, width, peg_distance, type_name]
+// - height: opening height (frame length direction)
+// - width: opening width (film strip width direction)
+// - peg_distance: distance for alignment pegs (based on film stock width)
+// - type_name: label for etching
+FILM_FORMATS = [
+    // 35mm formats
+    ["35mm",        37,   thirtyFiveStandardWidth,  thirtyFiveFullHeight, "35MM"],      // Standard 35mm frame
+    ["35mm filed",  40,   28,  thirtyFiveFullHeight, "FILED35"],   // Filed/enlarged opening
+    ["35mm full",   36,   thirtyFiveStandardWidth,  thirtyFiveFullHeight, "FULL35"],    // Full frame
+    ["half frame",  18,   thirtyFiveStandardWidth,  thirtyFiveFullHeight, "HALF"],      // Half frame (portrait orientation)
+
+    // Medium format (120/220) - height is frame length, width is 56mm (or 58 filed)
+    ["6x4.5",       41.5, 56,  mediumFormatFullHeight, "6x4.5"],
+    ["6x4.5 filed", 43.5, 58,  mediumFormatFullHeight, "F6x4.5"],
+    ["6x6",         56,   56,  mediumFormatFullHeight, "6x6"],
+    ["6x6 filed",   58,   58,  mediumFormatFullHeight, "F6x6"],
+    ["6x7",         70,   56,  mediumFormatFullHeight, "6x7"],
+    ["6x7 filed",   72,   58,  mediumFormatFullHeight, "F6x7"],
+    ["6x8",         77,   56,  mediumFormatFullHeight, "6x8"],
+    ["6x8 filed",   79,   58,  mediumFormatFullHeight, "F6x8"],
+    ["6x9",         84,   56,  mediumFormatFullHeight, "6x9"],
+    ["6x9 filed",   86,   58,  mediumFormatFullHeight, "F6x9"],
+
+    // Large format
+    ["4x5",         120,  95,  fourByFiveFullWidth, "4X5"],
+];
+
+// Index constants for FILM_FORMATS table
+_FF_NAME = 0;
+_FF_HEIGHT = 1;
+_FF_WIDTH = 2;
+_FF_PEG_DIST = 3;
+_FF_TYPE_NAME = 4;
+
+// Core lookup function - returns the format entry or undef if not found
+function _find_film_format(format) =
+    let(matches = [for (f = FILM_FORMATS) if (f[_FF_NAME] == format) f])
+    len(matches) > 0 ? matches[0] : undef;
+
+// Unified function to get all film format dimensions
+// Returns: [height, width, peg_distance] or undef for unknown format
+function get_film_format(format, custom_height = undef, custom_width = undef) =
+    let(entry = _find_film_format(format))
+    entry != undef
+        ? [entry[_FF_HEIGHT], entry[_FF_WIDTH], entry[_FF_PEG_DIST]]
+        : format == "custom"
+            ? [
+                custom_height != undef ? custom_height : customFilmFormatHeight,
+                custom_width != undef ? custom_width : customFilmFormatWidth,
+                custom_width != undef ? custom_width : customFilmFormatPegDistance
+              ]
+            : undef;
+
+// Backward-compatible accessor functions
 function get_film_format_height(format, custom_film_height = undef) =
-    format == "35mm" ? thirtyFiveFullHeight
-    : format == "35mm filed" ? thirtyFiveFiledHeight
-    : format == "35mm full" ? thirtyFiveStandardHeight
-    : format == "half frame" ? halfFrameHeight
-    : format == "6x4.5" ? mediumFormat6x45Length
-    : format == "6x4.5 filed" ? mediumFormat6x45FiledLength
-    : format == "6x6" ? mediumFormat6x6Length
-    : format == "6x6 filed" ? mediumFormat6x6FiledLength
-    : format == "6x7" ? mediumFormat6x7Length
-    : format == "6x7 filed" ? mediumFormat6x7FiledLength
-    : format == "6x8" ? mediumFormat6x8Length
-    : format == "6x8 filed" ? mediumFormat6x8FiledLength
-    : format == "6x9" ? mediumFormat6x9Length
-    : format == "6x9 filed" ? mediumFormat6x9FiledLength
-    : format == "4x5" ? fourByFiveHeight
-    : format == "custom" ? (custom_film_height != undef ? custom_film_height : customFilmFormatHeight)
-    : undef; // Indicate error for unknown format
+    get_film_format(format, custom_film_height)[0];
 
-// Function to get the film format width based on the selected format string
-// For custom format, pass custom_film_width parameter to override default
 function get_film_format_width(format, custom_film_width = undef) =
-    format == "35mm" ? thirtyFiveStandardWidth
-    : format == "35mm filed" ? thirtyFiveFiledWidth
-    : format == "35mm full" ? thirtyFiveStandardWidth
-    : format == "half frame" ? halfFrameWidth
-    : format == "6x4.5" ? mediumFormatHeight
-    : format == "6x4.5 filed" ? mediumFormatFiledHeight
-    : format == "6x6" ? mediumFormatHeight
-    : format == "6x6 filed" ? mediumFormatFiledHeight
-    : format == "6x7" ? mediumFormatHeight
-    : format == "6x7 filed" ? mediumFormatFiledHeight
-    : format == "6x8" ? mediumFormatHeight
-    : format == "6x8 filed" ? mediumFormatFiledHeight
-    : format == "6x9" ? mediumFormatHeight
-    : format == "6x9 filed" ? mediumFormatFiledHeight
-    : format == "4x5" ? fourByFiveWidth
-    : format == "custom" ? (custom_film_width != undef ? custom_film_width : customFilmFormatWidth)
-    : undef; // Indicate error for unknown format
+    get_film_format(format, undef, custom_film_width)[1];
 
-// Function to get the peg distance based on the selected format string
-// For custom format, pass custom_film_width parameter (peg distance = film width for custom)
 function get_film_format_peg_distance(format, custom_film_width = undef) =
-    format == "35mm" ? thirtyFiveFullHeight
-    : format == "35mm filed" ? thirtyFiveFullHeight
-    : format == "35mm full" ? thirtyFiveFullHeight
-    : format == "half frame" ? thirtyFiveFullHeight
-    : format == "6x4.5" ? mediumFormatFullHeight
-    : format == "6x4.5 filed" ? mediumFormatFullHeight
-    : format == "6x6" ? mediumFormatFullHeight
-    : format == "6x6 filed" ? mediumFormatFullHeight
-    : format == "6x7" ? mediumFormatFullHeight
-    : format == "6x7 filed" ? mediumFormatFullHeight
-    : format == "6x8" ? mediumFormatFullHeight
-    : format == "6x8 filed" ? mediumFormatFullHeight
-    : format == "6x9" ? mediumFormatFullHeight
-    : format == "6x9 filed" ? mediumFormatFullHeight
-    : format == "6x12" ? mediumFormatFullHeight
-    : // Keep potential future formats
-    format == "6x17" ? mediumFormatFullHeight
-    : // Keep potential future formats
-    format == "4x5" ? fourByFiveFullWidth
-    : // Use film width for 4x5 peg distance base
-    format == "custom" ? (custom_film_width != undef ? custom_film_width : customFilmFormatPegDistance)
-    : undef; // Indicate error for unknown format
+    get_film_format(format, undef, custom_film_width)[2];
 
-// Function to determine the selected type name for etching
+// Function to get the type name for etching
+function get_film_format_type_name(format) =
+    let(entry = _find_film_format(format))
+    entry != undef ? entry[_FF_TYPE_NAME]
+        : format == "custom" ? "CUSTOM"
+        : format; // Fallback to format name
+
+// Function to determine the selected type name for etching (backward compatible)
 function get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format) =
-    Type_Name == "Custom" ? Custom_Type_Name
-    : Film_Format == "35mm" ? "35MM"
-    : Film_Format == "35mm filed" ? "FILED35"
-    : Film_Format == "35mm full" ? "FULL35"
-    : Film_Format == "half frame" ? "HALF"
-    : Film_Format == "6x4.5" ? "6x4.5"
-    : Film_Format == "6x4.5 filed" ? "F6x4.5"
-    : Film_Format == "6x6" ? "6x6"
-    : Film_Format == "6x6 filed" ? "F6x6"
-    : Film_Format == "6x7" ? "6x7"
-    : Film_Format == "6x7 filed" ? "F6x7"
-    : Film_Format == "6x8" ? "6x8"
-    : Film_Format == "6x8 filed" ? "F6x8"
-    : Film_Format == "6x9" ? "6x9"
-    : Film_Format == "6x9 filed" ? "F6x9"
-    : Film_Format == "4x5" ? "4X5"
-    : Film_Format == "custom" ? "CUSTOM"
-    : Film_Format; // Fallback to original name if not mapped
+    Type_Name == "Custom" ? Custom_Type_Name : get_film_format_type_name(Film_Format);
