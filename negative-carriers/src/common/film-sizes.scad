@@ -3,6 +3,8 @@
 thirtyFiveFullHeight = 37;      // 35mm film strip width
 thirtyFiveStandardWidth=24;
 mediumFormatFullHeight = 62;    // 120/220 film width
+mediumFormatStandardHeight = 56;
+mediumFormatFiledHeight = 58;
 fourByFiveFullWidth = 102;      // 4x5 sheet film width
 fourByFiveFullHeight = 127;     // 4x5 sheet film height
 
@@ -25,16 +27,16 @@ FILM_FORMATS = [
     ["half frame",  18,   thirtyFiveStandardWidth,  thirtyFiveFullHeight, "HALF"],      // Half frame (portrait orientation)
 
     // Medium format (120/220) - height is frame length, width is 56mm (or 58 filed)
-    ["6x4.5",       41.5, 56,  mediumFormatFullHeight, "6x4.5"],
-    ["6x4.5 filed", 43.5, 58,  mediumFormatFullHeight, "F6x4.5"],
-    ["6x6",         56,   56,  mediumFormatFullHeight, "6x6"],
-    ["6x6 filed",   58,   58,  mediumFormatFullHeight, "F6x6"],
-    ["6x7",         70,   56,  mediumFormatFullHeight, "6x7"],
-    ["6x7 filed",   72,   58,  mediumFormatFullHeight, "F6x7"],
-    ["6x8",         77,   56,  mediumFormatFullHeight, "6x8"],
-    ["6x8 filed",   79,   58,  mediumFormatFullHeight, "F6x8"],
-    ["6x9",         84,   56,  mediumFormatFullHeight, "6x9"],
-    ["6x9 filed",   86,   58,  mediumFormatFullHeight, "F6x9"],
+    ["6x4.5",       41.5, mediumFormatStandardHeight,  mediumFormatFullHeight, "6x4.5"],
+    ["6x4.5 filed", 43.5, mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x4.5"],
+    ["6x6",         mediumFormatStandardHeight,   mediumFormatStandardHeight,  mediumFormatFullHeight, "6x6"],
+    ["6x6 filed",   mediumFormatFiledHeight,   mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x6"],
+    ["6x7",         70,   mediumFormatStandardHeight,  mediumFormatFullHeight, "6x7"],
+    ["6x7 filed",   72,   mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x7"],
+    ["6x8",         77,   mediumFormatStandardHeight,  mediumFormatFullHeight, "6x8"],
+    ["6x8 filed",   79,   mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x8"],
+    ["6x9",         84,   mediumFormatStandardHeight,  mediumFormatFullHeight, "6x9"],
+    ["6x9 filed",   86,   mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x9"],
 
     // Large format
     ["4x5",         120,  95,  fourByFiveFullWidth, "4X5"],
