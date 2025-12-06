@@ -448,5 +448,11 @@ function get_alignment_board_z_offset(carrier_type, alignment_board_type, carrie
             : (alignment_board_type == "beseler-23c") ? -carrier_height
             : 0
         )
-    : (carrier_type == "beseler-23c") ? carrier_height / 2
+    : (carrier_type == "beseler-23c") ?
+        (
+            (alignment_board_type == "omega") ? -1.4
+            : (alignment_board_type == "lpl-saunders") ? -carrier_height
+            : (alignment_board_type == "beseler-23c") ? carrier_height / 2
+            : 0
+        )
     : 0; // Default fallback

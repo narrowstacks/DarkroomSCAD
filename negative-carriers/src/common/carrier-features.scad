@@ -19,7 +19,9 @@ module film_opening(opening_height, opening_width, carrier_height, cut_through_e
 // Creates the registration pegs or corresponding holes.
 module pegs_feature(is_hole = false, peg_diameter, peg_height, peg_pos_x, peg_pos_y, z_offset) {
     radius = is_hole ? peg_diameter / 2 + PEG_HOLE_TOLERANCE : peg_diameter / 2;
-    effective_peg_height = peg_height + PEG_HEIGHT_ADJUSTMENT;
+    // Only apply height adjustment to holes (for clean boolean operations).
+    // Printed pegs use exact height so they don't poke through bottom or protrude above top carrier.
+    effective_peg_height = is_hole ? peg_height + PEG_HEIGHT_ADJUSTMENT : peg_height;
 
     // Use $fn=32 for small peg cylinders - sufficient quality at lower cost
     union() {

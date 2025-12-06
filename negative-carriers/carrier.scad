@@ -25,6 +25,8 @@ include <src/test-frame-base-shape.scad>
 /* [Carrier Type] */
 Carrier_Type = "omega-d"; // ["omega-d", "lpl-saunders-45xx", "beseler-23c", "beseler-45", "frameAndPegTest"]
 Orientation = "vertical"; // ["vertical", "horizontal"]
+/* [Film Format Selection] */
+Film_Format = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "4x5", "custom"]
 
 /* [Carrier Options] */
 // Top or bottom of the carrier
@@ -39,8 +41,6 @@ Flip_Bottom_For_Printing = true; // [true, false]
 // Printed or heat-set pegs? Heat set pegs required when including alignment board.
 Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
 
-/* [Film Format Selection] */
-Film_Format = "35mm"; // ["35mm", "35mm filed", "35mm full", "half frame", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "4x5", "custom"]
 
 /* [Custom Film Format] */
 // Actual film stock width (for peg positioning)
