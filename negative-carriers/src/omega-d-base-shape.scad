@@ -102,7 +102,8 @@ module omega_d_base_shape(config, top_or_bottom) {
     }
 
     // Generate the complete Omega-D base shape with all subtractions
-    difference() {
+    // render() caches geometry for faster subsequent previews
+    render() difference() {
         base_geometry();
         registration_holes();
 

@@ -105,8 +105,8 @@ Adjust_Film_Height = 0;
 Render_Quality = "final"; // ["final", "preview"]
 
 /* [Hidden] */
-// Variable resolution: 50 for preview speed, 100 for final quality
-$fn = (Render_Quality == "final") ? 100 : 50;
+// Variable resolution: 32 for preview speed, 100 for final quality
+$fn = (Render_Quality == "final") ? 100 : 32;
 
 // ============================================================================
 // MAIN CARRIER GENERATION LOGIC

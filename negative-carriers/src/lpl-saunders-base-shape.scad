@@ -79,7 +79,8 @@ module lpl_saunders_base_shape(config, top_or_bottom) {
     }
 
     // Generate the complete LPL Saunders base shape with handle
-    union() {
+    // render() caches geometry for faster subsequent previews
+    render() union() {
         base_geometry();
         handle();
     }

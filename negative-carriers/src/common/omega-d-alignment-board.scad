@@ -51,7 +51,7 @@ module board() {
 }
 
 module omega_d_alignment_board_screws() {
-    difference() {
+    render() difference() {
         board();
         omega_board_edge_cuts();
         opening_cutout();
@@ -61,7 +61,7 @@ module omega_d_alignment_board_screws() {
 }
 
 module omega_d_alignment_board_no_screws() {
-    difference() {
+    render() difference() {
         board();
         omega_board_edge_cuts();
         opening_cutout();

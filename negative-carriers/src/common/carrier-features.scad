@@ -44,15 +44,17 @@ module heat_set_pegs_socket_head_opening(peg_height, peg_pos_x, peg_pos_y, z_off
 }
 
 // Creates an extruded text shape for etching.
+// render() caches text geometry for faster subsequent previews
 module text_etch(text_string, font, size, etch_depth = 1, halign = "center", valign = "center") {
-    linear_extrude(height=etch_depth + TEXT_ETCH_OVEREXTRUDE) {
+    render() linear_extrude(height=etch_depth + TEXT_ETCH_OVEREXTRUDE) {
         text(text_string, font=font, size=size, halign=halign, valign=valign);
     }
 }
 
 // Creates a solid text body for multi-material parts.
+// render() caches text geometry for faster subsequent previews
 module text_solid(text_string, font, size, height, halign = "center", valign = "center") {
-    linear_extrude(height=height) {
+    render() linear_extrude(height=height) {
         text(text_string, font=font, size=size, halign=halign, valign=valign);
     }
 }

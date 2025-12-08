@@ -6,7 +6,7 @@ module beseler_23c_alignment_board() {
     // Major radius R = (OuterD/2 + InnerD/2) / 2 = (120/2 + 110/2) / 2 = (60 + 55) / 2 = 57.5
     // Minor radius r = (OuterD/2 - InnerD/2) / 2 = (60 - 55) / 2 = 2.5
     // Height = 2 * r = 5, which matches alignmentCircleThickness
-    translate([0, 0, .5]) {
+    render() translate([0, 0, .5]) {
         torus(
             r_maj=alignmentCircleOuterDiameter / 4 + alignmentCircleInnerDiameter / 4,
             r_min=alignmentCircleOuterDiameter / 4 - alignmentCircleInnerDiameter / 4,

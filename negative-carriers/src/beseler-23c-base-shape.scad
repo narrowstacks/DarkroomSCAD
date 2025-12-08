@@ -43,7 +43,8 @@ module beseler_23c_base_shape(config, top_or_bottom) {
     }
 
     // Generate the complete Beseler 23C base shape with handle
-    union() {
+    // render() caches geometry for faster subsequent previews
+    render() union() {
         base_geometry();
         handle();
     }
