@@ -33,7 +33,7 @@ module tube(length, outer_diameter, inner_diameter, thickness) {
                 translate([0, 0, BASE_HEIGHT_LOWER]) cylinder(h=BASE_HEIGHT_HIGHER, d=BASE_HIGHER_DIAMETER, $fn=100);
             }
             // Inner cutout for entire tube length plus bases
-            cylinder(h=total_base_height + length, d=inner_diameter, $fn=100);
+            cylinder(h=total_base_height + length + 0.1, d=inner_diameter, $fn=100);
             // Bottom cutout
             cylinder(h=BASE_HEIGHT_LOWER / 2, d=INNER_BOTTOM_CUTOUT_DIAMETER, $fn=100);
         }
