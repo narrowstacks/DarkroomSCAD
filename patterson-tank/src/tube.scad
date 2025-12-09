@@ -17,7 +17,7 @@ BASE_HIGHER_DIAMETER = 34.8;
 INNER_BOTTOM_CUTOUT_DIAMETER = 30;
 ROTARY_STICK_HOLDER_LENGTH = (TUBE_INNER_DIAMETER - 8) / 2;
 ROTARY_STICK_HOLDER_WIDTH = 2;
-ROTARY_STICK_HOLDER_HEIGHT = 15;
+ROTARY_STICK_HOLDER_HEIGHT = 7;
 
 module tube(length, outer_diameter, inner_diameter, thickness) {
     total_base_height = BASE_HEIGHT_LOWER + BASE_HEIGHT_HIGHER;
@@ -41,7 +41,7 @@ module tube(length, outer_diameter, inner_diameter, thickness) {
         // Rotary stick holders - two opposite each other inside the tube near the top
         for (angle = [0, 180]) {
             rotate([0, 0, angle])
-                translate([inner_diameter / 2 - ROTARY_STICK_HOLDER_LENGTH, -ROTARY_STICK_HOLDER_WIDTH / 2, total_base_height + length - 15 - ROTARY_STICK_HOLDER_HEIGHT])
+                translate([inner_diameter / 2 - ROTARY_STICK_HOLDER_LENGTH, -ROTARY_STICK_HOLDER_WIDTH / 2, total_base_height + length - 20 - ROTARY_STICK_HOLDER_HEIGHT])
                     cube([ROTARY_STICK_HOLDER_LENGTH, ROTARY_STICK_HOLDER_WIDTH, ROTARY_STICK_HOLDER_HEIGHT]);
         }
     }
