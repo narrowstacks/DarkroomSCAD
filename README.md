@@ -43,7 +43,7 @@ For optimal performance and to ensure all features work correctly, please config
 
 To use the `.scad` files in this project:
 
-1.  **Open the File:** Open the desired `.scad` file (e.g., `negative_carriers/src/carrier.scad`) in OpenSCAD.
+1.  **Open the File:** Open the desired `.scad` file (e.g., `negative_carriers/carrier.scad`) in OpenSCAD.
 2.  **Customize Parameters:** Most `.scad` files will have a section at the top for customization. You can adjust these parameters to suit your needs. 
     - _(Refer to the specific `.scad` file for a full list of available parameters and their descriptions.)_
 3.  **Render and Export:**
