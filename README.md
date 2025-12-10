@@ -43,22 +43,8 @@ For optimal performance and to ensure all features work correctly, please config
 
 To use the `.scad` files in this project:
 
-1.  **Open the File:** Open the desired `.scad` file (e.g., `negative_carriers/src/omega-d.scad`) in OpenSCAD.
-2.  **Customize Parameters:** Most `.scad` files will have a section at the top for customization. You can adjust these parameters to suit your needs. Common parameters include:
-    - `Top_or_Bottom`: Specifies whether to generate the top or bottom part of a carrier.
-    - `Orientation`: Sets the film orientation (e.g., "vertical", "horizontal").
-    - `Film_Format`: Selects the film format (e.g., "35mm", "6x6", "4x5", "custom").
-    - `Enable_Owner_Name_Etch`: Enables or disables etching of an owner's name.
-    - `Owner_Name`: The text for the owner's name.
-    - `Enable_Type_Name_Etch`: Enables or disables etching of the carrier type.
-    - `Type_Name`: Predefined or custom type name for the carrier.
-    - `Custom_Type_Name`: Custom text if `Type_Name` is set to "Custom".
-    - `Fontface`: Font used for etchings.
-    - `Font_Size`: Font size for etchings.
-    - `TEXT_ETCH_DEPTH`: Depth of the text etchings.
-    - `Peg_Gap`: Adjusts the gap between film pegs and the film edge.
-    - `Adjust_Film_Width`: Fine-tunes the film width allowance.
-    - `Adjust_Film_Height`: Fine-tunes the film height allowance.
+1.  **Open the File:** Open the desired `.scad` file (e.g., `negative_carriers/src/carrier.scad`) in OpenSCAD.
+2.  **Customize Parameters:** Most `.scad` files will have a section at the top for customization. You can adjust these parameters to suit your needs. 
     - _(Refer to the specific `.scad` file for a full list of available parameters and their descriptions.)_
 3.  **Render and Export:**
     - Once customized, you can preview the model in OpenSCAD (usually by pressing F5 for preview or F6 to render).
