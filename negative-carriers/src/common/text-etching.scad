@@ -46,8 +46,8 @@ module generate_shared_multi_material_text_parts(
                             font=font_face,
                             size=font_size,
                             height=text_height,
-                            halign="right",
-                            valign="top"
+                            halign="center",
+                            valign="center"
                         );
         }
         if (enable_type_etch) {
@@ -58,8 +58,8 @@ module generate_shared_multi_material_text_parts(
                             font=font_face,
                             size=font_size,
                             height=text_height,
-                            halign="left",
-                            valign="top"
+                            halign="center",
+                            valign="center"
                         );
         }
     }
@@ -101,8 +101,8 @@ module generate_shared_text_etch_subtractions(
                     font=font_face,
                     size=font_size,
                     etch_depth=etch_depth,
-                    halign="right",
-                    valign="top"
+                    halign="center",
+                    valign="center"
                 );
     }
     if (enable_type_etch) {
@@ -112,8 +112,8 @@ module generate_shared_text_etch_subtractions(
                     font=font_face,
                     size=font_size,
                     etch_depth=etch_depth,
-                    halign="left",
-                    valign="top"
+                    halign="center",
+                    valign="center"
                 );
     }
 }

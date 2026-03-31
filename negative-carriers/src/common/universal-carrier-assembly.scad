@@ -391,35 +391,37 @@ function get_owner_text_settings(carrier_type) = carrier_owner_text_settings(car
 function get_type_text_settings(carrier_type) = carrier_type_text_settings(carrier_type);
 
 /**
- * Calculate text position based on carrier type and text configuration
+ * Calculate text position based on carrier type and text configuration.
+ * Uses textmetrics to position each text with equal edge_margin from the carrier boundary.
+ * For rotated carriers (omega-d, lpl-saunders), pre-rotation X maps to post-rotation Y,
+ * so text_width determines the Y span after rotation.
  */
 function calculate_text_position(carrier_type, text_type, text_config, text_metrics, z_position, opening_width) =
     // Special handling: Beseler 23C text should live on the handle by default
     (carrier_type == "beseler-23c") ?
         let (
             // Beseler 23C base shape constants (mirrors beseler-23c-base-shape.scad)
-            // Using local constants avoids coupling to base-shape scopes
             BESELER_23C_DIAMETER = 160,
             BESELER_HANDLE_WIDTH = 42,
 
             // Handle center is located on the negative X side of the disc
             handle_center_x = -BESELER_23C_DIAMETER / 2,
 
-            // Separate owner/type horizontally relative to handle center so
-            // their default haligns (owner=right, type=left) keep text on the handle
-            x_offset = (text_type == "owner") ? 5 : -35,
-
-            // Stack the two lines vertically within the handle area
-            y_offset = (text_type == "owner") ? (BESELER_HANDLE_WIDTH / 3) : ( -BESELER_HANDLE_WIDTH / 8)
-        ) [handle_center_x + x_offset, y_offset, z_position]
+            // Stack the two lines vertically within the handle area, centered on handle
+            y_offset = (text_type == "owner") ? (BESELER_HANDLE_WIDTH / 3) : (-BESELER_HANDLE_WIDTH / 8)
+        ) [handle_center_x, y_offset, z_position]
     :
-    // Default handling for other carriers: place text to the left/right of the opening
+    // Default handling: position text with equal edge margin from carrier boundary
     let (
-        // Extract settings
         y_translate = (len(text_config) > 0) ? text_config[0] : 0,
-        safe_margin = (len(text_config) > 3) ? text_config[3] : 13,
-        // Position to left/right of opening by a safe margin
-        x_base = (text_type == "owner") ? -(opening_width / 2 + safe_margin) : (opening_width / 2 + safe_margin)
+        carrier_edge = (len(text_config) > 1) ? text_config[1] : 60,
+        edge_margin = (len(text_config) > 2) ? text_config[2] : 5,
+        // Use textmetrics to get actual text width for precise positioning
+        text_width = text_metrics.size[0],
+        // Place text so its outer edge is edge_margin from the carrier boundary
+        // With halign="center", the center is offset inward by text_width/2
+        x_center = carrier_edge - edge_margin - text_width / 2,
+        x_base = (text_type == "owner") ? -x_center : x_center
     ) [x_base, y_translate, z_position];
 
 /**

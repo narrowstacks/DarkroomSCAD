@@ -43,16 +43,20 @@ function get_top_peg_hole_z_offset(carrier_type) =
 
 // ----------------------------------------------------------------------------
 // Text etching settings per carrier
-// Returned arrays are intentionally small, only for text placement logic
-// Returns [y_translate, margin, additional_offset?, safe_margin?, multi_material_y_offset?]
+// Returns [y_translate, carrier_edge_extent, edge_margin]
+//   y_translate: pre-rotation Y position (becomes post-rotation X for rotated carriers)
+//   carrier_edge_extent: carrier boundary distance from center at the text position
+//   edge_margin: minimum gap between text and carrier edge (mm)
+// Each text is positioned so its outermost edge is edge_margin from the carrier boundary,
+// using textmetrics to measure actual text width. Independent of film opening size.
 // ----------------------------------------------------------------------------
 
 // Unified text settings lookup (owner and type use identical positioning)
 function _get_text_settings(carrier_type) =
-    (carrier_type == "omega-d") ? [-90, 5]
-    : (carrier_type == "lpl-saunders-45xx") ? [-65, 5, 30, 20, -75]
-    : (carrier_type == "beseler-23c") ? [-65, 5, 20, 13, -75]
-    : [0, 5];
+    (carrier_type == "omega-d") ? [-90, 69.5, 5]
+    : (carrier_type == "lpl-saunders-45xx") ? [-65, 85, 5]
+    : (carrier_type == "beseler-23c") ? [-65, 60, 5]
+    : [0, 60, 5];
 
 // Owner and type text use the same positioning config
 function carrier_owner_text_settings(carrier_type) = _get_text_settings(carrier_type);
