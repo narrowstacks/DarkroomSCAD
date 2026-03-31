@@ -52,10 +52,15 @@ function get_top_peg_hole_z_offset(carrier_type) =
 // ----------------------------------------------------------------------------
 
 // Unified text settings lookup (owner and type use identical positioning)
+// Values: [y_translate, carrier_edge_extent, edge_margin]
+//   y_translate: pre-rotation Y position; for 270°-rotated carriers this becomes the
+//                post-rotation X offset from center (negative = toward handle side)
+//   carrier_edge_extent: distance from center to carrier boundary at text position (mm)
+//   edge_margin: minimum gap between text edge and carrier boundary (mm)
 function _get_text_settings(carrier_type) =
-    (carrier_type == "omega-d") ? [-90, 69.5, 5]
-    : (carrier_type == "lpl-saunders-45xx") ? [-65, 85, 5]
-    : (carrier_type == "beseler-23c") ? [-65, 60, 5]
+    (carrier_type == "omega-d") ? [-90, 69.5, 5]       // rect section is 139mm wide, edge at ~69.5
+    : (carrier_type == "lpl-saunders-45xx") ? [-65, 85, 5] // 215mm diameter, text near handle side
+    : (carrier_type == "beseler-23c") ? [-65, 60, 5]   // 160mm diameter, text on handle
     : [0, 60, 5];
 
 // Owner and type text use the same positioning config
@@ -64,7 +69,10 @@ function carrier_type_text_settings(carrier_type) = _get_text_settings(carrier_t
 
 // (All LPL base geometry lives in lpl-saunders-base-shape.scad)
 
-// (All Beseler 23C base geometry lives in beseler-23c-base-shape.scad)
+// Beseler 23C handle constants shared between base-shape and text positioning
+// (base geometry lives in beseler-23c-base-shape.scad)
+BESELER_23C_DIAMETER = 160;
+BESELER_23C_HANDLE_WIDTH = 42;
 
 // (Beseler 45 not yet implemented)
 

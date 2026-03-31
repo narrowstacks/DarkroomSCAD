@@ -7,23 +7,20 @@ include <carrier-configs.scad>
 
 /**
  * Beseler 23C base shape module
- * Generates the characteristic circular Beseler 23C carrier geometry with handle
+ * Generates the characteristic circular Beseler 23C carrier geometry with handle.
+ * Uses shared BESELER_23C_DIAMETER and BESELER_23C_HANDLE_WIDTH from carrier-configs.scad.
  *
- * @param config - Configuration array containing Beseler 23C specific parameters:
- *   [0] = carrier_diameter (default: 160)
- *   [1] = carrier_height (default: 2)
- *   [5] = handle_length (default: 50)
- *   [6] = handle_width (default: 42)
- * @param top_or_bottom - "top" or "bottom" (currently no difference, but maintained for consistency)
+ * @param config - Configuration array (currently unused; reserved for future per-variant overrides)
+ * @param top_or_bottom - "top" or "bottom" (currently no difference, maintained for interface consistency)
  */
 module beseler_23c_base_shape(config, top_or_bottom) {
     // Keep carrier height from config to remain consistent with universal assembly calculations
     CARRIER_HEIGHT = get_carrier_height("beseler-23c");
 
-    // Base geometry constants (moved from carrier-configs)
-    CARRIER_DIAMETER = 160;
+    // Use shared diameter and handle width from carrier-configs.scad
+    CARRIER_DIAMETER = BESELER_23C_DIAMETER;
     HANDLE_LENGTH = 50;
-    HANDLE_WIDTH = 42;
+    HANDLE_WIDTH = BESELER_23C_HANDLE_WIDTH;
 
     /**
      * Creates the handle for the Beseler 23C carrier
@@ -35,11 +32,15 @@ module beseler_23c_base_shape(config, top_or_bottom) {
         }
     }
 
+    // Large body geometry doesn't need high $fn - segments are already small at this scale.
+    // $fn=72 on a 160mm circle gives ~7mm segments, well below visible thresholds.
+    BODY_FN = 72;
+
     /**
      * Creates the basic Beseler 23C carrier shape
      */
     module base_geometry() {
-        cyl(h=CARRIER_HEIGHT, r=CARRIER_DIAMETER / 2, center=true, rounding=.5);
+        cyl(h=CARRIER_HEIGHT, r=CARRIER_DIAMETER / 2, center=true, rounding=.5, $fn=BODY_FN);
     }
 
     // Generate the complete Beseler 23C base shape with handle

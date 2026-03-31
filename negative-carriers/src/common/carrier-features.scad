@@ -24,11 +24,11 @@ module pegs_feature(is_hole = false, peg_diameter, peg_height, peg_pos_x, peg_po
     effective_peg_height = is_hole ? peg_height + PEG_HEIGHT_ADJUSTMENT : peg_height;
 
     // Use $fn=32 for small peg cylinders - sufficient quality at lower cost
-    union() {
-        translate([peg_pos_x, peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true, $fn=32);
-        translate([peg_pos_x, -peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true, $fn=32);
-        translate([-peg_pos_x, peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true, $fn=32);
-        translate([-peg_pos_x, -peg_pos_y, z_offset]) cylinder(h=effective_peg_height, r=radius, center=true, $fn=32);
+    for (x_mult = [-1, 1]) {
+        for (y_mult = [-1, 1]) {
+            translate([x_mult * peg_pos_x, y_mult * peg_pos_y, z_offset])
+                cylinder(h=effective_peg_height, r=radius, center=true, $fn=32);
+        }
     }
 }
 
@@ -398,6 +398,8 @@ module alignment_footprint_holes(_screw_dia, _dist_for_x_coords, _dist_for_y_coo
 ARROW_LENGTH = 8;
 ARROW_WIDTH = 5;
 ARROW_ETCH_DEPTH = 0.5;
+// Internal X offset applied by arrow_etch; used in calculate_arrow_position to compensate
+_ARROW_INTERNAL_X_OFFSET = -10;
 
 /**
  * Creates a left-pointing arrow shape for directional etching
@@ -407,7 +409,7 @@ ARROW_ETCH_DEPTH = 0.5;
  * @param width Arrow width
  */
 module arrow_etch(etch_depth = 0.5, length = 5, width = 3) {
-    translate([-10, 0, .5])
+    translate([_ARROW_INTERNAL_X_OFFSET, 0, .5])
         linear_extrude(height=etch_depth + 0.1)
             polygon(points=[[-length / 2, 0], [length / 2, width / 2], [length / 2, -width / 2]]);
 }
@@ -429,12 +431,12 @@ function calculate_arrow_position(film_format_str, orientation_str, opening_widt
     )
     // Vertical: arrow points left (-X), positioned below opening
     // Horizontal: arrow points up (+Y), positioned to the right of opening
-    // Note: arrow_etch has internal translate([-10, 0, .5]) which must be compensated:
-    //   - vertical (0° rot): [-10,0] unchanged, so x=10 cancels it
-    //   - horizontal (-90° rot): [-10,0] becomes [0,10], so y=-10 cancels it
+    // Compensate for arrow_etch's internal translate(_ARROW_INTERNAL_X_OFFSET, 0, .5):
+    //   - vertical (0° rot): offset unchanged, so x=-offset cancels it
+    //   - horizontal (90° rot): offset rotated to Y axis, so y=offset cancels it
     (effective_orientation == "vertical") ?
-        [10, -(opening_width / 2 + arrow_offset + arrow_length / 2), 0]
-    : [opening_width / 2 + arrow_offset + arrow_length / 2, 10, 90];
+        [-_ARROW_INTERNAL_X_OFFSET, -(opening_width / 2 + arrow_offset + arrow_length / 2), 0]
+    : [opening_width / 2 + arrow_offset + arrow_length / 2, _ARROW_INTERNAL_X_OFFSET, 90];
 
 /**
  * Generates directional arrow etching for appropriate film formats

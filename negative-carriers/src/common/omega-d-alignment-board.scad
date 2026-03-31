@@ -23,27 +23,32 @@ module opening_cutout() {
     }
 }
 
+// Parameterized screw hole pattern - generates 4 holes in a rectangular layout
+module screw_hole_quad(diameter, dist_x, dist_y, height) {
+    // Use $fn=24 for screw holes - sufficient quality at lower cost
+    for (x_mult = [-1, 1]) {
+        for (y_mult = [-1, 1]) {
+            translate([x_mult * dist_y / 2, y_mult * dist_x / 2, 0])
+                cylinder(d=diameter, h=height, anchor=CENTER, $fn=24);
+        }
+    }
+}
+
 module alignment_screw_holes() {
-    // Use $fn=24 for small screw holes - sufficient quality at lower cost
-    translate([SMALL_ALIGNMENT_SCREW_DISTANCE_Y / 2, SMALL_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=SMALL_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
-    translate([SMALL_ALIGNMENT_SCREW_DISTANCE_Y / 2, -SMALL_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=SMALL_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
-    translate([-SMALL_ALIGNMENT_SCREW_DISTANCE_Y / 2, SMALL_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=SMALL_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
-    translate([-SMALL_ALIGNMENT_SCREW_DISTANCE_Y / 2, -SMALL_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=SMALL_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
+    screw_hole_quad(SMALL_ALIGNMENT_SCREW_DIAMETER, SMALL_ALIGNMENT_SCREW_DISTANCE_X, SMALL_ALIGNMENT_SCREW_DISTANCE_Y, BOARD_HEIGHT + 0.1);
 }
 
 module big_alignment_screw_holes() {
-    // Use $fn=24 for screw holes - sufficient quality at lower cost
-    translate([BIG_ALIGNMENT_SCREW_DISTANCE_Y / 2, BIG_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=BIG_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
-    translate([BIG_ALIGNMENT_SCREW_DISTANCE_Y / 2, -BIG_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=BIG_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
-    translate([-BIG_ALIGNMENT_SCREW_DISTANCE_Y / 2, BIG_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=BIG_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
-    translate([-BIG_ALIGNMENT_SCREW_DISTANCE_Y / 2, -BIG_ALIGNMENT_SCREW_DISTANCE_X / 2, 0]) cylinder(d=BIG_ALIGNMENT_SCREW_DIAMETER, h=BOARD_HEIGHT + 0.1, anchor=CENTER, $fn=24);
+    screw_hole_quad(BIG_ALIGNMENT_SCREW_DIAMETER, BIG_ALIGNMENT_SCREW_DISTANCE_X, BIG_ALIGNMENT_SCREW_DISTANCE_Y, BOARD_HEIGHT + 0.1);
 }
 
 module omega_board_edge_cuts() {
-    translate([BOARD_LENGTH_WIDTH / 2, BOARD_LENGTH_WIDTH / 2, 0]) rotate([0, 0, 45]) cuboid([20, 20, 4], anchor=CENTER);
-    translate([BOARD_LENGTH_WIDTH / 2, -BOARD_LENGTH_WIDTH / 2, 0]) rotate([0, 0, 45]) cuboid([20, 20, 4], anchor=CENTER);
-    translate([-BOARD_LENGTH_WIDTH / 2, BOARD_LENGTH_WIDTH / 2, 0]) rotate([0, 0, 45]) cuboid([20, 20, 4], anchor=CENTER);
-    translate([-BOARD_LENGTH_WIDTH / 2, -BOARD_LENGTH_WIDTH / 2, 0]) rotate([0, 0, 45]) cuboid([20, 20, 4], anchor=CENTER);
+    for (x_mult = [-1, 1]) {
+        for (y_mult = [-1, 1]) {
+            translate([x_mult * BOARD_LENGTH_WIDTH / 2, y_mult * BOARD_LENGTH_WIDTH / 2, 0])
+                rotate([0, 0, 45]) cuboid([20, 20, 4], anchor=CENTER);
+        }
+    }
 }
 
 module board() {

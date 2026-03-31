@@ -105,8 +105,14 @@ module universal_carrier_assembly(
     ALIGNMENT_SCREW_PATTERN_DIST_Y = get_alignment_screw_pattern_dist_y(carrier_type);
 
     // Z-axis positioning calculations
-    TEXT_ETCH_Z_POSITION = CARRIER_HEIGHT / 2 - (text_etch_depth + 0.1);
     CARRIER_HALF_HEIGHT = CARRIER_HEIGHT / 2;
+
+    // For Beseler 23C bottom carriers, etch text on the bottom surface (opposite the alignment board)
+    // so text is visible when the carrier is in use. Text must be mirrored to read correctly from below.
+    _etch_on_bottom = (carrier_type == "beseler-23c" && top_or_bottom == "bottom");
+    TEXT_ETCH_Z_POSITION = _etch_on_bottom
+        ? -(CARRIER_HALF_HEIGHT) - 0.1
+        : CARRIER_HALF_HEIGHT - (text_etch_depth + 0.1);
 
     // Peg Z positioning (varies by top/bottom and carrier type)
     TOP_PEG_HOLE_Z_OFFSET = get_top_peg_hole_z_offset(carrier_type);
@@ -119,7 +125,9 @@ module universal_carrier_assembly(
     // Multi-material text calculations
     TEXT_SOLID_HEIGHT = layer_height_mm * text_layer_multiple;
     TEXT_SUBTRACT_DEPTH = text_as_separate_parts ? TEXT_SOLID_HEIGHT : text_etch_depth;
-    TEXT_SOLID_Z_POSITION = CARRIER_HALF_HEIGHT - TEXT_SOLID_HEIGHT;
+    TEXT_SOLID_Z_POSITION = _etch_on_bottom
+        ? -(CARRIER_HALF_HEIGHT)
+        : CARRIER_HALF_HEIGHT - TEXT_SOLID_HEIGHT;
 
     // Validation
     if (alignment_board && printed_or_heat_set_pegs == "printed") {
@@ -135,16 +143,16 @@ module universal_carrier_assembly(
     function _calculate_text_positions_once() =
         let (
             // Get carrier-specific text positioning parameters
-            owner_text_config = get_owner_text_settings(carrier_type),
-            type_text_config = get_type_text_settings(carrier_type),
+            owner_text_config = carrier_owner_text_settings(carrier_type),
+            type_text_config = carrier_type_text_settings(carrier_type),
 
             // Calculate text boundaries and positions
             owner_metrics = textmetrics(text=owner_name, font=fontface, size=font_size, halign="center", valign="center"),
             type_metrics = textmetrics(text=selected_type_name, font=fontface, size=font_size, halign="center", valign="center"),
 
             // Position calculations (carrier-type specific)
-            owner_position = calculate_text_position(carrier_type, "owner", owner_text_config, owner_metrics, TEXT_ETCH_Z_POSITION, opening_width),
-            type_position = calculate_text_position(carrier_type, "type", type_text_config, type_metrics, TEXT_ETCH_Z_POSITION, opening_width),
+            owner_position = calculate_text_position(carrier_type, "owner", owner_text_config, owner_metrics, TEXT_ETCH_Z_POSITION, opening_width, top_or_bottom),
+            type_position = calculate_text_position(carrier_type, "type", type_text_config, type_metrics, TEXT_ETCH_Z_POSITION, opening_width, top_or_bottom),
 
             // Apply user offsets
             owner_position_adj = [owner_position[0] + owner_text_offset[0], owner_position[1] + owner_text_offset[1], owner_position[2]],
@@ -188,7 +196,8 @@ module universal_carrier_assembly(
             type_rotation=type_rot,
             font_face=fontface,
             font_size=font_size,
-            etch_depth=TEXT_SUBTRACT_DEPTH
+            etch_depth=TEXT_SUBTRACT_DEPTH,
+            mirror_text=_etch_on_bottom
         );
     }
 
@@ -220,7 +229,8 @@ module universal_carrier_assembly(
             font_size=font_size,
             text_height=TEXT_SOLID_HEIGHT,
             text_as_separate_parts=text_as_separate_parts,
-            which_part=which_part
+            which_part=which_part,
+            mirror_text=_etch_on_bottom
         );
     }
 
@@ -385,31 +395,29 @@ module universal_carrier_assembly(
 // ============================================================================
 
 /**
- * Text settings are provided by carrier-configs via dedicated getters
- */
-function get_owner_text_settings(carrier_type) = carrier_owner_text_settings(carrier_type);
-function get_type_text_settings(carrier_type) = carrier_type_text_settings(carrier_type);
-
-/**
  * Calculate text position based on carrier type and text configuration.
  * Uses textmetrics to position each text with equal edge_margin from the carrier boundary.
  * For rotated carriers (omega-d, lpl-saunders), pre-rotation X maps to post-rotation Y,
  * so text_width determines the Y span after rotation.
  */
-function calculate_text_position(carrier_type, text_type, text_config, text_metrics, z_position, opening_width) =
+function calculate_text_position(carrier_type, text_type, text_config, text_metrics, z_position, opening_width, top_or_bottom = "top") =
     // Special handling: Beseler 23C text should live on the handle by default
     (carrier_type == "beseler-23c") ?
         let (
-            // Beseler 23C base shape constants (mirrors beseler-23c-base-shape.scad)
-            BESELER_23C_DIAMETER = 160,
-            BESELER_HANDLE_WIDTH = 42,
-
-            // Handle center is located on the negative X side of the disc
+            // Use shared constants from carrier-configs.scad
             handle_center_x = -BESELER_23C_DIAMETER / 2,
 
-            // Stack the two lines vertically within the handle area, centered on handle
-            y_offset = (text_type == "owner") ? (BESELER_HANDLE_WIDTH / 3) : (-BESELER_HANDLE_WIDTH / 8)
-        ) [handle_center_x, y_offset, z_position]
+            // Position text within handle area with equal margin from each edge.
+            // Handle is BESELER_23C_HANDLE_WIDTH (42mm) wide, spanning Y = -21 to +21.
+            // HANDLE_WIDTH/4 = 10.5mm from center → 10.5mm margin from edge on each side.
+            y_base = (text_type == "owner") ? (BESELER_23C_HANDLE_WIDTH / 4) : (-BESELER_23C_HANDLE_WIDTH / 4),
+
+            // For bottom carriers: negate Y so text matches top carrier layout after 180° X-flip
+            y_offset = (top_or_bottom == "bottom") ? -y_base : y_base,
+
+            // Type text sits further down the handle (toward the free end)
+            x_pos = (text_type == "owner") ? handle_center_x : (handle_center_x - 15)
+        ) [x_pos, y_offset, z_position]
     :
     // Default handling: position text with equal edge margin from carrier boundary
     let (
@@ -426,35 +434,32 @@ function calculate_text_position(carrier_type, text_type, text_config, text_metr
 
 /**
  * Get text rotation based on carrier type
+ * Circular carriers with side handles (omega-d, lpl-saunders) use 270° rotation
+ * so text reads vertically along the carrier edge.
+ * Beseler 23C uses 0° (horizontal) since text sits on the protruding handle.
  */
+_VERTICAL_TEXT_ROTATION = [0, 0, 270];
+_HORIZONTAL_TEXT_ROTATION = [0, 0, 0];
+
 function get_text_rotation(carrier_type, text_type) =
-    (carrier_type == "omega-d") ? [0, 0, 270]
-    : (carrier_type == "lpl-saunders-45xx") ? [0, 0, 270]
-    : (carrier_type == "beseler-23c") ? [0, 0, 0] // Horizontal text on the handle
-    : [0, 0, 0]; // Default fallback
+    (carrier_type == "omega-d" || carrier_type == "lpl-saunders-45xx") ? _VERTICAL_TEXT_ROTATION
+    : _HORIZONTAL_TEXT_ROTATION;
 
 /**
- * Get alignment board Z offset based on carrier and board type
+ * Get alignment board Z offset based on carrier and board type.
+ * Lookup table: [carrier_type, board_type, z_offset_expression]
+ * Common patterns:
+ *   - omega board on any carrier: -1.4 (board sits slightly below carrier surface)
+ *   - lpl-saunders board on non-omega carriers: -carrier_height (flush underneath)
+ *   - beseler-23c board: -carrier_height on lpl, carrier_height/2 on beseler
  */
 function get_alignment_board_z_offset(carrier_type, alignment_board_type, carrier_height) =
-    (carrier_type == "omega-d") ?
-        (
-            (alignment_board_type == "omega") ? -1.4
-            : (alignment_board_type == "lpl-saunders") ? 0.15
-            : 0
-        )
-    : (carrier_type == "lpl-saunders-45xx") ?
-        (
-            (alignment_board_type == "omega") ? -1.4
-            : (alignment_board_type == "lpl-saunders") ? -carrier_height
-            : (alignment_board_type == "beseler-23c") ? -carrier_height
-            : 0
-        )
-    : (carrier_type == "beseler-23c") ?
-        (
-            (alignment_board_type == "omega") ? -1.4
-            : (alignment_board_type == "lpl-saunders") ? -carrier_height
-            : (alignment_board_type == "beseler-23c") ? carrier_height / 2
-            : 0
-        )
-    : 0; // Default fallback
+    // Omega alignment boards always use the same offset regardless of carrier
+    (alignment_board_type == "omega") ? -1.4
+    // LPL-Saunders alignment boards sit flush underneath on non-omega carriers
+    : (alignment_board_type == "lpl-saunders") ?
+        ((carrier_type == "omega-d") ? 0.15 : -carrier_height)
+    // Beseler 23C alignment board
+    : (alignment_board_type == "beseler-23c") ?
+        ((carrier_type == "beseler-23c") ? carrier_height / 2 : -carrier_height)
+    : 0;

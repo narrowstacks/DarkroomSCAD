@@ -35,40 +35,48 @@ module generate_shared_multi_material_text_parts(
     font_size,
     text_height,
     text_as_separate_parts,
-    which_part
+    which_part,
+    mirror_text = false
 ) {
     if (text_as_separate_parts) {
         if (enable_owner_etch) {
             SharedPart("OwnerText", which_part)
                 rotate(owner_rotation) translate(owner_position)
+                    conditional_flip_text(mirror_text)
                         text_solid(
-                            text_string=owner_name,
-                            font=font_face,
-                            size=font_size,
-                            height=text_height,
-                            halign="center",
-                            valign="center"
+                            text_string=owner_name, font=font_face, size=font_size,
+                            height=text_height, halign="center", valign="center"
                         );
         }
         if (enable_type_etch) {
             SharedPart("TypeText", which_part)
                 rotate(type_rotation) translate(type_position)
+                    conditional_flip_text(mirror_text)
                         text_solid(
-                            text_string=type_name,
-                            font=font_face,
-                            size=font_size,
-                            height=text_height,
-                            halign="center",
-                            valign="center"
+                            text_string=type_name, font=font_face, size=font_size,
+                            height=text_height, halign="center", valign="center"
                         );
         }
     }
 }
 
 /**
+ * Conditionally rotates children 180° in the XY plane.
+ * Used to flip text for bottom-surface etching so it reads correctly
+ * after the carrier is flipped 180° on the X-axis for printing.
+ */
+module conditional_flip_text(do_flip) {
+    if (do_flip) {
+        mirror([0, 1, 0]) children();
+    } else {
+        children();
+    }
+}
+
+/**
  * Generates text etch subtractions for owner and type names
  * Creates recessed text areas on the carrier surface
- * 
+ *
  * @param owner_name The owner name text to etch
  * @param type_name The carrier type name text to etch
  * @param enable_owner_etch Whether to etch owner name
@@ -80,6 +88,7 @@ module generate_shared_multi_material_text_parts(
  * @param font_face Font to use for text
  * @param font_size Font size for text
  * @param etch_depth Depth of text etching
+ * @param mirror_text If true, mirror text horizontally for bottom-surface etching
  */
 module generate_shared_text_etch_subtractions(
     owner_name,
@@ -92,28 +101,23 @@ module generate_shared_text_etch_subtractions(
     type_rotation,
     font_face,
     font_size,
-    etch_depth
+    etch_depth,
+    mirror_text = false
 ) {
     if (enable_owner_etch) {
         rotate(owner_rotation) translate(owner_position)
+            conditional_flip_text(mirror_text)
                 text_etch(
-                    text_string=owner_name,
-                    font=font_face,
-                    size=font_size,
-                    etch_depth=etch_depth,
-                    halign="center",
-                    valign="center"
+                    text_string=owner_name, font=font_face, size=font_size,
+                    etch_depth=etch_depth, halign="center", valign="center"
                 );
     }
     if (enable_type_etch) {
         rotate(type_rotation) translate(type_position)
+            conditional_flip_text(mirror_text)
                 text_etch(
-                    text_string=type_name,
-                    font=font_face,
-                    size=font_size,
-                    etch_depth=etch_depth,
-                    halign="center",
-                    valign="center"
+                    text_string=type_name, font=font_face, size=font_size,
+                    etch_depth=etch_depth, halign="center", valign="center"
                 );
     }
 }

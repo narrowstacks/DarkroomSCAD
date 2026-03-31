@@ -7,18 +7,11 @@ include <carrier-configs.scad>
 
 /**
  * LPL Saunders base shape module
- * Generates the characteristic circular LPL Saunders carrier geometry with edge cuts and handle
+ * Generates the characteristic circular LPL Saunders carrier geometry with edge cuts and handle.
+ * All geometry constants are defined locally within this module.
  *
- * @param config - Configuration array containing LPL Saunders specific parameters:
- *   [0] = carrier_diameter (default: 215)
- *   [1] = carrier_height (default: 2)
- *   [2] = handle_width (default: 60)
- *   [3] = handle_height (default: 40)
- *   [4] = handle_x_offset (default: 10)
- *   [5] = edge_cuts_width (default: 120)
- *   [6] = edge_cuts_height (default: 120)
- *   [7] = edge_cuts_distance (default: 149.135)
- * @param top_or_bottom - "top" or "bottom" (affects handle positioning)
+ * @param config - Configuration array (currently unused; reserved for future per-variant overrides)
+ * @param top_or_bottom - "top" or "bottom" (affects handle Y position mirroring)
  */
 module lpl_saunders_base_shape(config, top_or_bottom) {
     // Keep carrier height from config to remain consistent with universal assembly calculations
@@ -35,47 +28,43 @@ module lpl_saunders_base_shape(config, top_or_bottom) {
 
     /**
      * Creates edge cuts for the LPL Saunders carrier
+     * Cuts on all 4 sides to create the characteristic flat edges
      */
     module carrier_edge_cuts() {
-        translate([0, EDGE_CUTS_DISTANCE, 0])
-            cuboid([EDGE_CUTS_WIDTH, EDGE_CUTS_HEIGHT, CARRIER_HEIGHT + 0.1], anchor=CENTER);
-        translate([0, -EDGE_CUTS_DISTANCE, 0])
-            cuboid([EDGE_CUTS_WIDTH, EDGE_CUTS_HEIGHT, CARRIER_HEIGHT + 0.1], anchor=CENTER);
-        translate([EDGE_CUTS_DISTANCE, 0, 0])
-            cuboid([EDGE_CUTS_HEIGHT, EDGE_CUTS_WIDTH, CARRIER_HEIGHT + 0.1], anchor=CENTER);
-        translate([-EDGE_CUTS_DISTANCE, 0, 0])
-            cuboid([EDGE_CUTS_HEIGHT, EDGE_CUTS_WIDTH, CARRIER_HEIGHT + 0.1], anchor=CENTER);
+        for (mult = [-1, 1]) {
+            translate([0, mult * EDGE_CUTS_DISTANCE, 0])
+                cuboid([EDGE_CUTS_WIDTH, EDGE_CUTS_HEIGHT, CARRIER_HEIGHT + 0.1], anchor=CENTER);
+            translate([mult * EDGE_CUTS_DISTANCE, 0, 0])
+                cuboid([EDGE_CUTS_HEIGHT, EDGE_CUTS_WIDTH, CARRIER_HEIGHT + 0.1], anchor=CENTER);
+        }
     }
+
+    // Large body geometry doesn't need high $fn - segments are already small at this scale.
+    // $fn=72 on a 215mm circle gives ~9.4mm segments, well below visible thresholds.
+    BODY_FN = 72;
 
     /**
      * Creates the basic LPL Saunders carrier shape
      */
     module base_geometry() {
         difference() {
-            cyl(h=CARRIER_HEIGHT, r=CARRIER_DIAMETER / 2, anchor=CENTER);
+            cyl(h=CARRIER_HEIGHT, r=CARRIER_DIAMETER / 2, anchor=CENTER, $fn=BODY_FN);
             carrier_edge_cuts();
         }
     }
 
     /**
      * Creates the handle for the LPL Saunders carrier
+     * Handle Y position is mirrored between top and bottom carriers
      */
     module handle() {
-        if (top_or_bottom == "top") {
-            translate([-1 * (CARRIER_DIAMETER / 2), HANDLE_X_OFFSET, 0])
-                cuboid(
-                    [HANDLE_WIDTH, HANDLE_HEIGHT, CARRIER_HEIGHT],
-                    anchor=CENTER, rounding=2,
-                    edges=[FWD + RIGHT, BACK + LEFT, FWD + LEFT, BACK + RIGHT]
-                );
-        } else {
-            translate([-1 * (CARRIER_DIAMETER / 2), -HANDLE_X_OFFSET, 0])
-                cuboid(
-                    [HANDLE_WIDTH, HANDLE_HEIGHT, CARRIER_HEIGHT],
-                    anchor=CENTER, rounding=2,
-                    edges=[FWD + RIGHT, BACK + LEFT, FWD + LEFT, BACK + RIGHT]
-                );
-        }
+        y_sign = (top_or_bottom == "top") ? 1 : -1;
+        translate([-(CARRIER_DIAMETER / 2), y_sign * HANDLE_X_OFFSET, 0])
+            cuboid(
+                [HANDLE_WIDTH, HANDLE_HEIGHT, CARRIER_HEIGHT],
+                anchor=CENTER, rounding=2,
+                edges=[FWD + RIGHT, BACK + LEFT, FWD + LEFT, BACK + RIGHT]
+            );
     }
 
     // Generate the complete LPL Saunders base shape with handle
