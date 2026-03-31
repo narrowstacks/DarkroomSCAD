@@ -427,10 +427,14 @@ function calculate_arrow_position(film_format_str, orientation_str, opening_widt
     let (
         effective_orientation = get_effective_orientation(film_format_str, orientation_str)
     )
-    // For 6x6, opening is square so we can use either dimension
+    // Vertical: arrow points left (-X), positioned below opening
+    // Horizontal: arrow points up (+Y), positioned to the right of opening
+    // Note: arrow_etch has internal translate([-10, 0, .5]) which must be compensated:
+    //   - vertical (0° rot): [-10,0] unchanged, so x=10 cancels it
+    //   - horizontal (-90° rot): [-10,0] becomes [0,10], so y=-10 cancels it
     (effective_orientation == "vertical") ?
-        [10, -(opening_width / 2 + arrow_offset + arrow_length / 2), 0] // Vertical: arrow points left, positioned below
-    : [0, -(opening_height / 2 + arrow_offset + arrow_length / 2), 90]; // Horizontal: arrow points up, positioned to the right
+        [10, -(opening_width / 2 + arrow_offset + arrow_length / 2), 0]
+    : [opening_width / 2 + arrow_offset + arrow_length / 2, 10, 90];
 
 /**
  * Generates directional arrow etching for appropriate film formats

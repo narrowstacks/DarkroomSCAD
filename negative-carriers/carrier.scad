@@ -187,6 +187,7 @@ module dispatch_to_universal_assembly(
         peg_pos_x=peg_pos_x_calc,
         peg_pos_y=peg_pos_y_calc,
         film_format_for_arrows=Film_Format,
+        orientation_for_arrows=Orientation,
         owner_text_offset=[Owner_Text_X_Offset, Owner_Text_Y_Offset],
         type_text_offset=[Type_Text_X_Offset, Type_Text_Y_Offset]
     );

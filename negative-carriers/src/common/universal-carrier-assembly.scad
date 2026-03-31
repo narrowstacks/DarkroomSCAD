@@ -80,6 +80,7 @@ module universal_carrier_assembly(
     peg_pos_x,
     peg_pos_y,
     film_format_for_arrows,
+    orientation_for_arrows = "vertical",
 
     // Text position customization (user offsets applied to defaults)
     owner_text_offset = [0, 0], // [dx, dy] in mm
@@ -259,10 +260,9 @@ module universal_carrier_assembly(
      * Universal directional arrow generation
      */
     module generate_universal_directional_arrows() {
-        // Use consistent vertical orientation for all carriers
         generate_directional_arrow_etch(
             film_format_str=film_format_for_arrows,
-            orientation_str="vertical",
+            orientation_str=orientation_for_arrows,
             opening_width=opening_width,
             opening_height=opening_height,
             arrow_length=ARROW_LENGTH,
