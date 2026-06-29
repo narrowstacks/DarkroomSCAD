@@ -619,31 +619,79 @@ git commit -m "chore: vendor pinned openscad-wasm, BOSL2, and open fonts"
 
 ---
 
-### Task 5: WASM render core + textmetrics spike (THE RISK GATE)
+### Task 5: WASM render core via importable factory + textmetrics gate (THE RISK GATE)
 
-The make-or-break task. A Web Worker that mounts the FS and renders the default carrier.
-A Node integration test proves the same render pipeline works headlessly — including
-`textmetrics` and BOSL2 — before any UI is built.
+> **REVISED** (supersedes the original Task 5). Discovery during Task 4 established that no
+> clean importable emscripten factory is downloadable from the official/ochafik sources
+> (only a browser-coupled webpack worker bundle). The **scadder** project
+> (https://github.com/solderlocks/scadder) commits a clean, importable, typed build
+> (`web/openscad.js` + `web/openscad.wasm` + `.d.ts`) whose API is exactly
+> `OpenSCAD({noInitialRun}) -> {FS, callMain}`. This task re-vendors that build (replacing
+> Task 4's ochafik assets) and implements the render core against it. The reference for the
+> exact working invocation is scadder's `web/scad-worker.js` (clean-factory usage,
+> `--enable=all`, a working `fonts.conf`, FS layout, empty-geometry guard).
+
+The make-or-break task. An environment-agnostic render core that mounts the FS and renders the
+default carrier, plus a Node integration test that proves `textmetrics` + BOSL2 + fonts work
+headlessly before any UI is built.
 
 **Files:**
-- Create: `src/lib/openscad/render.ts` (environment-agnostic render core)
-- Create: `src/lib/openscad/params.ts` (param-set JSON builder)
-- Create: `src/lib/openscad/worker.ts` (Web Worker entry; thin wrapper over render core)
-- Create: `src/lib/openscad/types.ts`
-- Test: `src/lib/openscad/params.test.ts`
-- Test: `src/lib/openscad/render.integration.test.ts`
+- Re-vendor: remove `public/wasm/openscad-worker.js`, `public/wasm/11f7645f8a49daa8a9d6.wasm`, the ochafik `public/wasm/openscad.wasm`, `public/fonts/fonts.zip`, and the empty `public/fonts/fonts.conf`. Add scadder's `public/wasm/openscad.js`, `public/wasm/openscad.wasm` (and `openscad.d.ts`). Write a working `public/fonts/fonts.conf`. Keep `public/libraries/BOSL2/**` (v2.0.746) and `public/fonts/LiberationMono-Regular.ttf`. Update `VENDORING.md`.
+- Create: `src/lib/openscad/types.ts`, `src/lib/openscad/params.ts`, `src/lib/openscad/render.ts`, `src/lib/openscad/worker.ts`
+- Test: `src/lib/openscad/params.test.ts`, `src/lib/openscad/render.integration.test.ts`
 
 **Interfaces:**
-- Consumes: vendored assets from Task 4; synced SCAD from Task 3.
 - Produces:
+  - `type RenderQuality = "preview" | "final"`
   - `interface RenderParams { [name: string]: string | number | boolean }`
-  - `interface RenderRequest { params: RenderParams; quality: "preview" | "final"; mainFile?: string }`
+  - `interface RenderRequest { params: RenderParams; quality: RenderQuality; mainFile?: string }`
   - `interface RenderResult { stl: Uint8Array; log: string; durationMs: number }`
   - `function buildParamSetJson(params: RenderParams, setName: string): string`
-  - `async function renderScad(loadModule, fsAssets, req: RenderRequest): Promise<RenderResult>`
-  - Worker message protocol: post `{ type: "render", id, req }` → receive `{ type: "result", id, result }` or `{ type: "error", id, message }`.
+  - `interface FsFile { path: string; data: Uint8Array }`
+  - `interface FsAssets { files: FsFile[] }`
+  - `type LoadModule = () => Promise<any>`
+  - `async function renderScad(loadModule: LoadModule, fsAssets: FsAssets, req: RenderRequest): Promise<RenderResult>`
+  - Worker protocol: post `{ type:"render", id, req }` → receive `{ type:"result", id, result }` | `{ type:"error", id, message }`
 
-- [ ] **Step 1: Write the failing test for the param-set builder**
+- [ ] **Step 1: Re-vendor the WASM engine from scadder, write a working fonts.conf**
+
+```bash
+cd ~/workspace/darkroomscad-web
+# Remove ochafik's browser-coupled assets (superseded)
+git rm public/wasm/openscad-worker.js public/wasm/11f7645f8a49daa8a9d6.wasm public/wasm/openscad.wasm public/fonts/fonts.zip public/fonts/fonts.conf
+# Vendor scadder's clean importable build (pin by sha256; record in VENDORING.md)
+curl -fSL https://raw.githubusercontent.com/solderlocks/scadder/main/web/openscad.js   -o public/wasm/openscad.js
+curl -fSL https://raw.githubusercontent.com/solderlocks/scadder/main/web/openscad.wasm  -o public/wasm/openscad.wasm
+curl -fSL https://raw.githubusercontent.com/solderlocks/scadder/main/web/openscad.d.ts  -o public/wasm/openscad.d.ts
+# Verify the wasm magic bytes are \0asm
+xxd -l 4 public/wasm/openscad.wasm   # expect: 0061 736d
+shasum -a 256 public/wasm/openscad.js public/wasm/openscad.wasm
+```
+
+Write the **working** fontconfig (the scadder pattern — the ochafik one was empty and useless):
+
+`public/fonts/fonts.conf`:
+```xml
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+  <dir>/fonts</dir>
+  <cachedir>/fonts/cache</cachedir>
+</fontconfig>
+```
+
+Update `VENDORING.md`: replace the ochafik WASM section with the scadder source
+(`https://github.com/solderlocks/scadder` `web/openscad.js` + `web/openscad.wasm`), record both
+sha256 values, today's date, and note the build originates from an openscad-wasm compile (GPL,
+attributed to scadder/OpenSCAD). Keep the BOSL2 v2.0.746 and Liberation Mono entries.
+
+Commit this re-vendor as its own commit:
+```bash
+git add public/wasm public/fonts VENDORING.md
+git commit -m "chore: re-vendor importable openscad.js+wasm from scadder, replace ochafik worker bundle"
+```
+
+- [ ] **Step 2: Write the failing test for the param-set builder**
 
 Create `src/lib/openscad/params.test.ts`:
 
@@ -670,12 +718,12 @@ describe("buildParamSetJson", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 3: Run test to verify it fails**
 
 Run: `npm run test -- params`
 Expected: FAIL — `buildParamSetJson` is not defined.
 
-- [ ] **Step 3: Implement types and the param-set builder**
+- [ ] **Step 4: Implement types and the param-set builder**
 
 Create `src/lib/openscad/types.ts`:
 
@@ -716,112 +764,112 @@ export function buildParamSetJson(params: RenderParams, setName: string): string
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 5: Run test to verify it passes**
 
 Run: `npm run test -- params`
 Expected: PASS.
 
-- [ ] **Step 5: Implement the environment-agnostic render core**
+- [ ] **Step 6: Implement the environment-agnostic render core**
 
-Create `src/lib/openscad/render.ts`. `loadModule` and `fsAssets` are injected so the same
-core runs in both the browser worker and the Node integration test.
+Create `src/lib/openscad/render.ts`. `loadModule` is injected so the same core runs in the
+browser worker and the Node integration test. The FS layout and invocation mirror scadder's
+proven `scad-worker.js`: write the SCAD tree at the FS root so `include <src/...>` and
+`include <BOSL2/...>` resolve from cwd `/`; write the font + a working `fonts.conf`; enable
+experimental features (`--enable=all`) so `textmetrics` is available.
 
 ```ts
 import { buildParamSetJson } from "./params";
 import type { RenderRequest, RenderResult } from "./types";
 
-// A single virtual-FS file to mount before rendering.
 export interface FsFile {
-  path: string; // absolute path in the WASM FS, e.g. "/scad/carrier.scad"
+  path: string; // absolute path in the WASM FS, e.g. "/carrier.scad", "/BOSL2/std.scad", "/fonts/..."
   data: Uint8Array;
 }
 
 export interface FsAssets {
   files: FsFile[];
-  // Directory on the OpenSCAD library search path (BOSL2 lives here).
-  libraryDir: string; // e.g. "/libraries"
-  // Directory containing fonts + fontconfig.
-  fontDir: string; // e.g. "/fonts"
 }
 
-// loadModule resolves an initialized emscripten OpenSCAD module
-// ({ FS, callMain, ENV } with noInitialRun: true).
+// loadModule resolves an initialized emscripten OpenSCAD module (noInitialRun:true)
+// exposing { FS, callMain } per public/wasm/openscad.d.ts.
 export type LoadModule = () => Promise<any>;
 
 const SET_NAME = "web";
+
+function mkdirP(FS: any, dir: string) {
+  const parts = dir.split("/").filter(Boolean);
+  let cur = "";
+  for (const p of parts) {
+    cur += "/" + p;
+    if (!FS.analyzePath(cur).exists) FS.mkdir(cur);
+  }
+}
 
 export async function renderScad(
   loadModule: LoadModule,
   fsAssets: FsAssets,
   req: RenderRequest,
 ): Promise<RenderResult> {
-  const instance = await loadModule();
   const log: string[] = [];
+  const instance = await loadModule();
 
-  // Mount all asset files.
+  // Mount all asset files (SCAD tree, BOSL2, fonts) at their absolute paths.
   for (const file of fsAssets.files) {
     const dir = file.path.slice(0, file.path.lastIndexOf("/"));
-    if (dir) {
-      try {
-        instance.FS.mkdirTree(dir);
-      } catch {
-        /* already exists */
-      }
-    }
+    if (dir) mkdirP(instance.FS, dir);
     instance.FS.writeFile(file.path, file.data);
   }
 
-  // Library search path so `include <BOSL2/std.scad>` resolves.
-  instance.ENV = instance.ENV ?? {};
-  instance.ENV.OPENSCADPATH = fsAssets.libraryDir;
-
   // Customizer parameter set.
-  const paramJson = buildParamSetJson(req.params, SET_NAME);
-  instance.FS.writeFile("/params.json", paramJson);
+  instance.FS.writeFile("/params.json", buildParamSetJson(req.params, SET_NAME));
 
   const mainFile = req.mainFile ?? "carrier.scad";
-  const mainPath = `/scad/${mainFile}`;
-  const outPath = "/out.stl";
-
   const args = [
-    mainPath,
+    `/${mainFile}`,
     "-o",
-    outPath,
-    "--export-format=binstl",
+    "/out.stl",
+    "--enable=all",
     "--backend=manifold",
+    "--export-format=binstl",
     "-p",
     "/params.json",
     "-P",
     SET_NAME,
   ];
 
-  const start = performance.now();
-  const code = instance.callMain(args);
-  const durationMs = performance.now() - start;
-
-  if (code !== 0 && code !== undefined && code !== null) {
-    throw new Error(`OpenSCAD exited with code ${code}. ${log.join("\n")}`);
-  }
-
-  let stl: Uint8Array;
+  const start = (globalThis.performance ?? Date).now();
+  let code: number | undefined;
   try {
-    stl = instance.FS.readFile(outPath);
-  } catch {
-    throw new Error(`Render produced no output. ${log.join("\n")}`);
+    code = instance.callMain(args);
+  } catch (e) {
+    throw new Error(`OpenSCAD render threw: ${typeof e === "number" ? `exit ${e}` : (e as Error).message}\n${log.join("\n")}`);
   }
-  if (stl.byteLength === 0) {
-    throw new Error("Render produced an empty (degenerate) STL.");
-  }
+  const durationMs = (globalThis.performance ?? Date).now() - start;
+
+  if (code) throw new Error(`OpenSCAD exited with code ${code}.\n${log.join("\n")}`);
+
+  const out = instance.FS.analyzePath("/out.stl");
+  if (!out.exists) throw new Error(`Render produced no output.\n${log.join("\n")}`);
+  const stl: Uint8Array = instance.FS.readFile("/out.stl");
+  if (stl.byteLength <= 84) throw new Error(`Render produced an empty (degenerate) STL.\n${log.join("\n")}`);
 
   return { stl, log: log.join("\n"), durationMs };
 }
 ```
 
-- [ ] **Step 6: Write the headless integration test (the spike)**
+> **Spike note for the implementer:** `--enable=all` and `--backend=manifold` are passed via
+> `callMain`. If the vendored build rejects `--backend=manifold` (unknown option → nonzero exit
+> with a clear stderr), drop that one flag and rely on `--enable=all` (manifold may be default or
+> exposed via `--enable=manifold`); determine the correct manifold invocation empirically and
+> record what works in your report and a `// ` comment in render.ts. Capture `print`/`printErr`
+> into `log` by setting them when the module is created (see worker/test below).
 
-Create `src/lib/openscad/render.integration.test.ts`. This loads the real vendored WASM in
-Node, renders the default carrier with a bundled font, and asserts a valid binary STL. It is
-the proof that `textmetrics` + BOSL2 + fonts work.
+- [ ] **Step 7: Write the headless integration test (THE GATE)**
+
+Create `src/lib/openscad/render.integration.test.ts`. Loads the real vendored WASM in Node
+(passing `wasmBinary` so emscripten doesn't try to fetch), renders the default carrier with the
+bundled font, and asserts a valid binary STL. This is the proof that `textmetrics` + BOSL2 +
+fonts work end-to-end.
 
 ```ts
 import { describe, it, expect } from "vitest";
@@ -831,37 +879,42 @@ import { renderScad, type FsAssets, type FsFile } from "./render";
 import { DEFAULT_FONT_FAMILY } from "../../config/fonts";
 
 const WASM_JS = join(process.cwd(), "public/wasm/openscad.js");
-const hasWasm = existsSync(WASM_JS);
+const WASM_BIN = join(process.cwd(), "public/wasm/openscad.wasm");
+const hasWasm = existsSync(WASM_JS) && existsSync(WASM_BIN);
 
-function readDirRecursive(dir: string, prefix: string): FsFile[] {
+// Read a public/ subtree into FsFiles rooted at "/", so /carrier.scad, /src/...,
+// /BOSL2/..., /fonts/... all resolve. The SCAD tree is under public/scad, but its
+// files must live at the FS ROOT (not under /scad) for the carrier's relative
+// includes to resolve — so strip the leading "scad/".
+function readTree(absDir: string, fsPrefix: string): FsFile[] {
   const out: FsFile[] = [];
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const full = join(dir, entry.name);
-    if (entry.isDirectory()) out.push(...readDirRecursive(full, prefix));
-    else {
-      const rel = relative(join(process.cwd(), prefix), full).split("\\").join("/");
-      out.push({ path: `/${prefix}/${rel}`, data: new Uint8Array(readFileSync(full)) });
-    }
+  for (const e of readdirSync(absDir, { withFileTypes: true })) {
+    const full = join(absDir, e.name);
+    if (e.isDirectory()) out.push(...readTree(full, `${fsPrefix}/${e.name}`));
+    else out.push({ path: `${fsPrefix}/${e.name}`, data: new Uint8Array(readFileSync(full)) });
   }
   return out;
 }
 
 describe.runIf(hasWasm)("renderScad (integration)", () => {
   it("renders the default carrier to a non-empty binary STL", async () => {
-    // Dynamic import of the emscripten factory (CommonJS/ESM interop varies by build).
+    const wasmBinary = new Uint8Array(readFileSync(WASM_BIN));
     const mod = await import(WASM_JS);
     const factory = (mod.default ?? mod) as (opts: object) => Promise<any>;
-    const loadModule = () => factory({ noInitialRun: true });
+    const log: string[] = [];
+    const loadModule = () =>
+      factory({
+        noInitialRun: true,
+        wasmBinary,
+        print: (t: string) => log.push(t),
+        printErr: (t: string) => log.push(t),
+      });
 
-    const scadFiles = readDirRecursive(join(process.cwd(), "public/scad"), "scad");
-    const fontFiles = readDirRecursive(join(process.cwd(), "public/fonts"), "fonts");
-    const libFiles = readDirRecursive(join(process.cwd(), "public/libraries"), "libraries");
+    const scadFiles = readTree(join(process.cwd(), "public/scad"), ""); // strips to FS root
+    const fontFiles = readTree(join(process.cwd(), "public/fonts"), "/fonts");
+    const libFiles = readTree(join(process.cwd(), "public/libraries"), ""); // -> /BOSL2/...
 
-    const fsAssets: FsAssets = {
-      files: [...scadFiles, ...fontFiles, ...libFiles],
-      libraryDir: "/libraries",
-      fontDir: "/fonts",
-    };
+    const fsAssets: FsAssets = { files: [...scadFiles, ...fontFiles, ...libFiles] };
 
     const result = await renderScad(loadModule, fsAssets, {
       params: {
@@ -870,42 +923,57 @@ describe.runIf(hasWasm)("renderScad (integration)", () => {
         Orientation: "vertical",
         Top_or_Bottom: "bottom",
         Render_Quality: "preview",
+        Enable_Owner_Name_Etch: true,
         Owner_Name: "TEST",
         Fontface: DEFAULT_FONT_FAMILY,
       },
       quality: "preview",
     });
 
-    expect(result.stl.byteLength).toBeGreaterThan(84); // STL header is 84 bytes
-    // Binary STL: triangle count at bytes 80-84 must be > 0.
+    expect(result.stl.byteLength).toBeGreaterThan(84);
     const view = new DataView(result.stl.buffer, result.stl.byteOffset);
-    expect(view.getUint32(80, true)).toBeGreaterThan(0);
-  }, 120_000);
+    expect(view.getUint32(80, true)).toBeGreaterThan(0); // triangle count > 0
+  }, 180_000);
 });
 ```
 
-- [ ] **Step 7: Run the integration test (the gate)**
+Note on the FS layout: `readTree(public/scad, "")` yields paths like `/carrier.scad` and
+`/src/common/film-sizes.scad`; `readTree(public/libraries, "")` yields `/BOSL2/std.scad`. This
+matches the carrier's relative includes and `include <BOSL2/std.scad>`. The worker (Step 9) must
+build its `FsAssets` with the SAME rooting.
+
+- [ ] **Step 8: Run the integration test (THE GATE)**
 
 Run: `npm run test -- render.integration`
 Expected: PASS — a non-empty STL with > 0 triangles.
 
-**If it FAILS specifically on text/font/`textmetrics`:** this is Open Risk #1 firing. STOP and report. The fallback (per the spec) is a JS `textmetrics` shim that computes centering offsets and passes them as params; that becomes a new task before proceeding. Do not paper over it.
+**If it FAILS on text/font/`textmetrics`** (e.g. stderr mentions font not found, or
+`textmetrics` unknown): this is Open Risk #1 firing. STOP and report with the captured `log`.
+The fallback (per the spec) is a JS `textmetrics` shim that computes centering offsets and passes
+them as params; that becomes a new task before proceeding. Do not paper over it.
 
-**If it FAILS on BOSL2 includes:** the library path mounting (`OPENSCADPATH`) needs adjusting — consult the openscad-playground source for the exact mount convention and fix `render.ts` Step 5. Re-run until green.
+**If it FAILS on BOSL2 includes** (file not found for `BOSL2/std.scad` or a `src/...` include):
+fix the FS rooting in `render.ts`/the test so the include paths resolve (the SCAD tree and BOSL2
+must sit at the FS root, cwd `/`). Re-run until green.
 
-- [ ] **Step 8: Implement the Web Worker wrapper**
+**If it FAILS only on `--backend=manifold`** (unknown option): apply the Step 6 spike note —
+drop that flag, confirm the render still succeeds, and document the working manifold invocation.
 
-Create `src/lib/openscad/worker.ts`:
+- [ ] **Step 9: Implement the Web Worker wrapper**
+
+Create `src/lib/openscad/worker.ts`. Fetches the vendored assets, builds `FsAssets` with the
+same FS rooting as the test, and runs the render core. Loads the emscripten factory with the
+wasm fetched as `wasmBinary`.
 
 ```ts
 /// <reference lib="webworker" />
-import { renderScad, type FsAssets } from "./render";
+import { renderScad, type FsAssets, type FsFile } from "./render";
 import type { RenderRequest, RenderResult } from "./types";
 
 declare const self: DedicatedWorkerGlobalScope;
 
 let assetsPromise: Promise<FsAssets> | null = null;
-let loadModulePromise: Promise<any> | null = null;
+let modulePromise: Promise<any> | null = null;
 
 async function fetchBytes(url: string): Promise<Uint8Array> {
   const res = await fetch(url);
@@ -913,57 +981,72 @@ async function fetchBytes(url: string): Promise<Uint8Array> {
   return new Uint8Array(await res.arrayBuffer());
 }
 
-// Manifest of asset URLs is generated at build time (Task in Plan 2); for Plan 1
-// the worker fetches a static manifest committed alongside it.
+// scad-manifest.json (written by the sync script, Step 10) lists every asset as
+// { url, path } where path is the absolute FS path (root-rooted, per the test).
 async function loadAssets(): Promise<FsAssets> {
   const manifest = await (await fetch("/scad-manifest.json")).json();
-  const files = await Promise.all(
+  const files: FsFile[] = await Promise.all(
     manifest.files.map(async (f: { url: string; path: string }) => ({
       path: f.path,
       data: await fetchBytes(f.url),
     })),
   );
-  return { files, libraryDir: "/libraries", fontDir: "/fonts" };
+  return { files };
 }
 
-function loadModule() {
-  if (!loadModulePromise) {
-    loadModulePromise = import(/* @vite-ignore */ "/wasm/openscad.js").then((m) =>
-      (m.default ?? m)({ noInitialRun: true }),
-    );
+function loadModule(log: string[]) {
+  if (!modulePromise) {
+    modulePromise = (async () => {
+      const wasmBinary = await fetchBytes("/wasm/openscad.wasm");
+      const mod = await import(/* @vite-ignore */ "/wasm/openscad.js");
+      const factory = (mod.default ?? mod) as (opts: object) => Promise<any>;
+      return factory({
+        noInitialRun: true,
+        wasmBinary,
+        print: (t: string) => log.push(t),
+        printErr: (t: string) => log.push(t),
+      });
+    })();
   }
-  return loadModulePromise;
+  return modulePromise;
 }
 
 self.onmessage = async (e: MessageEvent) => {
   const { type, id, req } = e.data as { type: string; id: number; req: RenderRequest };
   if (type !== "render") return;
+  const log: string[] = [];
   try {
     if (!assetsPromise) assetsPromise = loadAssets();
     const assets = await assetsPromise;
-    const result: RenderResult = await renderScad(loadModule, assets, req);
+    const result: RenderResult = await renderScad(() => loadModule(log), assets, req);
     self.postMessage({ type: "result", id, result }, [result.stl.buffer]);
   } catch (err) {
-    self.postMessage({ type: "error", id, message: (err as Error).message });
+    self.postMessage({ type: "error", id, message: `${(err as Error).message}` });
   }
 };
 ```
 
-- [ ] **Step 9: Generate the asset manifest the worker fetches**
+- [ ] **Step 10: Generate the asset manifest the worker fetches**
 
 Extend `scripts/sync-scad.ts`'s `main()` to also write `public/scad-manifest.json` listing every
-file under `public/scad`, `public/fonts`, and `public/libraries` as `{ url, path }` (url =
-public path served by Next, e.g. `/scad/carrier.scad`; path = FS path, e.g. `/scad/carrier.scad`).
-Re-run `npm run sync:scad -- --local ../DarkroomSCAD` and confirm `public/scad-manifest.json` exists.
+file under `public/scad`, `public/fonts`, and `public/libraries` as `{ url, path }`:
+- `url` = the public path Next serves (e.g. `/scad/carrier.scad`, `/fonts/LiberationMono-Regular.ttf`, `/libraries/BOSL2/std.scad`).
+- `path` = the absolute FS path the worker writes to, **root-rooted to match render.ts/the test**: files under `public/scad` map to `/<rel>` (strip `scad/`), files under `public/libraries` map to `/<rel>` (strip `libraries/`, giving `/BOSL2/...`), files under `public/fonts` map to `/fonts/<rel>`.
+- **Exclude `public/scad/src/old/**`** from the manifest (dead weight the carrier never includes — the Task 3 Minor finding).
 
-- [ ] **Step 10: Commit**
+Re-run `npm run sync:scad -- --local ../DarkroomSCAD` and confirm `public/scad-manifest.json`
+exists and that no entry references `src/old/`. Add a unit assertion if practical, otherwise
+verify by inspection and note it in the report.
+
+- [ ] **Step 11: Run the full suite + tsc, then commit**
+
+Run: `npm run test` (params unit + the integration gate + earlier tasks' tests) and
+`npx tsc --noEmit`. Both must be clean.
 
 ```bash
 git add src/lib/openscad scripts/sync-scad.ts public/scad-manifest.json
-git commit -m "feat: WASM render core, worker, and headless render proof"
+git commit -m "feat: WASM render core via importable factory, headless render proof, asset manifest"
 ```
-
----
 
 ### Task 6: Minimal render-and-download page (end-to-end slice)
 
