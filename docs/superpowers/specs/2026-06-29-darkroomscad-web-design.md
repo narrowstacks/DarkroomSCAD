@@ -44,7 +44,7 @@ DarkroomSCAD repo as the planning artifact of record.
 | File sync | **Build-time fetch/copy script** | Reproducible, pinned, separate repos stay decoupled |
 | Export unit | **ZIP (default) or individual files, user choice** | ZIP matches how carriers are actually printed |
 | Rendering | **Fully client-side WASM** (Approach A) | No backend, infinite scale, zero render cost |
-| Engine (v1) | **scadder fast-csg build**; Manifold deferred | Importable/Node-testable; text rendering proven |
+| Engine | **Official OpenSCAD 2025.03.25 prebuilt WASM** (Manifold + textmetrics) | Importable factory; ~7-8× faster than fast-csg |
 | Framework | **Next.js (App Router) on Vercel** | Native Vercel fit; match dorkroom's *look*, not its stack |
 
 ### Rejected approaches
@@ -196,8 +196,9 @@ tokens*, not its Vite/TanStack framework — we stay on Next.js for Vercel fit.)
 - Shareable config URLs (encode params in the hash/query).
 - PWA / offline support.
 
-> **Update 2026-06-29 (implementation):** v1 ships on the **scadder** OpenSCAD-WASM build (CGAL
-> **fast-csg**, importable factory). **Manifold deferred** — no importable Manifold build exists
-> prebuilt, and building from source hit a chain of upstream breakages. The textmetrics risk
-> (Open Risk #1) is **RETIRED**: text rendering verified working on fast-csg. See the plan's
-> "Amendment — 2026-06-29" for details and the deferred Manifold-upgrade task.
+> **Update 2026-06-29 (implementation):** Engine is the **official prebuilt OpenSCAD 2025.03.25
+> WASM build** (files.openscad.org/playground) — a clean importable factory shipping **both
+> Manifold and textmetrics**. (Briefly shipped on scadder's fast-csg build, then upgraded the same
+> day after discovering the playground's prebuilt-binary source.) Open Risk #1 (textmetrics) is
+> **RETIRED** and the Manifold requirement is **MET**. Carrier renders verified headlessly + in
+> browser (~4.4s). See the plan's "Amendment — 2026-06-29" → RESOLUTION.

@@ -12,7 +12,7 @@
 
 - **This is a NEW, SEPARATE repo.** All tasks operate in `~/workspace/darkroomscad-web` (created in Task 1), NOT in `DarkroomSCAD`. The DarkroomSCAD repo is read-only source pulled via the sync script.
 - **No backend / no serverless rendering.** All OpenSCAD execution is client-side WASM in a Web Worker. The deployed app must be effectively static.
-- **Manifold backend** for all renders (`--backend=manifold`). *(AMENDED 2026-06-29 — see amendment below: Manifold deferred; v1 uses CGAL fast-csg.)*
+- **Manifold backend** for all renders (`--backend=manifold`). *(AMENDED 2026-06-29 — initially deferred to fast-csg, then RESOLVED same day: Manifold achieved via the official files.openscad.org 2025.03.25 prebuilt build. See amendment below.)*
 - **`textmetrics` is load-bearing** — the carrier's text centering uses it. The chosen `openscad-wasm` release MUST have it enabled. Validating this is the explicit purpose of Task 5.
 - **Pinned versions:** `openscad-wasm` release, BOSL2 version, and the DarkroomSCAD source ref are all pinned (no floating `latest`/`main` at build time). Defaults: DarkroomSCAD ref = current `main` SHA; record exact SHAs in `package.json`/config when set.
 - **Proprietary fonts cannot ship.** The DarkroomSCAD default `Fontface = "Lucida Console"` must be remapped to a bundled open font.
@@ -40,6 +40,17 @@ exact fast-csg invocation (`--enable=all`, no `--backend`).
 commit and build; patch the current build through its dep breakages; or adopt ochafik's Manifold
 worker bundle if perf becomes critical. No render-code change needed beyond restoring
 `--backend=manifold` in `render.ts` once a Manifold-capable engine is vendored.
+
+**RESOLUTION (2026-06-29, same day): Manifold ACHIEVED — deferral closed.** Investigating the
+openscad-playground's own build method revealed it downloads an **official prebuilt OpenSCAD WASM
+binary** (`libs-config.json` → `wasmBuild.url` =
+`https://files.openscad.org/playground/OpenSCAD-2025.03.25.wasm24456-WebAssembly-web.zip`). That
+zip is a clean *importable* `openscad.js`+`openscad.wasm` factory built from OpenSCAD 2025.03.25
+— it ships **both Manifold and textmetrics**, with no compilation needed. It was vendored
+(replacing scadder's fast-csg build), `render.ts` now passes `--backend=manifold`, and the gate +
+browser both verify the carrier renders correctly with Manifold — **~4.4s in-browser vs ~34s on
+fast-csg** (~7-8× faster). The Manifold Global Constraint is now **satisfied**; the
+"Manifold engine upgrade" task above is **done**.
 
 ### Task 1: Repo scaffold
 
