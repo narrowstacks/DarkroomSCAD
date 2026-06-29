@@ -12,13 +12,34 @@
 
 - **This is a NEW, SEPARATE repo.** All tasks operate in `~/workspace/darkroomscad-web` (created in Task 1), NOT in `DarkroomSCAD`. The DarkroomSCAD repo is read-only source pulled via the sync script.
 - **No backend / no serverless rendering.** All OpenSCAD execution is client-side WASM in a Web Worker. The deployed app must be effectively static.
-- **Manifold backend** for all renders (`--backend=manifold`).
+- **Manifold backend** for all renders (`--backend=manifold`). *(AMENDED 2026-06-29 — see amendment below: Manifold deferred; v1 uses CGAL fast-csg.)*
 - **`textmetrics` is load-bearing** — the carrier's text centering uses it. The chosen `openscad-wasm` release MUST have it enabled. Validating this is the explicit purpose of Task 5.
 - **Pinned versions:** `openscad-wasm` release, BOSL2 version, and the DarkroomSCAD source ref are all pinned (no floating `latest`/`main` at build time). Defaults: DarkroomSCAD ref = current `main` SHA; record exact SHAs in `package.json`/config when set.
 - **Proprietary fonts cannot ship.** The DarkroomSCAD default `Fontface = "Lucida Console"` must be remapped to a bundled open font.
 - **Source of truth for design:** `docs/superpowers/specs/2026-06-29-darkroomscad-web-design.md` in the DarkroomSCAD repo.
 
 ---
+
+## Amendment — 2026-06-29: Manifold deferred, v1 ships on fast-csg
+
+**Decision (user-approved):** Plan 1 ships on the vendored **scadder** OpenSCAD-WASM build
+(OpenSCAD 2022.03.07, CGAL **fast-csg** backend) — an importable, Node-testable factory. The
+**Manifold** backend is **deferred**, not abandoned.
+
+**Why:** The risk gate (Task 5) PASSED on fast-csg — `textmetrics` + BOSL2 + fonts render
+correctly (default carrier with text → valid STL). Manifold is a render-*speed* optimization,
+not a correctness requirement. An importable Manifold build is not available prebuilt anywhere
+(official openscad-wasm releases are stale-2022; ochafik's current build is a browser-coupled
+worker bundle, not an importable factory). Building from source was attempted and hit a chain of
+upstream breakages in `openscad-wasm` main (dead GMP mirror → CMake-too-old for doubleconversion
+→ CMake-too-new for zlib's SHARED lib) with no clear end — a yak-shave. `render.ts` documents the
+exact fast-csg invocation (`--enable=all`, no `--backend`).
+
+**Deferred future task — "Manifold engine upgrade":** revisit when live-preview performance
+(Plan 2) actually demands it. Options: pin a known-good (Manifold-era, pre-rot) `openscad-wasm`
+commit and build; patch the current build through its dep breakages; or adopt ochafik's Manifold
+worker bundle if perf becomes critical. No render-code change needed beyond restoring
+`--backend=manifold` in `render.ts` once a Manifold-capable engine is vendored.
 
 ### Task 1: Repo scaffold
 
