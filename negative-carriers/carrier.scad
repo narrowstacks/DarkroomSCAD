@@ -92,6 +92,12 @@ Text_Layer_Multiple = 1;
 // Select which part to render when exporting STLs
 _WhichPart = "All"; // ["All", "Base", "OwnerText", "TypeText"]
 
+/* [Hidden] */
+// Internal export flag: when true, render ONLY the standalone alignment board
+// (of Alignment_Board_Type) as its own printable part, independent of the carrier.
+// Used to export the board separately when it isn't fused into the carrier.
+_Render_Alignment_Board_Only = false;
+
 /* [Adjustments] */
 // Leave at 0 for default gap. Measured in mm. Add positive values to increase the gap between pegs and film edge, subtract (use negative values) to decrease it. Default 0 allows for little wiggle.
 Peg_Gap = 0;
@@ -194,7 +200,11 @@ module dispatch_to_universal_assembly(
 }
 
 // Dispatch to appropriate carrier assembly
-if (Carrier_Type == "omega-d" || Carrier_Type == "lpl-saunders-45xx" || Carrier_Type == "beseler-23c") {
+if (_Render_Alignment_Board_Only) {
+    // Standalone alignment board: render just the board so it can be printed
+    // separately (e.g. when using printed pegs, where it can't be fused).
+    instantiate_alignment_board_by_type(Alignment_Board_Type);
+} else if (Carrier_Type == "omega-d" || Carrier_Type == "lpl-saunders-45xx" || Carrier_Type == "beseler-23c") {
     // Standard carriers use all user-specified options
     dispatch_to_universal_assembly();
 } else if (Carrier_Type == "beseler-45") {
