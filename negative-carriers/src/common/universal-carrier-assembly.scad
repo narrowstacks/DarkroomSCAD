@@ -262,7 +262,7 @@ module universal_carrier_assembly(
             z_trans_val = get_alignment_board_z_offset(carrier_type, alignment_board_type, CARRIER_HEIGHT);
 
             translate([0, 0, z_trans_val])
-                instantiate_alignment_board_by_type(alignment_board_type);
+                instantiate_alignment_board_by_type(alignment_board_type, film_format_for_arrows);
         }
     }
 

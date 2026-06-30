@@ -235,9 +235,9 @@ module generate_peg_features(
 }
 
 // Instantiate a specific alignment board based on type string
-module instantiate_alignment_board_by_type(board_type_str) {
+module instantiate_alignment_board_by_type(board_type_str, film_format = "") {
     if (board_type_str == "omega") {
-        omega_d_alignment_board_no_screws();
+        omega_d_alignment_board_no_screws(film_format);
     } else if (board_type_str == "lpl-saunders") {
         lpl_saunders_alignment_board();
     } else if (board_type_str == "beseler-23c") {
