@@ -46,6 +46,13 @@ Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
 Alignment_Board = false;
 Alignment_Board_Type = "omega"; // ["omega", "lpl-saunders", "beseler-23c"]
 
+/* [Custom Film Format] */
+// Used when Film_Format == "custom" (same defaults/meaning as carrier.scad).
+Custom_Film_Width = 37;
+Custom_Film_Height = 37;
+Custom_Opening_Width = 24;
+Custom_Opening_Height = 36;
+
 /* [Adjustments] */
 Peg_Gap = 0;
 Adjust_Film_Width = 0;
@@ -77,8 +84,8 @@ IS_TOP = (Top_or_Bottom == "top");
 
 SELECTED_TYPE_NAME = get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format);
 
-opening_height = get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height);
-opening_width  = get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width);
+opening_height = get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Height);
+opening_width  = get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width);
 
 peg_diameter = DEFAULT_PEG_DIAMETER;
 peg_positions = calculate_unified_peg_positions(
@@ -89,7 +96,7 @@ peg_positions = calculate_unified_peg_positions(
     adjust_film_width_val = Adjust_Film_Width,
     adjust_film_height_val = Adjust_Film_Height,
     positioning_style = "omega",
-    film_peg_distance = get_film_format_peg_distance(Film_Format)
+    film_peg_distance = get_film_format_peg_distance(Film_Format, Custom_Film_Width)
 );
 peg_pos_x = peg_positions[0];
 peg_pos_y = peg_positions[1];
