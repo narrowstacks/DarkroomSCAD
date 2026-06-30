@@ -1,7 +1,10 @@
 // Text etching functionality for negative carriers
 // Provides shared text etching and multi-material text generation modules
 
-include <BOSL2/std.scad>
+// BOSL2 is included once at the entry point (carrier.scad) — OpenSCAD re-parses
+// every include with no dedup, so re-including the ~80k-line library here would
+// add seconds per render. Uncomment to render/preview this file by itself:
+// include <BOSL2/std.scad>
 include <carrier-features.scad>
 
 /**

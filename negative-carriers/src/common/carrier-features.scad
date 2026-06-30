@@ -1,5 +1,9 @@
 // Common features for negative carriers
-include <BOSL2/std.scad>
+
+// BOSL2 is included once at the entry point (carrier.scad) — OpenSCAD re-parses
+// every include with no dedup, so re-including the ~80k-line library here would
+// add seconds per render. Uncomment to render/preview this file by itself:
+// include <BOSL2/std.scad>
 
 // Constants for common dimensions and tolerances
 DEFAULT_PEG_DIAMETER = 5.6;

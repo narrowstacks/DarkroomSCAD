@@ -1,5 +1,9 @@
-include <BOSL2/std.scad>
-include <BOSL2/rounding.scad>; // Added for chamfering functions
+
+// BOSL2 is included once at the entry point (carrier.scad) — OpenSCAD re-parses
+// every include with no dedup, so re-including the ~80k-line library here would
+// add seconds per render. Uncomment both to render/preview this file by itself:
+// include <BOSL2/std.scad>
+// include <BOSL2/rounding.scad>
 
 BOARD_LENGTH_WIDTH = 127; // Replaced by FRAME_OUTER_DIM
 BOARD_HEIGHT = 1.7; // Replaced by FRAME_THICKNESS

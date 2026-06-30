@@ -3,7 +3,10 @@
 // This is the single source of truth for film openings, pegs, text etching,
 // alignment boards, and directional arrows across all enlarger types
 
-include <BOSL2/std.scad>
+// BOSL2 is included once at the entry point (carrier.scad) — OpenSCAD re-parses
+// every include with no dedup, so re-including the ~80k-line library here would
+// add seconds per render. Uncomment to render/preview this file by itself:
+// include <BOSL2/std.scad>
 include <film-sizes.scad>
 include <carrier-features.scad>
 include <omega-d-alignment-board.scad>

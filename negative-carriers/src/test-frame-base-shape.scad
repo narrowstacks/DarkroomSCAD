@@ -2,7 +2,11 @@
 // Pure geometry generator for test frame base shapes
 // Handles only the basic test frame geometry
 
-include <BOSL2/std.scad>
+// BOSL2 is included once at the entry point (carrier.scad) — OpenSCAD re-parses
+// every include with no dedup, so re-including the ~80k-line library here would
+// add seconds per render. Uncomment to render/preview this file by itself:
+// include <BOSL2/std.scad>
+
 
 /**
  * Test frame base shape module

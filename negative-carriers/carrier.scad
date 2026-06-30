@@ -1,6 +1,12 @@
 // !! READ README.md BEFORE USING !!
 
+// BOSL2 is included ONCE here at the entry point. OpenSCAD re-parses every
+// `include`d file (no dedup), and BOSL2/std.scad is ~80k lines — including it
+// in each sub-file cost ~1.7s of redundant parsing per render. Sub-files under
+// src/ rely on this entry-point include (or the outline.scad wrapper in the web
+// project's gen-carrier-outlines), so they no longer include BOSL2 themselves.
 include <BOSL2/std.scad>
+include <BOSL2/rounding.scad>
 // Film size definitions
 include <src/common/film-sizes.scad>
 // Common features shared by all carriers
