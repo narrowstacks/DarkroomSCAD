@@ -1,3 +1,5 @@
+include <BOSL2/std.scad>
+
 alignmentCircleOuterDiameter = 120;
 alignmentCircleInnerDiameter = 110;
 

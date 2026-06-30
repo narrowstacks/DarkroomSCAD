@@ -3,11 +3,13 @@ include <BOSL2/rounding.scad>; // Added for chamfering functions
 
 BOARD_LENGTH_WIDTH = 127; // Replaced by FRAME_OUTER_DIM
 BOARD_HEIGHT = 1.7; // Replaced by FRAME_THICKNESS
-BOARD_INSIDE_OPENING_UPDOWN_Y = 119; // Geometry re-defined
-BOARD_INSIDE_OPENING_UPDOWN_X = 93.5; // taller-box width for non-4x5 formats (keeps screw holes clear)
-BOARD_INSIDE_OPENING_UPDOWN_X_4X5 = 103; // widened so a 4x5 negative (101.6mm) clears the opening
-BOARD_INSIDE_OPENING_LEFTRIGHT_Y = 70; // Geometry re-defined
-BOARD_INSIDE_OPENING_LEFTRIGHT_X = 113; // Geometry re-defined
+BOARD_INSIDE_OPENING_UPDOWN_Y = 119; // X-extent of tall box for non-4x5 formats
+BOARD_INSIDE_OPENING_UPDOWN_Y_4X5 = 121; // X-extent of tall box for 4x5: clears 120mm film with 0.5mm/side; outer X rail = (127-121)/2 = 3mm
+BOARD_INSIDE_OPENING_UPDOWN_X = 93.5; // Y-extent (width) of tall box for non-4x5 formats (keeps screw holes clear)
+BOARD_INSIDE_OPENING_UPDOWN_X_4X5 = 97; // Y-extent (width) of tall box for 4x5: clears 95mm film opening with 1mm/side margin; keeps big-screw edge (Y=50.5) 2mm from opening; corner rail ≈3.9mm
+BOARD_INSIDE_OPENING_LEFTRIGHT_Y = 70; // X-extent of wide box
+BOARD_INSIDE_OPENING_LEFTRIGHT_X = 113; // Y-extent (height) of wide box for non-4x5 formats
+BOARD_INSIDE_OPENING_LEFTRIGHT_X_4X5 = 105; // Y-extent (height) of wide box for 4x5: clears 95mm film, keeps screws at ±57 Y in solid material with ~4mm rail
 SMALL_ALIGNMENT_SCREW_DIAMETER = 4; // Replaced by SCREW_DIAMETER
 SMALL_ALIGNMENT_SCREW_DISTANCE_X = 110 + SMALL_ALIGNMENT_SCREW_DIAMETER; // Re-interpreted for new hole pattern
 SMALL_ALIGNMENT_SCREW_DISTANCE_Y = 80 + SMALL_ALIGNMENT_SCREW_DIAMETER; // Re-interpreted for new hole pattern
@@ -17,15 +19,27 @@ BIG_ALIGNMENT_SCREW_DISTANCE_Y = 97 + BIG_ALIGNMENT_SCREW_DIAMETER; // Re-interp
 
 // $fn inherited from carrier.scad for variable preview/final quality
 
-// The taller box's width widens for 4x5 to clear the negative; other formats keep
+// The taller box's Y-width widens for 4x5 to clear the negative; other formats keep
 // the narrower opening so the alignment screw holes are not cut into.
 function omega_updown_opening_width(film_format) =
     film_format == "4x5" ? BOARD_INSIDE_OPENING_UPDOWN_X_4X5 : BOARD_INSIDE_OPENING_UPDOWN_X;
 
-module opening_cutout(updown_width = BOARD_INSIDE_OPENING_UPDOWN_X) {
+// The taller box's X-length widens for 4x5 to clear the 120mm film opening; other formats keep 119mm.
+function omega_updown_opening_length(film_format) =
+    film_format == "4x5" ? BOARD_INSIDE_OPENING_UPDOWN_Y_4X5 : BOARD_INSIDE_OPENING_UPDOWN_Y;
+
+// The wider box's Y-height is slimmed for 4x5 so the central notch stays away from screw holes.
+function omega_leftright_opening_height(film_format) =
+    film_format == "4x5" ? BOARD_INSIDE_OPENING_LEFTRIGHT_X_4X5 : BOARD_INSIDE_OPENING_LEFTRIGHT_X;
+
+module opening_cutout(
+    updown_width = BOARD_INSIDE_OPENING_UPDOWN_X,
+    updown_length = BOARD_INSIDE_OPENING_UPDOWN_Y,
+    leftright_height = BOARD_INSIDE_OPENING_LEFTRIGHT_X
+) {
     union() {
-        cuboid([BOARD_INSIDE_OPENING_LEFTRIGHT_Y, BOARD_INSIDE_OPENING_LEFTRIGHT_X, BOARD_HEIGHT + 1], anchor=CENTER, rounding=0.5);
-        cuboid([BOARD_INSIDE_OPENING_UPDOWN_Y, updown_width, BOARD_HEIGHT + 1], anchor=CENTER, rounding=0.5);
+        cuboid([BOARD_INSIDE_OPENING_LEFTRIGHT_Y, leftright_height, BOARD_HEIGHT + 1], anchor=CENTER, rounding=0.5);
+        cuboid([updown_length, updown_width, BOARD_HEIGHT + 1], anchor=CENTER, rounding=0.5);
     }
 }
 
@@ -65,7 +79,11 @@ module omega_d_alignment_board_screws(film_format = "") {
     render() difference() {
         board();
         omega_board_edge_cuts();
-        opening_cutout(omega_updown_opening_width(film_format));
+        opening_cutout(
+            updown_width = omega_updown_opening_width(film_format),
+            updown_length = omega_updown_opening_length(film_format),
+            leftright_height = omega_leftright_opening_height(film_format)
+        );
         alignment_screw_holes();
         big_alignment_screw_holes();
     }
@@ -75,7 +93,11 @@ module omega_d_alignment_board_no_screws(film_format = "") {
     render() difference() {
         board();
         omega_board_edge_cuts();
-        opening_cutout(omega_updown_opening_width(film_format));
+        opening_cutout(
+            updown_width = omega_updown_opening_width(film_format),
+            updown_length = omega_updown_opening_length(film_format),
+            leftright_height = omega_leftright_opening_height(film_format)
+        );
     }
 }
 
