@@ -458,6 +458,19 @@ function calculate_text_position(carrier_type, text_type, text_config, text_metr
             x_pos = (text_type == "owner") ? handle_center_x : (handle_center_x - 15)
         ) [x_pos, y_offset, z_position]
     :
+    // Beseler 45: text lives on the protruding top (+Y) handle, running along the
+    // handle's long (Y) axis (see get_text_rotation → 90°). Owner and type sit as
+    // two columns across the 29mm handle width (X).
+    // NOTE: the caller applies `rotate(rotation) translate(position)`, i.e. the
+    // rotation is the OUTER transform, so world_position = R(rotation) * position.
+    // To land at world [x_base, handle_mid_y] under a +90 deg Z rotation, the
+    // pre-rotation position must be [handle_mid_y, -x_base] (R(90)*[a,b] = [-b,a]).
+    (carrier_type == "beseler-45") ?
+        let (
+            handle_mid_y = BESELER_45_DIAMETER / 2 + 22,   // ~127mm, on the visible handle
+            x_base = (text_type == "owner") ? (BESELER_45_HANDLE_WIDTH / 4) : (-BESELER_45_HANDLE_WIDTH / 4)
+        ) [handle_mid_y, -x_base, z_position]
+    :
     // Default handling: position text with equal edge margin from carrier boundary
     let (
         y_translate = (len(text_config) > 0) ? text_config[0] : 0,
@@ -482,6 +495,7 @@ _HORIZONTAL_TEXT_ROTATION = [0, 0, 0];
 
 function get_text_rotation(carrier_type, text_type) =
     (carrier_type == "omega-d" || carrier_type == "lpl-saunders-45xx") ? _VERTICAL_TEXT_ROTATION
+    : (carrier_type == "beseler-45") ? [0, 0, 90]
     : _HORIZONTAL_TEXT_ROTATION;
 
 /**

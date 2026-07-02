@@ -66,6 +66,7 @@ function _get_text_settings(carrier_type) =
     (carrier_type == "omega-d") ? [-90, 69.5, 5]       // rect section is 139mm wide, edge at ~69.5
     : (carrier_type == "lpl-saunders-45xx") ? [-65, 85, 5] // 215mm diameter, text near handle side
     : (carrier_type == "beseler-23c") ? [-65, 60, 5]   // 160mm diameter, text on handle
+    : (carrier_type == "beseler-45") ? [0, 105, 5]     // 210mm diameter, text on top handle
     : [0, 60, 5];
 
 // Owner and type text use the same positioning config
