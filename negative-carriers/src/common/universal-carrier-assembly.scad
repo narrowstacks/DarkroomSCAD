@@ -24,10 +24,11 @@ include <../carrier-configs.scad>
 
 // ============================================================================
 // BESELER 45 CORNER ALIGNMENT / STACKING PEGS
-// Fixed square (BESELER_45_ALIGN_PEG_SPACING center-to-center). On the BOTTOM
-// board the pegs protrude down (seat into the enlarger) and up (into the top
-// board). The TOP board receives them with Ø BESELER_45_ALIGN_PEG_HOLE_DIAMETER
-// through-holes. Independent of film format and of the film-peg style.
+// Fixed square (BESELER_45_ALIGN_PEG_SPACING center-to-center). The BOTTOM board
+// carries pegs that protrude DOWN ONLY (seat into the enlarger); their upper end
+// stays flush inside the board (BESELER_45_ALIGN_PEG_UP = 0). The TOP board has
+// Ø BESELER_45_ALIGN_PEG_HOLE_DIAMETER stacking holes that receive the down-pegs
+// of a carrier stacked on top. Independent of film format and film-peg style.
 // ============================================================================
 module beseler45_corner_pegs() {
     half = BESELER_45_ALIGN_PEG_SPACING / 2;
@@ -35,12 +36,12 @@ module beseler45_corner_pegs() {
     ch = get_carrier_height("beseler-45");
     total_h = BESELER_45_ALIGN_PEG_DOWN + ch + BESELER_45_ALIGN_PEG_UP;
     z_center = (BESELER_45_ALIGN_PEG_UP - BESELER_45_ALIGN_PEG_DOWN) / 2;
-    // rounding=r caps both protruding ends with a hemisphere → pill/capsule
-    // shape (total height unchanged, so seating depth is preserved). The
-    // cylindrical mid-section still passes through the board.
+    // rounding1 domes only the protruding (−Z) tip for easy insertion into the
+    // enlarger; the +Z end stays flat, flush inside the board. Total height is
+    // unchanged, so the downward seating depth is preserved.
     for (xm = [-1, 1]) for (ym = [-1, 1])
         translate([xm * half, ym * half, z_center])
-            cyl(h=total_h, r=r, rounding=r, $fn=32);
+            cyl(h=total_h, r=r, rounding1=r, $fn=32);
 }
 
 module beseler45_corner_peg_holes() {

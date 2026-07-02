@@ -88,13 +88,14 @@ BESELER_45_HANDLE_WIDTH = 29;
 BESELER_45_THICKNESS = 2.5;
 
 // Beseler 45 fixed corner alignment/stacking pegs (independent of film format).
-// Bottom board carries the pegs (protrude down into the enlarger + up into the
-// top board); the top board receives them with clearance holes.
+// The bottom board carries the pegs, which protrude DOWN ONLY to seat into the
+// enlarger. The top board's matching corner holes are stacking holes: they
+// receive the down-pegs of another carrier stacked on top.
 BESELER_45_ALIGN_PEG_SPACING = 119.7;      // center-to-center square (peg at ±59.85)
 BESELER_45_ALIGN_PEG_DIAMETER = 4.6;       // peg diameter
 BESELER_45_ALIGN_PEG_HOLE_DIAMETER = 6;    // top-board clearance-hole diameter
 BESELER_45_ALIGN_PEG_DOWN = 4;             // protrusion below the bottom face (enlarger)
-BESELER_45_ALIGN_PEG_UP = 4;               // protrusion above the top face (into top board)
+BESELER_45_ALIGN_PEG_UP = 0;               // no protrusion above the top face (down-only peg)
 
 /**
  * Test Frame Configuration
