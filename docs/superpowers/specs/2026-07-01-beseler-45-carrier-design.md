@@ -44,7 +44,18 @@ top/bottom boards:
    construction fasteners and are not modeled.
 3. **No hinge.** Top and bottom print as two separate pieces, mated by pegs.
 4. **No hang hole; solid handle** (matches the 23c).
-5. **Handle text** — owner/type etch on the handle, same behavior as the 23c.
+5. **Handle text** — owner/type etch on the **top (+Y)** handle. Same idea as the
+   23c but positioned on the top handle instead of the 23c's −X handle, so it
+   needs its own positioning branch (see below).
+6. **4×5 is landscape-only.** For the Beseler 45, 4×5 must render landscape —
+   the 5″ (long) edge parallel to the bottom hinge line (i.e. the long edges on
+   the top and bottom), hinge at the bottom, handle at the top. This is already
+   the effective behavior: 4×5 is globally forced to the code's `"vertical"`
+   effective orientation, which yields `cuboid([120, 95])` = 120 mm along X ×
+   95 mm along Y = landscape with the long edges horizontal, and the Orientation
+   control is ignored for 4×5. So **no orientation-logic change is required** —
+   the requirement is satisfied by placing the handle at the top (decision 5/
+   base shape) and must be **confirmed visually** during validation.
 
 ## Architecture
 
@@ -59,8 +70,10 @@ Pure geometry generator, mirroring `beseler-23c-base-shape.scad`:
 - Uses shared constants `BESELER_45_DIAMETER` (210) and
   `BESELER_45_HANDLE_WIDTH` (29); handle length 50.5 mm.
 - Round body via `cyl(h=CARRIER_HEIGHT, r=DIAMETER/2, rounding=.5, $fn=72)`.
-- Handle via a rounded `cuboid` translated to the body edge (same pattern as
-  23c). No hang hole.
+- Handle via a rounded `cuboid`. **Handle placed at the top (+Y)**, NOT on the
+  −X side like the 23c. This makes the handle define "top" and the opposite edge
+  (−Y) the conceptual hinge/bottom, so the 4×5 landscape opening's long edges
+  land on the top/bottom. No hang hole.
 - Carrier height comes from `get_carrier_height("beseler-45")` = 2.5.
 
 ### `src/carrier-configs.scad`
@@ -72,9 +85,12 @@ Pure geometry generator, mirroring `beseler-23c-base-shape.scad`:
   calculation assumes a 2 mm height for this carrier.
 - `get_top_peg_hole_z_offset`: give `beseler-45` a value (mirror the 23c's `1`
   unless testing shows otherwise).
-- Text: add `beseler-45` to `_get_text_settings` and treat it like the 23c in
-  `calculate_text_position` (handle-mounted text) and `get_text_rotation`
-  (horizontal). Ensure the text-feature gate (`_is_full_feature_carrier` /
+- Text: add `beseler-45` to `_get_text_settings` and add a `beseler-45` branch in
+  `calculate_text_position` that mounts the text on the **top (+Y)** handle
+  (owner/type stacked along the handle's Y length, centered in X), plus a
+  `get_text_rotation` case (horizontal text reading left-to-right across the top
+  handle). This differs from the 23c branch, which mounts text on the −X handle.
+  Ensure the text-feature gate (`_is_full_feature_carrier` /
   `carrier_supports_multi_material_text`) allows beseler-45 text without
   re-enabling alignment-board support.
 - Add new constants for the corner pegs:
@@ -118,21 +134,30 @@ Pure geometry generator, mirroring `beseler-23c-base-shape.scad`:
 ## Testing / validation
 
 - Open `carrier.scad` in OpenSCAD, set `Carrier_Type = "beseler-45"`.
-- Render **top** and **bottom** for several formats (35mm, 6x6, 6x9) in both
-  orientations. Verify:
-  - Disc is 210 mm across, 2.5 mm thick, handle 29 mm wide.
+- Render **top** and **bottom** for several formats (35mm, 6x6, 6x9, 4x5) in
+  both orientations. Verify:
+  - Disc is 210 mm across, 2.5 mm thick, handle 29 mm wide, handle at the top.
   - Film pegs track the format and mate top↔bottom.
   - Bottom board shows 4 corner pegs (down + up); top board shows 4 Ø6 mm holes
-    at the matching 119.7 mm square.
+    at the matching 119.7 mm square. Corner pegs clear the opening at every
+    format including 4×5.
+  - **4×5 renders landscape** — long (120 mm) edges on the top and bottom
+    (parallel to the −Y hinge line), handle at the top; the Orientation control
+    does not change 4×5.
   - No alignment-board geometry or screw-footprint holes appear.
-  - Handle text etches correctly (owner + type).
+  - Handle text etches correctly (owner + type) on the top handle.
   - `Flip_Bottom_For_Printing` flips the bottom board with its corner pegs.
 - Confirm the other carrier types (omega-d, lpl, 23c, test frame) still render
   unchanged.
 
 ## Deferred / out of scope
 
-- **4×5 vs. corner pegs:** a 4×5 opening (~120 mm tall) nearly reaches the
-  119.7 mm peg square; the corner pegs could clip the gate at 4×5. Shipping
-  without special-casing; revisit if a 4×5 carrier is actually cut.
 - Hinge, hang hole, and the 4 construction rivets are intentionally not modeled.
+
+## Resolved non-issues
+
+- **Corner pegs vs. 4×5 opening:** no collision. The pegs sit on the diagonal
+  corners at (±59.85, ±59.85); the largest opening (4×5 landscape) reaches only
+  (60, 47.5). A peg would clip the opening only if both its X and Y ranges
+  crossed the opening, but at 4×5 the peg's Y (59.85) clears the opening's
+  47.5 mm half-height by ~10 mm. Clears at every format.
