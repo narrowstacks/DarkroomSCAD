@@ -34,10 +34,14 @@ top/bottom boards:
      path as omega/lpl/23c). They register the film and mate the two halves.
      Honor the `Printed_or_Heat_Set_Pegs` option as usual.
    - *Corner align/stack pegs* — new, fixed 119.7 mm square, Ø4.6 mm. The
-     **bottom** board carries pegs that protrude **down** (seat into the
-     enlarger) **and up** (into the top board). The **top** board gets Ø6 mm
-     through-holes to receive them. Always present, independent of the film-peg
-     style.
+     **bottom** board carries pegs that protrude **down only (~2 mm)** to seat
+     into the enlarger, with a domed (rounded) tip for easy insertion; the upper
+     end stays flush inside the board. The **top** board's matching Ø6 mm corner
+     holes are **stacking holes** — they receive the down-pegs of another
+     carrier stacked on top. Always present, independent of the film-peg style.
+     (Earlier revisions had the peg protrude up into the top board as well; that
+     was dropped — the film pegs mate the two halves, the corner pegs only
+     handle enlarger seating + stacking.)
 2. **No alignment board.** The corner pegs are the enlarger alignment; the
    `beseler-45` dispatch forces `Alignment_Board = false` and skips the
    omega/lpl screw-footprint holes. The 4 corner rivets on the real part are
