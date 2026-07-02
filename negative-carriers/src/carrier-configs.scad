@@ -94,7 +94,7 @@ BESELER_45_THICKNESS = 2.5;
 BESELER_45_ALIGN_PEG_SPACING = 119.7;      // center-to-center square (peg at ±59.85)
 BESELER_45_ALIGN_PEG_DIAMETER = 4.6;       // peg diameter
 BESELER_45_ALIGN_PEG_HOLE_DIAMETER = 6;    // top-board clearance-hole diameter
-BESELER_45_ALIGN_PEG_DOWN = 4;             // protrusion below the bottom face (enlarger)
+BESELER_45_ALIGN_PEG_DOWN = 2;             // protrusion below the bottom face (enlarger)
 BESELER_45_ALIGN_PEG_UP = 0;               // no protrusion above the top face (down-only peg)
 
 /**
