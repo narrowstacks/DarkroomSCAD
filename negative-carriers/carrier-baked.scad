@@ -10,7 +10,8 @@
 // project's existing native feature modules. No BOSL2 include — ~10x faster, with
 // output equivalent to carrier.scad for the baked geometry.
 //
-// Carriers covered: omega-d, lpl-saunders-45xx, beseler-23c (+ their alignment boards).
+// Carriers covered: omega-d, lpl-saunders-45xx, beseler-23c (+ their alignment boards),
+// beseler-45 (no alignment board — fixed corner pegs, baked into its base STLs).
 // The test frame is NOT baked (format-dependent base, already fast) — the web app's
 // preview-engine routes it (and any unsupported config) to the exact parametric path.
 //
@@ -37,7 +38,7 @@ Baked_Base_Stl = "/base-stls/omega-d-bottom.stl";
 Baked_Board_Stl = "/base-stls/board-omega.stl";
 
 /* [Carrier Options] */
-Carrier_Type = "omega-d";      // ["omega-d", "lpl-saunders-45xx", "beseler-23c"]
+Carrier_Type = "omega-d";      // ["omega-d", "lpl-saunders-45xx", "beseler-23c", "beseler-45"]
 Orientation = "vertical";      // ["vertical", "horizontal"]
 Film_Format = "35mm";
 Top_or_Bottom = "bottom";      // ["top", "bottom"]
@@ -154,8 +155,10 @@ module baked_text_etches() {
 
 // Footprint holes appear only when the board is NOT fused, for omega/lpl board types
 // (matches generate_universal_alignment_footprint_holes). Dent (shallow) on top.
+// beseler-45 has no alignment board by design (carrier.scad forces board type "none"),
+// so it never gets footprint holes even though the web default board type is "omega".
 module baked_footprint_holes(is_dent) {
-    if (!Alignment_Board && (Alignment_Board_Type == "omega" || Alignment_Board_Type == "lpl-saunders"))
+    if (!Alignment_Board && Carrier_Type != "beseler-45" && (Alignment_Board_Type == "omega" || Alignment_Board_Type == "lpl-saunders"))
         alignment_footprint_holes(
             _screw_dia = SCREW_DIA, _dist_for_x_coords = SCREW_DIST_X, _dist_for_y_coords = SCREW_DIST_Y,
             _carrier_h = CARRIER_HEIGHT, _cut_ext = CUT_THROUGH_EXTENSION, _is_dent = is_dent, _dent_depth = 1
@@ -186,7 +189,8 @@ module baked_carrier() {
         // Printed pegs are added (not cut) — matches carrier_base_processing.
         generate_additive_peg_features(Top_or_Bottom, Printed_or_Heat_Set_Pegs, peg_diameter, DEFAULT_PEG_HEIGHT, peg_pos_x, peg_pos_y, peg_z_offset);
         // Alignment board fuses onto the bottom carrier at a carrier/board-specific Z.
-        if (Alignment_Board && !IS_TOP)
+        // beseler-45 never fuses a board (carrier.scad forces _alignment_board=false).
+        if (Alignment_Board && !IS_TOP && Carrier_Type != "beseler-45")
             translate([0, 0, get_alignment_board_z_offset(Carrier_Type, Alignment_Board_Type, CARRIER_HEIGHT)])
                 import(Baked_Board_Stl);
     }
