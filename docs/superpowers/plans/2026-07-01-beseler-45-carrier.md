@@ -72,12 +72,16 @@ function get_carrier_height(carrier_type) =
     : UNIVERSAL_CARRIER_HEIGHT;
 ```
 
-Replace `get_top_peg_hole_z_offset` (lines ~39-42) with:
+Replace `get_top_peg_hole_z_offset` (lines ~39-42) with (offset `2`, not the
+23c's `1`, so the top film-peg holes punch fully through the 2.5 mm board —
+offset `1` leaves them blind at this thickness):
 ```openscad
 function get_top_peg_hole_z_offset(carrier_type) =
     (carrier_type == "omega-d") ? 2
     : (carrier_type == "beseler-23c") ? 1
-    : (carrier_type == "beseler-45") ? 1
+    // 2.5mm-thick board: offset 2 (not the 23c's 1) so the top film-peg holes
+    // punch fully through — a 1 would leave them blind at this thickness.
+    : (carrier_type == "beseler-45") ? 2
     : 2;
 ```
 
