@@ -79,11 +79,16 @@ module board() {
     cuboid([BOARD_LENGTH_WIDTH, BOARD_LENGTH_WIDTH, BOARD_HEIGHT], anchor=CENTER, rounding=0.5);
 }
 
+// 4x5's effective orientation is "horizontal" (long 120mm edge along Y, see
+// get_effective_orientation), so the 4x5-widened opening — whose constants were
+// tuned for the long edge along X — is rotated 90° to match the film opening.
+function omega_opening_rotation(film_format) = film_format == "4x5" ? 90 : 0;
+
 module omega_d_alignment_board_screws(film_format = "") {
     render() difference() {
         board();
         omega_board_edge_cuts();
-        opening_cutout(
+        rotate([0, 0, omega_opening_rotation(film_format)]) opening_cutout(
             updown_width = omega_updown_opening_width(film_format),
             updown_length = omega_updown_opening_length(film_format),
             leftright_height = omega_leftright_opening_height(film_format)
@@ -97,7 +102,7 @@ module omega_d_alignment_board_no_screws(film_format = "") {
     render() difference() {
         board();
         omega_board_edge_cuts();
-        opening_cutout(
+        rotate([0, 0, omega_opening_rotation(film_format)]) opening_cutout(
             updown_width = omega_updown_opening_width(film_format),
             updown_length = omega_updown_opening_length(film_format),
             leftright_height = omega_leftright_opening_height(film_format)

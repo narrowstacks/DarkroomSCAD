@@ -63,9 +63,12 @@ module text_solid(text_string, font, size, height, halign = "center", valign = "
     }
 }
 
-// Determine effective orientation, especially for "4x5"
+// Determine effective orientation, especially for "4x5".
+// 4x5 is always "horizontal": the sheet's long (5", 120mm) edge runs along Y,
+// perpendicular to the left (-X) handle, matching how the sheet sits in the
+// enlarger. The user-facing Orientation toggle has no effect for 4x5.
 function get_effective_orientation(film_format_str, orientation_str) =
-    (film_format_str == "4x5") ? "vertical" : orientation_str;
+    (film_format_str == "4x5") ? "horizontal" : orientation_str;
 
 // Calculate base opening height based on effective orientation and film dimensions
 function get_calculated_opening_height(eff_orientation, film_actual_h, film_actual_w) =
