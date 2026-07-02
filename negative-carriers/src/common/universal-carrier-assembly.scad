@@ -367,13 +367,23 @@ module universal_carrier_assembly(
                         generate_universal_alignment_footprint_holes(is_dent_holes=false);
                         generate_universal_text_etches();
                         generate_universal_directional_arrows();
+
+                        // Beseler 45 (heat-set): cut the bottom film-peg insert
+                        // holes fully through the 2.5mm board. The shared heat-set
+                        // hole is centered at half-height and stops ~0.4mm short of
+                        // the bottom face on this thicker board; M2 inserts are
+                        // longer than the board, so a through hole is correct.
+                        if (carrier_type == "beseler-45" && printed_or_heat_set_pegs == "heat_set")
+                            for (xm = [-1, 1]) for (ym = [-1, 1])
+                                translate([xm * peg_pos_x, ym * peg_pos_y, 0])
+                                    cylinder(h=CARRIER_HEIGHT + 2, d=M2_HEAT_SET_HOLE_DIA, center=true, $fn=32);
                     }
                 }
 
                 // Add alignment board if enabled
                 generate_universal_alignment_board();
 
-                // Beseler 45: fixed corner alignment/stacking pegs (down + up)
+                // Beseler 45: fixed corner alignment/stacking pegs (down only)
                 if (carrier_type == "beseler-45") beseler45_corner_pegs();
             }
     }
