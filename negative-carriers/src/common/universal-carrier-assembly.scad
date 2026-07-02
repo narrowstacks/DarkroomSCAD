@@ -17,6 +17,7 @@ include <text-etching.scad>
 include <../omega-d-base-shape.scad>
 include <../lpl-saunders-base-shape.scad>
 include <../beseler-23c-base-shape.scad>
+include <../beseler-45-base-shape.scad>
 include <../test-frame-base-shape.scad>
 // Need access to carrier configuration functions
 include <../carrier-configs.scad>
@@ -296,6 +297,8 @@ module universal_carrier_assembly(
             lpl_saunders_base_shape(config, top_or_bottom);
         } else if (carrier_type == "beseler-23c") {
             beseler_23c_base_shape(config, top_or_bottom);
+        } else if (carrier_type == "beseler-45") {
+            beseler_45_base_shape(config, top_or_bottom);
         } else if (is_test_frame_type(carrier_type)) {
             test_frame_base_shape(config, top_or_bottom, opening_width, opening_height, peg_pos_x, peg_pos_y);
         } else {

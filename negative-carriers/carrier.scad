@@ -26,6 +26,7 @@ include <src/common/universal-carrier-assembly.scad>
 include <src/omega-d-base-shape.scad>
 include <src/lpl-saunders-base-shape.scad>
 include <src/beseler-23c-base-shape.scad>
+include <src/beseler-45-base-shape.scad>
 include <src/test-frame-base-shape.scad>
 
 /* [Carrier Type] */
@@ -214,8 +215,11 @@ if (_Render_Alignment_Board_Only) {
     // Standard carriers use all user-specified options
     dispatch_to_universal_assembly();
 } else if (Carrier_Type == "beseler-45") {
-    // Future implementation placeholder
-    assert(false, str("CARRIER TYPE ERROR: '", Carrier_Type, "' is not yet implemented. Use one of: omega-d, lpl-saunders-45xx, beseler-23c"));
+    // Beseler 45: no alignment board — the fixed corner pegs align it in the enlarger.
+    dispatch_to_universal_assembly(
+        _alignment_board=false,
+        _alignment_board_type="none"
+    );
 } else if (is_test_frame_type(Carrier_Type)) {
     // Test frames have simplified options (no alignment board, no text)
     dispatch_to_universal_assembly(
