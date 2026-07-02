@@ -35,9 +35,12 @@ module beseler45_corner_pegs() {
     ch = get_carrier_height("beseler-45");
     total_h = BESELER_45_ALIGN_PEG_DOWN + ch + BESELER_45_ALIGN_PEG_UP;
     z_center = (BESELER_45_ALIGN_PEG_UP - BESELER_45_ALIGN_PEG_DOWN) / 2;
+    // rounding=r caps both protruding ends with a hemisphere → pill/capsule
+    // shape (total height unchanged, so seating depth is preserved). The
+    // cylindrical mid-section still passes through the board.
     for (xm = [-1, 1]) for (ym = [-1, 1])
         translate([xm * half, ym * half, z_center])
-            cylinder(h=total_h, r=r, center=true, $fn=32);
+            cyl(h=total_h, r=r, rounding=r, $fn=32);
 }
 
 module beseler45_corner_peg_holes() {
