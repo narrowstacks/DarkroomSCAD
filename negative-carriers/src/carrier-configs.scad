@@ -86,6 +86,15 @@ BESELER_45_HANDLE_WIDTH = 29;
 // The Beseler 45 carrier thickness is .5 mm thicker than other carriers
 BESELER_45_THICKNESS = 2.5;
 
+// Beseler 45 fixed corner alignment/stacking pegs (independent of film format).
+// Bottom board carries the pegs (protrude down into the enlarger + up into the
+// top board); the top board receives them with clearance holes.
+BESELER_45_ALIGN_PEG_SPACING = 119.7;      // center-to-center square (peg at ±59.85)
+BESELER_45_ALIGN_PEG_DIAMETER = 4.6;       // peg diameter
+BESELER_45_ALIGN_PEG_HOLE_DIAMETER = 6;    // top-board clearance-hole diameter
+BESELER_45_ALIGN_PEG_DOWN = 4;             // protrusion below the bottom face (enlarger)
+BESELER_45_ALIGN_PEG_UP = 4;               // protrusion above the top face (into top board)
+
 /**
  * Test Frame Configuration
  * Generic configuration for test frames - simplified for basic film opening and peg testing

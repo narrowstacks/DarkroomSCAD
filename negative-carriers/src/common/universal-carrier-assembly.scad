@@ -22,6 +22,33 @@ include <../test-frame-base-shape.scad>
 // Need access to carrier configuration functions
 include <../carrier-configs.scad>
 
+// ============================================================================
+// BESELER 45 CORNER ALIGNMENT / STACKING PEGS
+// Fixed square (BESELER_45_ALIGN_PEG_SPACING center-to-center). On the BOTTOM
+// board the pegs protrude down (seat into the enlarger) and up (into the top
+// board). The TOP board receives them with Ø BESELER_45_ALIGN_PEG_HOLE_DIAMETER
+// through-holes. Independent of film format and of the film-peg style.
+// ============================================================================
+module beseler45_corner_pegs() {
+    half = BESELER_45_ALIGN_PEG_SPACING / 2;
+    r = BESELER_45_ALIGN_PEG_DIAMETER / 2;
+    ch = get_carrier_height("beseler-45");
+    total_h = BESELER_45_ALIGN_PEG_DOWN + ch + BESELER_45_ALIGN_PEG_UP;
+    z_center = (BESELER_45_ALIGN_PEG_UP - BESELER_45_ALIGN_PEG_DOWN) / 2;
+    for (xm = [-1, 1]) for (ym = [-1, 1])
+        translate([xm * half, ym * half, z_center])
+            cylinder(h=total_h, r=r, center=true, $fn=32);
+}
+
+module beseler45_corner_peg_holes() {
+    half = BESELER_45_ALIGN_PEG_SPACING / 2;
+    r = BESELER_45_ALIGN_PEG_HOLE_DIAMETER / 2;
+    ch = get_carrier_height("beseler-45");
+    for (xm = [-1, 1]) for (ym = [-1, 1])
+        translate([xm * half, ym * half, 0])
+            cylinder(h=ch + 2, r=r, center=true, $fn=32);
+}
+
 /**
  * Universal carrier assembly system
  * Combines base shape with all common features in a consistent manner
@@ -341,6 +368,9 @@ module universal_carrier_assembly(
 
                 // Add alignment board if enabled
                 generate_universal_alignment_board();
+
+                // Beseler 45: fixed corner alignment/stacking pegs (down + up)
+                if (carrier_type == "beseler-45") beseler45_corner_pegs();
             }
     }
 
@@ -371,6 +401,9 @@ module universal_carrier_assembly(
                     generate_universal_alignment_footprint_holes(is_dent_holes=true);
                     generate_universal_text_etches();
                     generate_universal_directional_arrows();
+
+                    // Beseler 45: clearance holes for the bottom board's corner pegs
+                    if (carrier_type == "beseler-45") beseler45_corner_peg_holes();
                 }
             }
     }
