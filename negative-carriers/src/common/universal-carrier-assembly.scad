@@ -472,18 +472,18 @@ function calculate_text_position(carrier_type, text_type, text_config, text_metr
             x_pos = (text_type == "owner") ? handle_center_x : (handle_center_x - 15)
         ) [x_pos, y_offset, z_position]
     :
-    // Beseler 45: text lives on the protruding top (+Y) handle, running along the
-    // handle's long (Y) axis (see get_text_rotation → 90°). Owner and type sit as
-    // two columns across the 29mm handle width (X).
-    // NOTE: the caller applies `rotate(rotation) translate(position)`, i.e. the
-    // rotation is the OUTER transform, so world_position = R(rotation) * position.
-    // To land at world [x_base, handle_mid_y] under a +90 deg Z rotation, the
-    // pre-rotation position must be [handle_mid_y, -x_base] (R(90)*[a,b] = [-b,a]).
+    // Beseler 45: text lives on the protruding left (-X) handle, reading
+    // horizontally (see get_text_rotation → 0°) like the Beseler 23C. Owner and
+    // type sit as two rows across the 29mm handle width (Y). The handle spans
+    // X = -155.5..-105 beyond the disc edge; mid-handle is ~-127mm.
     (carrier_type == "beseler-45") ?
         let (
-            handle_mid_y = BESELER_45_DIAMETER / 2 + 22,   // ~127mm, on the visible handle
-            x_base = (text_type == "owner") ? (BESELER_45_HANDLE_WIDTH / 4) : (-BESELER_45_HANDLE_WIDTH / 4)
-        ) [handle_mid_y, -x_base, z_position]
+            handle_center_x = -(BESELER_45_DIAMETER / 2 + 22), // ~-127mm, on the visible handle
+            y_base = (text_type == "owner") ? (BESELER_45_HANDLE_WIDTH / 4) : (-BESELER_45_HANDLE_WIDTH / 4),
+
+            // For bottom carriers: negate Y so text matches top carrier layout after 180° X-flip
+            y_offset = (top_or_bottom == "bottom") ? -y_base : y_base
+        ) [handle_center_x, y_offset, z_position]
     :
     // Default handling: position text with equal edge margin from carrier boundary
     let (
@@ -502,14 +502,14 @@ function calculate_text_position(carrier_type, text_type, text_config, text_metr
  * Get text rotation based on carrier type
  * Circular carriers with side handles (omega-d, lpl-saunders) use 270° rotation
  * so text reads vertically along the carrier edge.
- * Beseler 23C uses 0° (horizontal) since text sits on the protruding handle.
+ * Beseler 23C and Beseler 45 use 0° (horizontal) since their text sits on the
+ * protruding left handle.
  */
 _VERTICAL_TEXT_ROTATION = [0, 0, 270];
 _HORIZONTAL_TEXT_ROTATION = [0, 0, 0];
 
 function get_text_rotation(carrier_type, text_type) =
     (carrier_type == "omega-d" || carrier_type == "lpl-saunders-45xx") ? _VERTICAL_TEXT_ROTATION
-    : (carrier_type == "beseler-45") ? [0, 0, 90]
     : _HORIZONTAL_TEXT_ROTATION;
 
 /**
