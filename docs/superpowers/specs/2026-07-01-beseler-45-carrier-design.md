@@ -1,7 +1,7 @@
 # Beseler 45 Negative Carrier — Design Spec
 
 **Date:** 2026-07-01
-**Status:** Approved, ready for implementation planning
+**Status:** Implemented
 
 ## Goal
 
@@ -47,6 +47,15 @@ top/bottom boards:
 5. **Handle text** — owner/type etch on the **top (+Y)** handle. Same idea as the
    23c but positioned on the top handle instead of the 23c's −X handle, so it
    needs its own positioning branch (see below).
+   - **As implemented:** `get_text_rotation` uses `[0, 0, 90]`, as planned. But
+     since `universal-carrier-assembly.scad` applies the transforms as
+     `rotate(rotation) translate(position)` — i.e. rotation is the *outer*
+     transform — the pre-rotation position tuple in `calculate_text_position`
+     had to be swapped to `[handle_mid_y, -x_base, z_position]` (rather than
+     `[x_base, handle_mid_y, z_position]`) so that `R(90°) * [a, b] = [-b, a]`
+     lands the text at the intended world position on the top handle. Verified
+     by the 4×5 renders in Task 4: text sits correctly on the top handle with
+     no rotation-composition drift.
 6. **4×5 is landscape-only.** For the Beseler 45, 4×5 must render landscape —
    the 5″ (long) edge parallel to the bottom hinge line (i.e. the long edges on
    the top and bottom), hinge at the bottom, handle at the top. This is already
