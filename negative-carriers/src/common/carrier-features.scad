@@ -122,11 +122,16 @@ function calculate_omega_style_peg_coordinate(is_dominant_film_dimension, film_w
         (film_width_or_equiv_half + peg_radius)
     : (film_peg_distance_half + peg_radius - omega_internal_gap_value);
 
+// Extra clearance (per side) that filed formats get on the peg-distance axis,
+// on top of the standard 1mm inward bias. Was 1mm (37mm between pegs for 35mm
+// film); 0.5mm puts the pegs a bit closer to the film edge.
+FILED_PEG_EXTRA_GAP = 0.5;
+
 // Calculate internal peg gap for filed medium formats
 function calculate_internal_peg_gap(film_format_str, peg_gap_val) =
     let (
         is_filed = film_format_str == "6x4.5 filed" || film_format_str == "6x6 filed" || film_format_str == "6x7 filed" || film_format_str == "6x8 filed" || film_format_str == "6x9 filed" || film_format_str == "35mm filed"
-    ) is_filed ? (1 - peg_gap_val) - 1 : (1 - peg_gap_val);
+    ) is_filed ? (1 - peg_gap_val) - FILED_PEG_EXTRA_GAP : (1 - peg_gap_val);
 
 // Calculate LPL-style peg coordinate (simpler approach based on film dimensions + peg radius + gap)
 function calculate_lpl_style_peg_coordinate(effective_orientation, film_height, film_width, peg_radius, peg_gap, is_x_coordinate) =
