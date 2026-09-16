@@ -18,6 +18,11 @@ SCREW_HOLE_LOCATION_X = 18;
 SCREW_HOLE_LOCATION_Y = 5.3;
 SCREW_HOLE_DISTANCE_X = 121;
 SCREW_HOLE_DISTANCE_Y = 121;
+// Z of the board's flat mounting face (the side that seats against the carrier
+// underside) in this module's own coordinates. The chamfered half of the
+// cylinder is kept and flipped 180°, so the slab spans
+// [-(BOARD_DEPTH / 2 + 0.05), -0.05] with the flat face at -0.05.
+LPL_BOARD_MOUNT_FACE_Z = -0.05;
 
 module lpl_corner_cut_box() {
     rotate([0, 0, 45]) cuboid([CORNER_CUT_BOX_WIDTH, CORNER_CUT_BOX_WIDTH, BOARD_DEPTH + 0.1], anchor=CENTER);

@@ -523,9 +523,13 @@ function get_text_rotation(carrier_type, text_type) =
 function get_alignment_board_z_offset(carrier_type, alignment_board_type, carrier_height) =
     // Omega alignment boards always use the same offset regardless of carrier
     (alignment_board_type == "omega") ? -1.4
-    // LPL-Saunders alignment boards sit flush underneath on non-omega carriers
+    // LPL-Saunders alignment boards sit flush underneath on non-omega carriers:
+    // seat the board's flat face on the carrier underside (z = -h/2), sunk
+    // 0.05 into it so the union is a single solid. (The old -carrier_height
+    // offset left a ~1mm air gap between board and carrier.)
     : (alignment_board_type == "lpl-saunders") ?
-        ((carrier_type == "omega-d") ? 0.15 : -carrier_height)
+        ((carrier_type == "omega-d") ? 0.15
+         : -carrier_height / 2 - LPL_BOARD_MOUNT_FACE_Z + 0.05)
     // Beseler 23C alignment board
     : (alignment_board_type == "beseler-23c") ?
         ((carrier_type == "beseler-23c") ? carrier_height / 2 : -carrier_height)
