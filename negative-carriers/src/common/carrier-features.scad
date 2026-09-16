@@ -130,7 +130,7 @@ FILED_PEG_EXTRA_GAP = 0.5;
 // Calculate internal peg gap for filed medium formats
 function calculate_internal_peg_gap(film_format_str, peg_gap_val) =
     let (
-        is_filed = film_format_str == "6x4.5 filed" || film_format_str == "6x6 filed" || film_format_str == "6x7 filed" || film_format_str == "6x8 filed" || film_format_str == "6x9 filed" || film_format_str == "35mm filed"
+        is_filed = film_format_str == "6x4.5 filed" || film_format_str == "6x6 filed" || film_format_str == "6x7 filed" || film_format_str == "6x8 filed" || film_format_str == "6x9 filed" || film_format_str == "35mm filed" || film_format_str == "half frame filed"
     ) is_filed ? (1 - peg_gap_val) - FILED_PEG_EXTRA_GAP : (1 - peg_gap_val);
 
 // Calculate LPL-style peg coordinate (simpler approach based on film dimensions + peg radius + gap)

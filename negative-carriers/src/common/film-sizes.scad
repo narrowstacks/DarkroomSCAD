@@ -21,10 +21,10 @@ customFilmFormatPegDistance = 37;
 // - type_name: label for etching
 FILM_FORMATS = [
     // 35mm formats
-    ["35mm",        37,   thirtyFiveStandardWidth,  thirtyFiveFullHeight, "35MM"],      // Standard 35mm frame
+    ["35mm",        36,   thirtyFiveStandardWidth,  thirtyFiveFullHeight, "35MM"],      // Standard 35mm frame (exact 36x24 image; was 37 by accident of reusing the strip-width constant)
     ["35mm filed",  40,   28,  thirtyFiveFullHeight, "FILED35"],   // Filed/enlarged opening
-    ["35mm full",   36,   thirtyFiveStandardWidth,  thirtyFiveFullHeight, "FULL35"],    // Full frame
     ["half frame",  18,   thirtyFiveStandardWidth,  thirtyFiveFullHeight, "HALF"],      // Half frame (portrait orientation)
+    ["half frame filed", 21, 28, thirtyFiveFullHeight, "FILEDHALF"], // Filed half frame (19mm pitch + 2, same rebate reveal as 35mm filed)
 
     // Medium format (120/220) - height is frame length, width is 56mm (or 58 filed)
     ["6x4.5",       41.5, mediumFormatStandardHeight,  mediumFormatFullHeight, "6x4.5"],
