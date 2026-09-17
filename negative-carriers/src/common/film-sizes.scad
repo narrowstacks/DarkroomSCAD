@@ -1,11 +1,26 @@
 /* [Hidden] */
+// Actual film stock widths across the strip / sheet (mm).
+FILM_135_STOCK_WIDTH = 35;      // ISO 1007: 34.98 +/-0.03
+FILM_120_STOCK_WIDTH = 61.5;    // ISO 732: 61.5 (-0.5/+0)
+FILM_4X5_STOCK_WIDTH = 101.6;   // nominal 4in; cut sheets run ~100.5-101.5
+
+// Peg distance = stock width + 2 * (PEG_DISTANCE_BIAS + FILM_EDGE_CLEARANCE).
+// calculate_internal_peg_gap (carrier-features.scad) subtracts the 1mm bias
+// back per side, so the pegs' inner faces land FILM_EDGE_CLEARANCE outside the
+// film edge (+ Peg_Gap). The clearance equals PEG_HOLE_TOLERANCE so the top
+// piece's oversized peg hole also clears the film. The 120 and 4x5 values used
+// to omit the bias (62 / 102), which put the pegs 1mm inside the film per side.
+PEG_DISTANCE_BIAS = 1;
+FILM_EDGE_CLEARANCE = 0.25;
+_PEG_DISTANCE_PAD = 2 * (PEG_DISTANCE_BIAS + FILM_EDGE_CLEARANCE); // 2.5
+
 // Film stock physical dimensions (full film width including perforations/edges)
-thirtyFiveFullHeight = 37;      // 35mm film strip width
+thirtyFiveFullHeight = FILM_135_STOCK_WIDTH + _PEG_DISTANCE_PAD;    // 37.5
 thirtyFiveStandardWidth=24;
-mediumFormatFullHeight = 62;    // 120/220 film width
+mediumFormatFullHeight = FILM_120_STOCK_WIDTH + _PEG_DISTANCE_PAD;  // 64
 mediumFormatStandardHeight = 56;
 mediumFormatFiledHeight = 58;
-fourByFiveFullWidth = 102;      // 4x5 sheet film width
+fourByFiveFullWidth = FILM_4X5_STOCK_WIDTH + _PEG_DISTANCE_PAD;     // 104.1
 fourByFiveFullHeight = 127;     // 4x5 sheet film height
 
 // Custom film format defaults
