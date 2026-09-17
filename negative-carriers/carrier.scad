@@ -120,15 +120,15 @@ Layer_Height_mm = 0.27;
 // Number of layers for text thickness (multiple of layer height)
 Text_Layer_Multiple = 1;
 
-/* [Multi-Material Output Selector] */
+/* [Output Selector] */
 // Select which part to render when exporting STLs
 _WhichPart = "All"; // ["All", "Base", "OwnerText", "TypeText"]
-
-/* [Hidden] */
-// Internal export flag: when true, render ONLY the standalone alignment board
-// (of Alignment_Board_Type) as its own printable part, independent of the carrier.
-// Used to export the board separately when it isn't fused into the carrier.
-_Render_Alignment_Board_Only = false;
+// Render ONLY the standalone alignment board (of Alignment_Board_Type; the glass
+// carrier's screw-on board for omega-d-glass) as its own printable part,
+// independent of the carrier. Use it to export the board separately when it
+// isn't fused into the carrier. NOT in a [Hidden] group on purpose: OpenSCAD
+// parameter sets (-p/-P, which the web app uses) skip Hidden variables.
+_Render_Alignment_Board_Only = false; // [true, false]
 
 /* [Adjustments] */
 // Leave at 0 for default gap. Measured in mm. Add positive values to increase the gap between pegs and film edge, subtract (use negative values) to decrease it. Default 0 allows for little wiggle.
