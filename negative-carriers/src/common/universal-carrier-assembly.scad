@@ -15,6 +15,7 @@ include <beseler-23c-alignment-board.scad>
 include <text-etching.scad>
 // Need access to base shape modules
 include <../omega-d-base-shape.scad>
+include <../omega-d-glass-base-shape.scad>
 include <../lpl-saunders-base-shape.scad>
 include <../beseler-23c-base-shape.scad>
 include <../beseler-45-base-shape.scad>
@@ -324,6 +325,8 @@ module universal_carrier_assembly(
     module generate_universal_base_shape() {
         if (carrier_type == "omega-d") {
             omega_d_base_shape(config, top_or_bottom);
+        } else if (carrier_type == "omega-d-glass") {
+            omega_d_glass_base_shape(config, top_or_bottom);
         } else if (carrier_type == "lpl-saunders-45xx") {
             lpl_saunders_base_shape(config, top_or_bottom);
         } else if (carrier_type == "beseler-23c") {
@@ -509,7 +512,7 @@ _VERTICAL_TEXT_ROTATION = [0, 0, 270];
 _HORIZONTAL_TEXT_ROTATION = [0, 0, 0];
 
 function get_text_rotation(carrier_type, text_type) =
-    (carrier_type == "omega-d" || carrier_type == "lpl-saunders-45xx") ? _VERTICAL_TEXT_ROTATION
+    (carrier_type == "omega-d" || carrier_type == "omega-d-glass" || carrier_type == "lpl-saunders-45xx") ? _VERTICAL_TEXT_ROTATION
     : _HORIZONTAL_TEXT_ROTATION;
 
 /**

@@ -9,6 +9,10 @@
  */
 function get_carrier_config(carrier_type) =
     carrier_type == "omega-d" ? []
+    // The glass carrier's real config (plate size, pocket play, finger notch)
+    // is built by carrier.scad from its customizer parameters via
+    // omega_d_glass_config(); this entry only marks the type as known.
+    : carrier_type == "omega-d-glass" ? []
     : carrier_type == "lpl-saunders-45xx" ? []
     : carrier_type == "beseler-23c" ? []
     : carrier_type == "beseler-45" ? []
@@ -31,11 +35,16 @@ UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y = 113;
 // Getter functions maintained for backward compatibility (return universal values)
 function get_carrier_height(carrier_type) =
     (carrier_type == "beseler-45") ? BESELER_45_THICKNESS
+    : (carrier_type == "omega-d-glass") ? OMEGA_D_GLASS_THICKNESS
     : UNIVERSAL_CARRIER_HEIGHT;
 function get_film_opening_frame_fillet(carrier_type) = UNIVERSAL_FILM_OPENING_FRAME_FILLET;
 function get_alignment_screw_diameter(carrier_type) = UNIVERSAL_ALIGNMENT_SCREW_DIAMETER;
-function get_alignment_screw_pattern_dist_x(carrier_type) = UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X;
-function get_alignment_screw_pattern_dist_y(carrier_type) = UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y;
+function get_alignment_screw_pattern_dist_x(carrier_type) =
+    (carrier_type == "omega-d-glass") ? OMEGA_D_GLASS_SCREW_PATTERN_DIST_X
+    : UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X;
+function get_alignment_screw_pattern_dist_y(carrier_type) =
+    (carrier_type == "omega-d-glass") ? OMEGA_D_GLASS_SCREW_PATTERN_DIST_Y
+    : UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y;
 
 // Z offset for top peg holes (varies by carrier style)
 function get_top_peg_hole_z_offset(carrier_type) =
@@ -63,7 +72,7 @@ function get_top_peg_hole_z_offset(carrier_type) =
 //   carrier_edge_extent: distance from center to carrier boundary at text position (mm)
 //   edge_margin: minimum gap between text edge and carrier boundary (mm)
 function _get_text_settings(carrier_type) =
-    (carrier_type == "omega-d") ? [-90, 69.5, 5]       // rect section is 139mm wide, edge at ~69.5
+    (carrier_type == "omega-d" || carrier_type == "omega-d-glass") ? [-90, 69.5, 5] // rect section is 139mm wide, edge at ~69.5
     : (carrier_type == "lpl-saunders-45xx") ? [-65, 85, 5] // 215mm diameter, text near handle side
     : (carrier_type == "beseler-23c") ? [-65, 60, 5]   // 160mm diameter, text on handle
     : (carrier_type == "beseler-45") ? [0, 105, 5]     // 210mm diameter, text on left handle (unused: calculate_text_position has a dedicated beseler-45 arm)
@@ -74,6 +83,20 @@ function carrier_owner_text_settings(carrier_type) = _get_text_settings(carrier_
 function carrier_type_text_settings(carrier_type) = _get_text_settings(carrier_type);
 
 // (All LPL base geometry lives in lpl-saunders-base-shape.scad)
+
+// Omega-D glass plate carrier (single piece, base geometry in
+// omega-d-glass-base-shape.scad). One slab as thick as a top+bottom pair.
+OMEGA_D_GLASS_THICKNESS = 2 * UNIVERSAL_CARRIER_HEIGHT;
+// Alignment-board screw footprint for the glass carrier. The universal 82x113
+// pattern (±41, ±56.5) lands inside the 95x120 4x5 film opening — and inside
+// the 4x5 board's own cutout — so this carrier uses its own pattern that sits
+// on solid rail of both: x = ±56 is between the pocket wall (±51) and the
+// board edge (63.5), clear of the 4x5 board cutout (|x| < 52.5); y = ±40 keeps
+// clear of the finger notch at any corner and of the board's corner cuts.
+OMEGA_D_GLASS_SCREW_PATTERN_DIST_X = 112;
+OMEGA_D_GLASS_SCREW_PATTERN_DIST_Y = 80;
+// Clearance hole in the separately printed board (screws thread into the carrier)
+OMEGA_D_GLASS_BOARD_SCREW_CLEARANCE_DIA = 2.4;
 
 // Beseler 23C handle constants shared between base-shape and text positioning
 // (base geometry lives in beseler-23c-base-shape.scad)
@@ -121,6 +144,7 @@ function get_test_frame_config() =
  */
 function get_carrier_type_display_name(carrier_type) =
     carrier_type == "omega-d" ? "OMEGA-D"
+    : carrier_type == "omega-d-glass" ? "OMEGA-D GLASS"
     : carrier_type == "lpl-saunders-45xx" ? "LPL 45XX"
     : carrier_type == "beseler-23c" ? "BESELER 23C"
     : carrier_type == "beseler-45" ? "BESELER 45"
@@ -149,7 +173,7 @@ function carrier_supports_multi_material_text(carrier_type) = _is_full_feature_c
  * Get default alignment board type for a carrier
  */
 function get_default_alignment_board_type(carrier_type) =
-    carrier_type == "omega-d" ? "omega"
+    carrier_type == "omega-d" || carrier_type == "omega-d-glass" ? "omega"
     : carrier_type == "lpl-saunders-45xx" ? "lpl-saunders"
     : carrier_type == "beseler-23c" ? "beseler-23c"
     : "omega"; // Default fallback
@@ -160,7 +184,7 @@ function get_default_alignment_board_type(carrier_type) =
  * @return true if the carrier type is valid and supported
  */
 function is_valid_carrier_type(carrier_type) =
-    carrier_type == "omega-d" || carrier_type == "lpl-saunders-45xx" || carrier_type == "beseler-23c" || carrier_type == "beseler-45" ||
+    carrier_type == "omega-d" || carrier_type == "omega-d-glass" || carrier_type == "lpl-saunders-45xx" || carrier_type == "beseler-23c" || carrier_type == "beseler-45" ||
     // Generic test frame type
     carrier_type == "frameAndPegTest";
 
@@ -171,6 +195,7 @@ function is_valid_carrier_type(carrier_type) =
 function get_supported_carrier_types() =
     [
         "omega-d",
+        "omega-d-glass",
         "lpl-saunders-45xx",
         "beseler-23c",
         "beseler-45",

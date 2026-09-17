@@ -38,6 +38,7 @@ The project follows a hierarchical modular structure:
 ### Enlarger Support
 
 - **Omega-D**: Full implementation with alignment board support
+- **Omega-D Glass** (`omega-d-glass`): Single-piece 4mm Omega-D carrier with a pocket for a 4x5 glass plate (dry plates); no film pegs, alignment board screwed on (own screw footprint, board exported via `_Render_Alignment_Board_Only`)
 - **LPL Saunders 45xx**: Complete carrier system
 - **Beseler 23C**: Basic implementation
 - **Beseler 45**: Additional Beseler variant support
@@ -53,6 +54,7 @@ negative-carriers/
 └── src/
     ├── carrier-configs.scad               # Centralized configuration system
     ├── omega-d-base-shape.scad            # Omega-D base geometry
+    ├── omega-d-glass-base-shape.scad      # Omega-D glass plate carrier (pocket, finger notch, screw-on board)
     ├── lpl-saunders-base-shape.scad       # LPL Saunders base geometry
     ├── beseler-23c-base-shape.scad        # Beseler 23C base geometry
     ├── test-frame-base-shape.scad         # Test frame base geometry
@@ -91,7 +93,7 @@ negative-carriers/
 
 All enlarger implementations share these core parameters:
 
-- `Carrier_Type`: Enlarger type selection ("omega-d", "lpl-saunders-45xx", "beseler-23c", "beseler-45", "frameAndPegTest")
+- `Carrier_Type`: Enlarger type selection ("omega-d", "omega-d-glass", "lpl-saunders-45xx", "beseler-23c", "beseler-45", "frameAndPegTest")
 - `Top_or_Bottom`: Carrier part selection
 - `Film_Format`: Supported formats from film-sizes.scad
 - `Orientation`: Film orientation (vertical/horizontal)

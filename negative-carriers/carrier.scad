@@ -24,13 +24,15 @@ include <src/carrier-configs.scad>
 include <src/common/universal-carrier-assembly.scad>
 // Base shape generators
 include <src/omega-d-base-shape.scad>
+include <src/omega-d-glass-base-shape.scad>
 include <src/lpl-saunders-base-shape.scad>
 include <src/beseler-23c-base-shape.scad>
 include <src/beseler-45-base-shape.scad>
 include <src/test-frame-base-shape.scad>
 
 /* [Carrier Type] */
-Carrier_Type = "omega-d"; // ["omega-d", "lpl-saunders-45xx", "beseler-23c", "beseler-45", "frameAndPegTest"]
+// "omega-d-glass" is a single-piece Omega-D carrier with a pocket for a 4x5 glass plate (see the Glass Plate Carrier section)
+Carrier_Type = "omega-d"; // ["omega-d", "omega-d-glass", "lpl-saunders-45xx", "beseler-23c", "beseler-45", "frameAndPegTest"]
 Orientation = "vertical"; // ["vertical", "horizontal"]
 /* [Film Format Selection] */
 Film_Format = "35mm"; // ["35mm", "35mm filed", "half frame", "half frame filed", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "4x5", "custom"]
@@ -60,6 +62,27 @@ Custom_Film_Height = 37;
 Custom_Opening_Width = 24;
 // Film opening height (the visible/cropped area)
 Custom_Opening_Height = 36;
+
+/* [Glass Plate Carrier] */
+// Only used by Carrier_Type "omega-d-glass": one 4mm slab (two carrier halves' worth) with a pocket on top that holds a 4x5 glass plate, no film pegs, and screw holes for a separately printed alignment board (export it with _Render_Alignment_Board_Only). Set Film_Format to "4x5" for the matching opening.
+// Plate size across the carrier, the short edge (mm)
+Glass_Plate_Width = 101;
+// Plate size along the carrier width, the long edge (mm)
+Glass_Plate_Length = 126;
+// Thickest plate the pocket must take (mm); 4x5 dry plates run 1.8-2.0
+Glass_Plate_Thickness = 2;
+// Clearance between the plate and the pocket wall, per side (mm)
+Glass_Plate_Side_Play = 0.5;
+// Extra pocket depth beyond the plate thickness (mm), so the plate never stands proud
+Glass_Plate_Depth_Play = 0.2;
+// Diameter of the circular finger notch at a pocket corner that lets you lift the plate out (0 = none)
+Glass_Notch_Diameter = 16;
+// Pocket corner that gets the finger notch ("handle" = the -X handle side)
+Glass_Notch_Corner = "handle-lower"; // ["handle-lower", "handle-upper", "far-lower", "far-upper", "none"]
+// Material left under the finger notch (mm); 0 cuts it through
+Glass_Notch_Floor = 0.6;
+// How far the notch reaches under the plate edge (mm) for a nail to hook it; keep below the rim between pocket and opening (3.5mm for 4x5)
+Glass_Notch_Reach = 2.5;
 
 /* [Customization] */
 // Enable or disable the owner name etching
@@ -131,10 +154,20 @@ $fn = (Render_Quality == "final") ? 100 : 32;
 validate_carrier_config(Carrier_Type);
 
 // Get configuration for the selected carrier type (now minimal; base geometry lives in carrier files)
-carrier_config = get_carrier_config(Carrier_Type);
+// The glass carrier's config carries its pocket/notch parameters from the customizer.
+carrier_config = (Carrier_Type == "omega-d-glass")
+    ? omega_d_glass_config(
+        Glass_Plate_Width, Glass_Plate_Length, Glass_Plate_Thickness,
+        Glass_Plate_Side_Play, Glass_Plate_Depth_Play,
+        Glass_Notch_Diameter, Glass_Notch_Corner, Glass_Notch_Floor, Glass_Notch_Reach
+    )
+    : get_carrier_config(Carrier_Type);
 
-// Generate carrier type name for etching
-SELECTED_TYPE_NAME = get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format, Frame_Count);
+// Generate carrier type name for etching (the glass carrier says so, e.g. "4X5 GLASS")
+_FORMAT_TYPE_NAME = get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format, Frame_Count);
+SELECTED_TYPE_NAME = (Carrier_Type == "omega-d-glass" && Type_Name != "Custom")
+    ? str(_FORMAT_TYPE_NAME, " GLASS")
+    : _FORMAT_TYPE_NAME;
 
 // ============================================================================
 // UNIFIED FILM OPENING AND PEG CALCULATIONS
@@ -169,6 +202,8 @@ peg_pos_y_calc = peg_positions[1];
 
 // Helper module to avoid repeating 27 parameters for each carrier type
 module dispatch_to_universal_assembly(
+    _top_or_bottom = Top_or_Bottom,
+    _peg_style = Printed_or_Heat_Set_Pegs,
     _alignment_board = Alignment_Board,
     _alignment_board_type = Alignment_Board_Type,
     _flip_bottom = Flip_Bottom_For_Printing,
@@ -181,8 +216,8 @@ module dispatch_to_universal_assembly(
     universal_carrier_assembly(
         config=carrier_config,
         carrier_type=Carrier_Type,
-        top_or_bottom=Top_or_Bottom,
-        printed_or_heat_set_pegs=Printed_or_Heat_Set_Pegs,
+        top_or_bottom=_top_or_bottom,
+        printed_or_heat_set_pegs=_peg_style,
         alignment_board=_alignment_board,
         alignment_board_type=_alignment_board_type,
         flip_bottom_for_printing=_flip_bottom,
@@ -212,10 +247,32 @@ module dispatch_to_universal_assembly(
 if (_Render_Alignment_Board_Only) {
     // Standalone alignment board: render just the board so it can be printed
     // separately (e.g. when using printed pegs, where it can't be fused).
-    instantiate_alignment_board_by_type(Alignment_Board_Type);
+    // Film_Format is passed so 4x5 gets the widened board opening, as when fused.
+    if (Carrier_Type == "omega-d-glass") {
+        // The glass carrier's board is screwed on: cut its clearance holes to match.
+        omega_d_glass_alignment_board(Film_Format);
+    } else {
+        instantiate_alignment_board_by_type(Alignment_Board_Type, Film_Format);
+    }
 } else if (Carrier_Type == "omega-d" || Carrier_Type == "lpl-saunders-45xx" || Carrier_Type == "beseler-23c") {
     // Standard carriers use all user-specified options
     dispatch_to_universal_assembly();
+} else if (Carrier_Type == "omega-d-glass") {
+    // Glass plate carrier: a single piece (there is no top half), no film pegs
+    // (the pocket locates the plate), the alignment board is never fused (it is
+    // screwed on, so the carrier only gets the screw footprint), and it is not
+    // flipped for printing: the pocket must face up to print without supports.
+    if (Top_or_Bottom == "top")
+        echo("Glass plate carrier is a single piece; Top_or_Bottom is ignored.");
+    if (Alignment_Board)
+        echo("Glass plate carrier: alignment board is screwed on, not fused; export it separately with _Render_Alignment_Board_Only.");
+    dispatch_to_universal_assembly(
+        _top_or_bottom="bottom",
+        _peg_style="none",
+        _alignment_board=false,
+        _alignment_board_type="omega",
+        _flip_bottom=false
+    );
 } else if (Carrier_Type == "beseler-45") {
     // Beseler 45: no alignment board — the fixed corner pegs align it in the enlarger.
     dispatch_to_universal_assembly(

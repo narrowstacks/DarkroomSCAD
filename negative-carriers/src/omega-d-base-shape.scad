@@ -15,11 +15,13 @@ include <carrier-configs.scad>
  *
  * @param config - Configuration array (currently unused; reserved for future per-variant overrides)
  * @param top_or_bottom - "top" or "bottom" (top includes a separation hole for prying apart)
+ * @param carrier_height - Slab thickness; defaults to the standard Omega-D height.
+ *        Variants (e.g. the single-piece glass-plate carrier) pass their own.
  */
-module omega_d_base_shape(config, top_or_bottom) {
+module omega_d_base_shape(config, top_or_bottom, carrier_height = get_carrier_height("omega-d")) {
     // Use internal constants for base geometry to avoid relying on global config indices
-    // Keep carrier height from config to remain consistent with universal assembly calculations
-    CARRIER_HEIGHT = get_carrier_height("omega-d");
+    // Height comes from the caller so it stays consistent with universal assembly calculations
+    CARRIER_HEIGHT = carrier_height;
 
     // Base geometry constants (moved from carrier-configs)
     CARRIER_LENGTH = 202;
