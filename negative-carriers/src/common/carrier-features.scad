@@ -82,11 +82,18 @@ function get_calculated_opening_width(eff_orientation, film_actual_h, film_actua
 function get_adjusted_dimension(base_dim, adjustment_val) =
     base_dim + adjustment_val;
 
+// Film "height" (frame length along the strip) for an opening spanning
+// frame_count consecutive frames: the single-frame height plus one frame pitch
+// per extra frame. A filed height keeps its rebate reveal at both ends only —
+// between frames the opening shows exactly the true inter-frame gap.
+function get_multi_frame_height(film_format_str, film_h_raw, frame_count = 1) =
+    film_h_raw + (get_effective_frame_count(film_format_str, frame_count) - 1) * get_film_format_frame_pitch(film_format_str);
+
 // Get final adjusted opening dimension
 // For custom formats, pass custom_film_height and custom_film_width to override defaults
-function get_final_opening_dimension(is_height, film_format_str, orientation_str, adjust_val, custom_film_height = undef, custom_film_width = undef) =
+function get_final_opening_dimension(is_height, film_format_str, orientation_str, adjust_val, custom_film_height = undef, custom_film_width = undef, frame_count = 1) =
     let (
-        _film_h_raw = get_film_format_height(film_format_str, custom_film_height),
+        _film_h_raw = get_multi_frame_height(film_format_str, get_film_format_height(film_format_str, custom_film_height), frame_count),
         _film_w_raw = get_film_format_width(film_format_str, custom_film_width),
         _eff_orientation = get_effective_orientation(film_format_str, orientation_str),
         _calc_opening_dim = is_height ?
@@ -95,22 +102,22 @@ function get_final_opening_dimension(is_height, film_format_str, orientation_str
     ) get_adjusted_dimension(_calc_opening_dim, adjust_val);
 
 // Wrapper functions for backward compatibility and custom format support
-function get_final_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height = undef, custom_film_width = undef) =
-    get_final_opening_dimension(true, film_format_str, orientation_str, adjust_h_val, custom_film_height, custom_film_width);
+function get_final_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height = undef, custom_film_width = undef, frame_count = 1) =
+    get_final_opening_dimension(true, film_format_str, orientation_str, adjust_h_val, custom_film_height, custom_film_width, frame_count);
 
-function get_final_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height = undef, custom_film_width = undef) =
-    get_final_opening_dimension(false, film_format_str, orientation_str, adjust_w_val, custom_film_height, custom_film_width);
+function get_final_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height = undef, custom_film_width = undef, frame_count = 1) =
+    get_final_opening_dimension(false, film_format_str, orientation_str, adjust_w_val, custom_film_height, custom_film_width, frame_count);
 
 // For custom formats: use custom opening dimensions directly if provided, otherwise calculate from film stock 
-function get_custom_aware_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height = undef, custom_film_width = undef, custom_opening_height = undef) =
+function get_custom_aware_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height = undef, custom_film_width = undef, custom_opening_height = undef, frame_count = 1) =
     (film_format_str == "custom" && custom_opening_height != undef) ?
         custom_opening_height
-    : get_final_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height, custom_film_width);
+    : get_final_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height, custom_film_width, frame_count);
 
-function get_custom_aware_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height = undef, custom_film_width = undef, custom_opening_width = undef) =
+function get_custom_aware_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height = undef, custom_film_width = undef, custom_opening_width = undef, frame_count = 1) =
     (film_format_str == "custom" && custom_opening_width != undef) ?
         custom_opening_width
-    : get_final_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height, custom_film_width);
+    : get_final_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height, custom_film_width, frame_count);
 
 // Calculate Z offset for pegs/holes
 function get_peg_z_offset(is_top_piece, z_value_for_top, z_value_for_bottom) =

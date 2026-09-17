@@ -41,6 +41,7 @@ Baked_Board_Stl = "/base-stls/board-omega.stl";
 Carrier_Type = "omega-d";      // ["omega-d", "lpl-saunders-45xx", "beseler-23c", "beseler-45"]
 Orientation = "vertical";      // ["vertical", "horizontal"]
 Film_Format = "35mm";
+Frame_Count = 1;               // [1, 2, 3, 4] — consecutive frames the opening spans (ignored for 4x5 / custom)
 Top_or_Bottom = "bottom";      // ["top", "bottom"]
 Flip_Bottom_For_Printing = true;
 Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
@@ -83,10 +84,10 @@ CUT_THROUGH_EXTENSION = 1;
 FILM_OPENING_FRAME_FILLET = get_film_opening_frame_fillet(Carrier_Type);
 IS_TOP = (Top_or_Bottom == "top");
 
-SELECTED_TYPE_NAME = get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format);
+SELECTED_TYPE_NAME = get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format, Frame_Count);
 
-opening_height = get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Height);
-opening_width  = get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width);
+opening_height = get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Height, Frame_Count);
+opening_width  = get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width, Frame_Count);
 
 peg_diameter = DEFAULT_PEG_DIAMETER;
 peg_positions = calculate_unified_peg_positions(

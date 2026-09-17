@@ -34,6 +34,8 @@ Carrier_Type = "omega-d"; // ["omega-d", "lpl-saunders-45xx", "beseler-23c", "be
 Orientation = "vertical"; // ["vertical", "horizontal"]
 /* [Film Format Selection] */
 Film_Format = "35mm"; // ["35mm", "35mm filed", "half frame", "half frame filed", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "4x5", "custom"]
+// Consecutive frames the opening spans (one exposure prints them side by side). Ignored for 4x5 and custom.
+Frame_Count = 1; // [1, 2, 3, 4]
 
 /* [Carrier Options] */
 // Top or bottom of the carrier
@@ -132,7 +134,7 @@ validate_carrier_config(Carrier_Type);
 carrier_config = get_carrier_config(Carrier_Type);
 
 // Generate carrier type name for etching
-SELECTED_TYPE_NAME = get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format);
+SELECTED_TYPE_NAME = get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format, Frame_Count);
 
 // ============================================================================
 // UNIFIED FILM OPENING AND PEG CALCULATIONS
@@ -140,8 +142,8 @@ SELECTED_TYPE_NAME = get_selected_type_name(Type_Name, Custom_Type_Name, Film_Fo
 
 // Calculate film opening dimensions once for all carriers
 effective_orientation = get_effective_orientation(Film_Format, Orientation);
-adjusted_opening_height = get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Height);
-adjusted_opening_width = get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width);
+adjusted_opening_height = get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Height, Frame_Count);
+adjusted_opening_width = get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width, Frame_Count);
 
 // Get peg diameter from config (index varies by carrier type)
 peg_diameter = (Carrier_Type == "frameAndPegTest") ? carrier_config[1] : DEFAULT_PEG_DIAMETER;

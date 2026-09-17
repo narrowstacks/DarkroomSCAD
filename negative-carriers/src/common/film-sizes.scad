@@ -28,33 +28,43 @@ customFilmFormatHeight = 37;
 customFilmFormatWidth = 37;
 customFilmFormatPegDistance = 37;
 
+// Frame pitch along the strip (image length + inter-frame gap), i.e. the
+// center-to-center distance of consecutive frames. Multi-frame openings
+// (Frame_Count > 1) grow by one pitch per extra frame. Filed variants share
+// the unfiled pitch: filing reveals rebate, it doesn't move the frames.
+FRAME_PITCH_135 = 38;               // 8 perforations x 4.75mm
+FRAME_PITCH_HALF_FRAME = 19;        // 4 perforations
+FRAME_GAP_120 = 3;                  // typical inter-frame gap on 120 (camera dependent, ~2-4mm)
+
 // Film format lookup table
-// Each entry: [format_name, height, width, peg_distance, type_name]
+// Each entry: [format_name, height, width, peg_distance, type_name, frame_pitch]
 // - height: opening height (frame length direction)
 // - width: opening width (film strip width direction)
 // - peg_distance: distance for alignment pegs (based on film stock width)
 // - type_name: label for etching
+// - frame_pitch: center-to-center frame spacing along the strip (0 = single
+//   frame only; 4x5 sheets have no "next frame")
 FILM_FORMATS = [
     // 35mm formats
-    ["35mm",        36,   thirtyFiveStandardWidth,  thirtyFiveFullHeight, "35MM"],      // Standard 35mm frame (exact 36x24 image; was 37 by accident of reusing the strip-width constant)
-    ["35mm filed",  40,   28,  thirtyFiveFullHeight, "FILED35"],   // Filed/enlarged opening
-    ["half frame",  18,   thirtyFiveStandardWidth,  thirtyFiveFullHeight, "HALF"],      // Half frame (portrait orientation)
-    ["half frame filed", 21, 28, thirtyFiveFullHeight, "FILEDHALF"], // Filed half frame (19mm pitch + 2, same rebate reveal as 35mm filed)
+    ["35mm",        36,   thirtyFiveStandardWidth,  thirtyFiveFullHeight, "35MM", FRAME_PITCH_135],      // Standard 35mm frame (exact 36x24 image; was 37 by accident of reusing the strip-width constant)
+    ["35mm filed",  40,   28,  thirtyFiveFullHeight, "FILED35", FRAME_PITCH_135],   // Filed/enlarged opening
+    ["half frame",  18,   thirtyFiveStandardWidth,  thirtyFiveFullHeight, "HALF", FRAME_PITCH_HALF_FRAME],      // Half frame (portrait orientation)
+    ["half frame filed", 21, 28, thirtyFiveFullHeight, "FILEDHALF", FRAME_PITCH_HALF_FRAME], // Filed half frame (19mm pitch + 2, same rebate reveal as 35mm filed)
 
     // Medium format (120/220) - height is frame length, width is 56mm (or 58 filed)
-    ["6x4.5",       41.5, mediumFormatStandardHeight,  mediumFormatFullHeight, "6x4.5"],
-    ["6x4.5 filed", 43.5, mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x4.5"],
-    ["6x6",         mediumFormatStandardHeight,   mediumFormatStandardHeight,  mediumFormatFullHeight, "6x6"],
-    ["6x6 filed",   mediumFormatFiledHeight,   mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x6"],
-    ["6x7",         70,   mediumFormatStandardHeight,  mediumFormatFullHeight, "6x7"],
-    ["6x7 filed",   72,   mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x7"],
-    ["6x8",         77,   mediumFormatStandardHeight,  mediumFormatFullHeight, "6x8"],
-    ["6x8 filed",   79,   mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x8"],
-    ["6x9",         84,   mediumFormatStandardHeight,  mediumFormatFullHeight, "6x9"],
-    ["6x9 filed",   86,   mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x9"],
+    ["6x4.5",       41.5, mediumFormatStandardHeight,  mediumFormatFullHeight, "6x4.5", 41.5 + FRAME_GAP_120],
+    ["6x4.5 filed", 43.5, mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x4.5", 41.5 + FRAME_GAP_120],
+    ["6x6",         mediumFormatStandardHeight,   mediumFormatStandardHeight,  mediumFormatFullHeight, "6x6", mediumFormatStandardHeight + FRAME_GAP_120],
+    ["6x6 filed",   mediumFormatFiledHeight,   mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x6", mediumFormatStandardHeight + FRAME_GAP_120],
+    ["6x7",         70,   mediumFormatStandardHeight,  mediumFormatFullHeight, "6x7", 70 + FRAME_GAP_120],
+    ["6x7 filed",   72,   mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x7", 70 + FRAME_GAP_120],
+    ["6x8",         77,   mediumFormatStandardHeight,  mediumFormatFullHeight, "6x8", 77 + FRAME_GAP_120],
+    ["6x8 filed",   79,   mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x8", 77 + FRAME_GAP_120],
+    ["6x9",         84,   mediumFormatStandardHeight,  mediumFormatFullHeight, "6x9", 84 + FRAME_GAP_120],
+    ["6x9 filed",   86,   mediumFormatFiledHeight,  mediumFormatFullHeight, "F6x9", 84 + FRAME_GAP_120],
 
     // Large format
-    ["4x5",         120,  95,  fourByFiveFullWidth, "4X5"],
+    ["4x5",         120,  95,  fourByFiveFullWidth, "4X5", 0],
 ];
 
 // Index constants for FILM_FORMATS table
@@ -63,6 +73,7 @@ _FF_HEIGHT = 1;
 _FF_WIDTH = 2;
 _FF_PEG_DIST = 3;
 _FF_TYPE_NAME = 4;
+_FF_FRAME_PITCH = 5;
 
 // Core lookup function - returns the format entry or undef if not found
 function _find_film_format(format) =
@@ -93,13 +104,28 @@ function get_film_format_width(format, custom_film_width = undef) =
 function get_film_format_peg_distance(format, custom_film_width = undef) =
     get_film_format(format, undef, custom_film_width)[2];
 
-// Function to get the type name for etching
-function get_film_format_type_name(format) =
+// Frame pitch along the strip for a format (0 for single-frame-only formats
+// such as 4x5 sheets, and for "custom", which sizes its opening directly).
+function get_film_format_frame_pitch(format) =
     let(entry = _find_film_format(format))
-    entry != undef ? entry[_FF_TYPE_NAME]
-        : format == "custom" ? "CUSTOM"
-        : format; // Fallback to format name
+    entry != undef ? entry[_FF_FRAME_PITCH] : 0;
+
+// Effective frame count: formats without a pitch can't span frames, so they
+// always render as a single frame regardless of Frame_Count.
+function get_effective_frame_count(format, frame_count = 1) =
+    (get_film_format_frame_pitch(format) > 0 && frame_count > 1) ? frame_count : 1;
+
+// Function to get the type name for etching. Multi-frame openings get an
+// " X<n>" suffix (e.g. "35MM X2") so the carrier reads what it holds.
+function get_film_format_type_name(format, frame_count = 1) =
+    let(
+        entry = _find_film_format(format),
+        base = entry != undef ? entry[_FF_TYPE_NAME]
+            : format == "custom" ? "CUSTOM"
+            : format, // Fallback to format name
+        n = get_effective_frame_count(format, frame_count)
+    ) n > 1 ? str(base, " X", n) : base;
 
 // Function to determine the selected type name for etching (backward compatible)
-function get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format) =
-    Type_Name == "Custom" ? Custom_Type_Name : get_film_format_type_name(Film_Format);
+function get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format, Frame_Count = 1) =
+    Type_Name == "Custom" ? Custom_Type_Name : get_film_format_type_name(Film_Format, Frame_Count);
