@@ -3,6 +3,7 @@
 // every include with no dedup, so re-including the ~80k-line library here would
 // add seconds per render. Uncomment to render/preview this file by itself:
 // include <BOSL2/std.scad>
+// include <../carrier-configs.scad>  // pilot-hole pattern constants
 
 // $fn inherited from carrier.scad for variable preview/final quality
 
@@ -31,12 +32,22 @@ module lpl_corner_cut_box() {
 // Large body geometry doesn't need high $fn
 BOARD_BODY_FN = 72;
 
-module lpl_saunders_alignment_board() {
+// pilot_holes: cut the carrier's screw footprint (LPL_SAUNDERS_BOARD_SCREW_PATTERN_*,
+// carrier-configs.scad) as thread-forming pilot holes, for the separately printed
+// board that the carrier screws onto. Off for a fused board.
+module lpl_saunders_alignment_board(pilot_holes = false) {
     render() rotate([0, 180, 90]) difference() {
             cyl(l=BOARD_DEPTH + 0.1, d=CIRCLE_DIAMETER, chamfer=.9, chamfang=45, from_end=true, $fn=BOARD_BODY_FN);
             translate([0, 0, -BOARD_DEPTH / 2]) cuboid([CIRCLE_DIAMETER, CIRCLE_DIAMETER, BOARD_DEPTH + 0.1], anchor=CENTER);
             cuboid([CIRCLE_DIAMETER + 0.1, GAP_WIDTH, BOARD_DEPTH + 0.2], anchor=CENTER);
             translate([0, CIRCLE_DIAMETER / 2, 0]) cuboid([161, TOP_BOTTOM_CUT, BOARD_DEPTH + 0.2], anchor=CENTER);
             translate([0, -CIRCLE_DIAMETER / 2, 0]) cuboid([161, TOP_BOTTOM_CUT, BOARD_DEPTH + 0.2], anchor=CENTER);
+            // The rotate above maps this module's (x, y) to carrier (-y, -x), so
+            // the carrier's (±dist_x/2, ±dist_y/2) pattern is (±dist_y/2, ±dist_x/2)
+            // here (it's symmetric, so the sign flips don't matter).
+            if (pilot_holes)
+                for (xm = [-1, 1]) for (ym = [-1, 1])
+                    translate([xm * LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_Y / 2, ym * LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_X / 2, 0])
+                        cylinder(h=BOARD_DEPTH + 2, d=ALIGNMENT_BOARD_SCREW_PILOT_DIA, center=true, $fn=24);
         }
 }

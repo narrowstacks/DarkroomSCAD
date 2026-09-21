@@ -310,13 +310,15 @@ module generate_peg_features(
 }
 
 // Instantiate a specific alignment board based on type string
-module instantiate_alignment_board_by_type(board_type_str, film_format = "") {
+// pilot_holes: cut the screw-footprint pilot holes into the LPL / 23C boards
+// (for the standalone, screwed-on board export; never for a fused board).
+module instantiate_alignment_board_by_type(board_type_str, film_format = "", pilot_holes = false) {
     if (board_type_str == "omega") {
         omega_d_alignment_board_no_screws(film_format);
     } else if (board_type_str == "lpl-saunders") {
-        lpl_saunders_alignment_board();
+        lpl_saunders_alignment_board(pilot_holes=pilot_holes);
     } else if (board_type_str == "beseler-23c") {
-        beseler_23c_alignment_board();
+        beseler_23c_alignment_board(pilot_holes=pilot_holes);
     } else {
         echo(str("Warning: Unknown alignment board type specified: ", board_type_str));
     }

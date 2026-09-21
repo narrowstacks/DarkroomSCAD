@@ -54,6 +54,12 @@ LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_X = 136;
 LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_Y = 70;
 BESELER_23C_BOARD_SCREW_RADIUS = 57.5; // = TORUS_MAJOR_RADIUS of the 23C board
 BESELER_23C_BOARD_SCREW_PATTERN_DIST = 2 * BESELER_23C_BOARD_SCREW_RADIUS * cos(45); // 81.32
+// Pilot hole in a separately printed LPL / 23C board for the footprint screws
+// to thread into (the carrier's 2mm holes are on top of it): the same
+// thread-forming size as the M2 heat-set peg hole, tap drill + FDM
+// compensation = 1.9mm. Cut only for the standalone board export — a fused
+// board is one solid print with no screws.
+ALIGNMENT_BOARD_SCREW_PILOT_DIA = M2_HEAT_SET_HOLE_DIA + HEAT_SET_HOLE_FDM_COMPENSATION;
 // Kept for callers that still read the old names (the omega pattern).
 UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X = OMEGA_BOARD_SCREW_PATTERN_DIST_X;
 UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y = OMEGA_BOARD_SCREW_PATTERN_DIST_Y;

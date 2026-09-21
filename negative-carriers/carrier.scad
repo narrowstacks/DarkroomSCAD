@@ -269,7 +269,9 @@ if (_Render_Alignment_Board_Only) {
         // The glass carrier's board is screwed on: cut its clearance holes to match.
         omega_d_glass_alignment_board(Film_Format);
     } else {
-        instantiate_alignment_board_by_type(Alignment_Board_Type, Film_Format);
+        // Screwed on through the carrier's footprint holes: give the board the
+        // matching pilot holes (LPL / 23C; the omega board keeps its plain form).
+        instantiate_alignment_board_by_type(Alignment_Board_Type, Film_Format, pilot_holes=true);
     }
 } else if (Carrier_Type == "omega-d" || Carrier_Type == "lpl-saunders-45xx" || Carrier_Type == "beseler-23c") {
     // Standard carriers use all user-specified options

@@ -3,6 +3,7 @@
 // every include with no dedup, so re-including the ~80k-line library here would
 // add seconds per render. Uncomment to render/preview this file by itself:
 // include <BOSL2/std.scad>
+// include <../carrier-configs.scad>  // pilot-hole pattern constants
 
 alignmentCircleOuterDiameter = 120;
 alignmentCircleInnerDiameter = 110;
@@ -13,8 +14,16 @@ TORUS_MAJOR_RADIUS = (alignmentCircleOuterDiameter + alignmentCircleInnerDiamete
 // Minor radius: half the difference between outer and inner radii (cross-section radius)
 TORUS_MINOR_RADIUS = (alignmentCircleOuterDiameter - alignmentCircleInnerDiameter) / 4; // 2.5
 
-module beseler_23c_alignment_board() {
-    render() translate([0, 0, .5]) {
+// pilot_holes: cut the carrier's screw footprint (BESELER_23C_BOARD_SCREW_PATTERN_DIST,
+// carrier-configs.scad — on the ring's centre-line at 45°) as thread-forming
+// pilot holes through the ring, for the separately printed board that the
+// carrier screws onto. Off for a fused board.
+module beseler_23c_alignment_board(pilot_holes = false) {
+    render() translate([0, 0, .5]) difference() {
         torus(r_maj=TORUS_MAJOR_RADIUS, r_min=TORUS_MINOR_RADIUS, anchor=CENTER);
+        if (pilot_holes)
+            for (xm = [-1, 1]) for (ym = [-1, 1])
+                translate([xm * BESELER_23C_BOARD_SCREW_PATTERN_DIST / 2, ym * BESELER_23C_BOARD_SCREW_PATTERN_DIST / 2, 0])
+                    cylinder(h=2 * TORUS_MINOR_RADIUS + 2, d=ALIGNMENT_BOARD_SCREW_PILOT_DIA, center=true, $fn=24);
     }
 }
