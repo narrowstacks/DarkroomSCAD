@@ -51,6 +51,8 @@ Flip_Bottom_For_Printing = true; // [true, false]
 
 // Printed or heat-set pegs? Heat set pegs required when including alignment board.
 Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
+// Heat-set pegs only: the machine screw (e.g. M2x4 socket head) that threads into the bottom carrier and whose head registers the top. Sizes both holes.
+Heat_Set_Screw_Size = "M2"; // ["M2", "M2.5", "M3"]
 
 
 /* [Custom Film Format] */
@@ -137,6 +139,10 @@ Peg_Gap = 0;
 Adjust_Film_Width = 0;
 // Leave at 0 for no adjustment. Measured in mm. Add positive values to increase the film height, subtract (use negative values) to decrease it.
 Adjust_Film_Height = 0;
+// Heat-set pegs only. Added to the diameter (mm) of the bottom carrier's screw holes, which the screw threads into (default M2: 1.9mm). Use +0.1..0.2 if the screw won't start, negative if it spins freely.
+Heat_Set_Thread_Hole_Adjust = 0;
+// Heat-set pegs only. Added to the diameter (mm) of the top carrier's screw-head clearance holes (default M2: 4.3mm).
+Heat_Set_Head_Hole_Adjust = 0;
 
 /* [Render Quality] */
 // Use "preview" for faster F5 preview, "final" for smooth F6 renders
@@ -218,6 +224,9 @@ module dispatch_to_universal_assembly(
         carrier_type=Carrier_Type,
         top_or_bottom=_top_or_bottom,
         printed_or_heat_set_pegs=_peg_style,
+        heat_set_screw_size=Heat_Set_Screw_Size,
+        heat_set_thread_hole_adjust=Heat_Set_Thread_Hole_Adjust,
+        heat_set_head_hole_adjust=Heat_Set_Head_Hole_Adjust,
         alignment_board=_alignment_board,
         alignment_board_type=_alignment_board_type,
         flip_bottom_for_printing=_flip_bottom,

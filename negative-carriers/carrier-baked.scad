@@ -45,6 +45,7 @@ Frame_Count = 1;               // [1, 2, 3, 4] — consecutive frames the openin
 Top_or_Bottom = "bottom";      // ["top", "bottom"]
 Flip_Bottom_For_Printing = true;
 Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
+Heat_Set_Screw_Size = "M2";    // ["M2", "M2.5", "M3"]
 Alignment_Board = false;
 Alignment_Board_Type = "omega"; // ["omega", "lpl-saunders", "beseler-23c"]
 
@@ -59,6 +60,8 @@ Custom_Opening_Height = 36;
 Peg_Gap = 0;
 Adjust_Film_Width = 0;
 Adjust_Film_Height = 0;
+Heat_Set_Thread_Hole_Adjust = 0;
+Heat_Set_Head_Hole_Adjust = 0;
 
 /* [Text] */
 Enable_Owner_Name_Etch = true;
@@ -169,7 +172,8 @@ module baked_footprint_holes(is_dent) {
 // All subtractions applied to the imported base (same set as the parametric assembly).
 module baked_subtractions() {
     baked_film_opening(opening_height, opening_width, CARRIER_HEIGHT, CUT_THROUGH_EXTENSION, FILM_OPENING_FRAME_FILLET);
-    generate_all_peg_features(Top_or_Bottom, Printed_or_Heat_Set_Pegs, peg_diameter, DEFAULT_PEG_HEIGHT, peg_pos_x, peg_pos_y, peg_z_offset);
+    generate_all_peg_features(Top_or_Bottom, Printed_or_Heat_Set_Pegs, peg_diameter, DEFAULT_PEG_HEIGHT, peg_pos_x, peg_pos_y, peg_z_offset,
+                              Heat_Set_Screw_Size, Heat_Set_Thread_Hole_Adjust, Heat_Set_Head_Hole_Adjust);
     baked_footprint_holes(IS_TOP);
     baked_text_etches();
     generate_directional_arrow_etch(

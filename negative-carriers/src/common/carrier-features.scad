@@ -11,18 +11,48 @@ DEFAULT_PEG_HEIGHT = 4;
 PEG_HOLE_TOLERANCE = 0.25; // Additional radius for peg holes
 PEG_HEIGHT_ADJUSTMENT = 0.2; // Extra height for proper OpenSCAD preview
 TEXT_ETCH_OVEREXTRUDE = 0.2; // Extra extrusion for reliable subtraction
-M2_HEAT_SET_HOLE_DIA = 1.6; // Diameter for M2 heat-set insert holes
+M2_HEAT_SET_HOLE_DIA = 1.6; // M2 thread-forming hole (tap-drill size); the screw cuts its own thread in the plastic
 M2_SOCKET_HEAD_DIA = 3.8; // Diameter for M2 socket head clearance
 DENT_TOLERANCE = 0.25; // Additional radius for dent holes
+
+// "Heat-set" pegs are really machine screws (e.g. M2x4 socket head) threaded
+// straight into the bottom carrier: the screw head is the peg, and the top
+// carrier's clearance hole registers on it. Per screw size:
+//   [name, thread-forming hole dia (ISO tap-drill size), socket head dia (ISO 4762)]
+HEAT_SET_SCREW_SIZES = [
+    ["M2",   M2_HEAT_SET_HOLE_DIA, M2_SOCKET_HEAD_DIA],
+    ["M2.5", 2.05, 4.5],
+    ["M3",   2.5,  5.5],
+];
+DEFAULT_HEAT_SET_SCREW_SIZE = "M2";
+// Added to the thread-forming hole DIAMETER. Small vertical FDM holes print
+// ~0.1-0.3mm under their modelled size (facet shrink, inner-perimeter bulge,
+// elephant's foot on a 2mm plate), so tap-drill + 0.3 prints at roughly
+// tap-drill size — the usual "+0.3mm for a 0.4mm nozzle" rule. M2: 1.9mm.
+// Deliberately NOT the 0.5mm the printed-peg holes get (PEG_HOLE_TOLERANCE x2),
+// which printed ~2.2mm and let M2 screws spin.
+HEAT_SET_HOLE_FDM_COMPENSATION = 0.3;
+
+function heat_set_screw_spec(screw_size) =
+    let (hits = [for (s = HEAT_SET_SCREW_SIZES) if (s[0] == screw_size) s])
+    assert(len(hits) == 1, str("Unknown heat-set screw size '", screw_size, "'. Supported: ", [for (s = HEAT_SET_SCREW_SIZES) s[0]]))
+    hits[0];
+// Bottom carrier: the hole the screw threads into. `adjust` is a user diameter tweak (mm).
+function heat_set_thread_hole_dia(screw_size = DEFAULT_HEAT_SET_SCREW_SIZE, adjust = 0) =
+    heat_set_screw_spec(screw_size)[1] + HEAT_SET_HOLE_FDM_COMPENSATION + adjust;
+// Top carrier: clearance for the screw head, which acts as the registration peg.
+function heat_set_head_hole_dia(screw_size = DEFAULT_HEAT_SET_SCREW_SIZE, adjust = 0) =
+    heat_set_screw_spec(screw_size)[2] + 2 * PEG_HOLE_TOLERANCE + adjust;
 
 // Creates the rectangular opening for the film frame.
 module film_opening(opening_height, opening_width, carrier_height, cut_through_extension, frame_fillet) {
     cuboid([opening_height, opening_width, carrier_height + cut_through_extension], chamfer=frame_fillet, anchor=CENTER);
 }
 
-// Creates the registration pegs or corresponding holes.
-module pegs_feature(is_hole = false, peg_diameter, peg_height, peg_pos_x, peg_pos_y, z_offset) {
-    radius = is_hole ? peg_diameter / 2 + PEG_HOLE_TOLERANCE : peg_diameter / 2;
+// Creates the registration pegs or corresponding holes. Holes grow by
+// `hole_tolerance` on the radius (pass 0 for a pre-sized hole diameter).
+module pegs_feature(is_hole = false, peg_diameter, peg_height, peg_pos_x, peg_pos_y, z_offset, hole_tolerance = PEG_HOLE_TOLERANCE) {
+    radius = is_hole ? peg_diameter / 2 + hole_tolerance : peg_diameter / 2;
     // Only apply height adjustment to holes (for clean boolean operations).
     // Printed pegs use exact height so they don't poke through bottom or protrude above top carrier.
     effective_peg_height = is_hole ? peg_height + PEG_HEIGHT_ADJUSTMENT : peg_height;
@@ -36,15 +66,22 @@ module pegs_feature(is_hole = false, peg_diameter, peg_height, peg_pos_x, peg_po
     }
 }
 
-// Creates holes for M2 heat-set screws
-module heat_set_pegs_holes(is_socket_head = false, peg_height, peg_pos_x, peg_pos_y, z_offset) {
-    diameter = is_socket_head ? M2_SOCKET_HEAD_DIA : M2_HEAT_SET_HOLE_DIA;
-    pegs_feature(is_hole=true, peg_diameter=diameter, peg_height=peg_height, peg_pos_x=peg_pos_x, peg_pos_y=peg_pos_y, z_offset=z_offset);
+// Creates holes for the heat-set peg screws: the thread-forming hole (bottom)
+// or the screw-head clearance (top), sized by heat_set_*_hole_dia for
+// `screw_size` plus the user's diameter adjustments.
+module heat_set_pegs_holes(is_socket_head = false, peg_height, peg_pos_x, peg_pos_y, z_offset,
+                           screw_size = DEFAULT_HEAT_SET_SCREW_SIZE, thread_hole_adjust = 0, head_hole_adjust = 0) {
+    diameter = is_socket_head
+        ? heat_set_head_hole_dia(screw_size, head_hole_adjust)
+        : heat_set_thread_hole_dia(screw_size, thread_hole_adjust);
+    pegs_feature(is_hole=true, peg_diameter=diameter, peg_height=peg_height, peg_pos_x=peg_pos_x, peg_pos_y=peg_pos_y, z_offset=z_offset, hole_tolerance=0);
 }
 
 // Legacy wrapper for backward compatibility
-module heat_set_pegs_socket_head_opening(peg_height, peg_pos_x, peg_pos_y, z_offset) {
-    heat_set_pegs_holes(is_socket_head=true, peg_height=peg_height, peg_pos_x=peg_pos_x, peg_pos_y=peg_pos_y, z_offset=z_offset);
+module heat_set_pegs_socket_head_opening(peg_height, peg_pos_x, peg_pos_y, z_offset,
+                                         screw_size = DEFAULT_HEAT_SET_SCREW_SIZE, head_hole_adjust = 0) {
+    heat_set_pegs_holes(is_socket_head=true, peg_height=peg_height, peg_pos_x=peg_pos_x, peg_pos_y=peg_pos_y, z_offset=z_offset,
+                        screw_size=screw_size, head_hole_adjust=head_hole_adjust);
 }
 
 // Creates an extruded text shape for etching.
@@ -199,7 +236,9 @@ function calculate_unified_peg_positions(
         )
     ) [pos_x, pos_y];
 
-// Generate peg features (printed pegs or holes for pegs/inserts)
+// Generate peg features (printed pegs or holes for pegs/screws). The
+// _heat_set_* params size the screw holes (see heat_set_pegs_holes); they are
+// ignored for printed pegs.
 module generate_peg_features(
     _top_or_bottom,
     _printed_or_heat_set,
@@ -208,7 +247,10 @@ module generate_peg_features(
     _peg_x,
     _peg_y,
     _z_off,
-    _is_subtraction_pass
+    _is_subtraction_pass,
+    _heat_set_screw_size = DEFAULT_HEAT_SET_SCREW_SIZE,
+    _heat_set_thread_hole_adjust = 0,
+    _heat_set_head_hole_adjust = 0
 ) {
     if (_is_subtraction_pass) {
         if (_top_or_bottom == "top") {
@@ -226,7 +268,9 @@ module generate_peg_features(
                     peg_height=_peg_h,
                     peg_pos_x=_peg_x,
                     peg_pos_y=_peg_y,
-                    z_offset=_z_off
+                    z_offset=_z_off,
+                    screw_size=_heat_set_screw_size,
+                    head_hole_adjust=_heat_set_head_hole_adjust
                 );
             }
         } else {
@@ -235,7 +279,9 @@ module generate_peg_features(
                     peg_height=_peg_h,
                     peg_pos_x=_peg_x,
                     peg_pos_y=_peg_y,
-                    z_offset=_z_off
+                    z_offset=_z_off,
+                    screw_size=_heat_set_screw_size,
+                    thread_hole_adjust=_heat_set_thread_hole_adjust
                 );
             }
         }
@@ -274,7 +320,10 @@ module generate_all_peg_features(
     _peg_actual_height_param,
     _peg_pos_x_param,
     _peg_pos_y_param,
-    _peg_z_offset_param
+    _peg_z_offset_param,
+    _heat_set_screw_size = DEFAULT_HEAT_SET_SCREW_SIZE,
+    _heat_set_thread_hole_adjust = 0,
+    _heat_set_head_hole_adjust = 0
 ) {
     generate_peg_features(
         _top_or_bottom=_top_or_bottom,
@@ -284,7 +333,10 @@ module generate_all_peg_features(
         _peg_x=_peg_pos_x_param,
         _peg_y=_peg_pos_y_param,
         _z_off=_peg_z_offset_param,
-        _is_subtraction_pass=true
+        _is_subtraction_pass=true,
+        _heat_set_screw_size=_heat_set_screw_size,
+        _heat_set_thread_hole_adjust=_heat_set_thread_hole_adjust,
+        _heat_set_head_hole_adjust=_heat_set_head_hole_adjust
     );
 }
 
@@ -323,7 +375,10 @@ module carrier_base_processing(
     _peg_actual_height_param,
     _peg_pos_x_param,
     _peg_pos_y_param,
-    _peg_z_offset_param
+    _peg_z_offset_param,
+    _heat_set_screw_size = DEFAULT_HEAT_SET_SCREW_SIZE,
+    _heat_set_thread_hole_adjust = 0,
+    _heat_set_head_hole_adjust = 0
 ) {
     difference() {
         children(0);
@@ -338,7 +393,8 @@ module carrier_base_processing(
 
         generate_all_peg_features(
             _top_or_bottom, _peg_style_param, _peg_diameter_param,
-            _peg_actual_height_param, _peg_pos_x_param, _peg_pos_y_param, _peg_z_offset_param
+            _peg_actual_height_param, _peg_pos_x_param, _peg_pos_y_param, _peg_z_offset_param,
+            _heat_set_screw_size, _heat_set_thread_hole_adjust, _heat_set_head_hole_adjust
         );
     }
 

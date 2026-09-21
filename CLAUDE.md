@@ -100,6 +100,7 @@ All enlarger implementations share these core parameters:
 - `Alignment_Board`: Enable/disable alignment board inclusion
 - `Alignment_Board_Type`: Alignment board style ("omega", "lpl-saunders", "beseler-23c")
 - `Printed_or_Heat_Set_Pegs`: Peg attachment method
+- `Heat_Set_Screw_Size` ("M2" | "M2.5" | "M3"), `Heat_Set_Thread_Hole_Adjust`, `Heat_Set_Head_Hole_Adjust`: heat-set peg screw sizing (see `HEAT_SET_SCREW_SIZES`)
 - `Owner_Name`, `Type_Name`: Text etching options
 - `Fontface`, `Font_Size`, `TEXT_ETCH_DEPTH`: Typography settings
 
@@ -116,7 +117,8 @@ The codebase includes advanced multi-material printing support:
 Defined in `carrier-features.scad`:
 
 - `PEG_HOLE_TOLERANCE = 0.25`: Additional radius for peg holes
-- `M2_HEAT_SET_HOLE_DIA = 1.6`: M2 heat-set insert hole diameter
+- `M2_HEAT_SET_HOLE_DIA = 1.6`: M2 thread-forming hole (tap-drill size) — the "heat-set" pegs are machine screws threaded straight into the bottom carrier; their heads are the pegs
+- `HEAT_SET_SCREW_SIZES`: per-size `[name, thread hole dia, socket head dia]` (M2 / M2.5 / M3); `heat_set_thread_hole_dia()` adds `HEAT_SET_HOLE_FDM_COMPENSATION = 0.3` (M2 → 1.9mm modelled, prints ≈ tap size on FDM), `heat_set_head_hole_dia()` adds `2 × PEG_HOLE_TOLERANCE`
 - `TEXT_ETCH_OVEREXTRUDE = 0.2`: Extra depth for reliable text subtraction
 
 ## File Dependencies
