@@ -46,6 +46,8 @@ Top_or_Bottom = "bottom";      // ["top", "bottom"]
 Flip_Bottom_For_Printing = true;
 Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
 Heat_Set_Screw_Size = "M2";    // ["M2", "M2.5", "M3"]
+Heat_Set_Screw_Head = "socket"; // ["socket", "button", "pan", "cheese", "custom"]
+Heat_Set_Screw_Head_Diameter = 3.8; // used when Heat_Set_Screw_Head == "custom"
 Alignment_Board = false;
 Alignment_Board_Type = "omega"; // ["omega", "lpl-saunders", "beseler-23c"]
 
@@ -173,7 +175,8 @@ module baked_footprint_holes(is_dent) {
 module baked_subtractions() {
     baked_film_opening(opening_height, opening_width, CARRIER_HEIGHT, CUT_THROUGH_EXTENSION, FILM_OPENING_FRAME_FILLET);
     generate_all_peg_features(Top_or_Bottom, Printed_or_Heat_Set_Pegs, peg_diameter, DEFAULT_PEG_HEIGHT, peg_pos_x, peg_pos_y, peg_z_offset,
-                              Heat_Set_Screw_Size, Heat_Set_Thread_Hole_Adjust, Heat_Set_Head_Hole_Adjust);
+                              heat_set_thread_hole_dia(Heat_Set_Screw_Size, Heat_Set_Thread_Hole_Adjust),
+                              heat_set_head_hole_dia(Heat_Set_Screw_Size, Heat_Set_Screw_Head, Heat_Set_Screw_Head_Diameter, Heat_Set_Head_Hole_Adjust));
     baked_footprint_holes(IS_TOP);
     baked_text_etches();
     generate_directional_arrow_etch(

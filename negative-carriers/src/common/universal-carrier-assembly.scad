@@ -62,9 +62,8 @@ module beseler45_corner_peg_holes() {
  * @param carrier_type - String identifier for carrier type
  * @param top_or_bottom - "top" or "bottom"
  * @param printed_or_heat_set_pegs - "printed" or "heat_set"
- * @param heat_set_screw_size - "M2" | "M2.5" | "M3": sizes the heat-set screw holes (see HEAT_SET_SCREW_SIZES)
- * @param heat_set_thread_hole_adjust - mm added to the bottom thread-forming hole diameter
- * @param heat_set_head_hole_adjust - mm added to the top screw-head clearance diameter
+ * @param heat_set_thread_hole_dia - bottom thread-forming screw hole diameter (see heat_set_thread_hole_dia)
+ * @param heat_set_head_hole_dia - top screw-head clearance diameter (see heat_set_head_hole_dia)
  * @param alignment_board - true/false
  * @param alignment_board_type - "omega", "lpl-saunders", "beseler-23c"
  * @param flip_bottom_for_printing - true/false
@@ -100,10 +99,10 @@ module universal_carrier_assembly(
     alignment_board_type,
     flip_bottom_for_printing,
 
-    // Heat-set peg screw sizing (ignored for printed pegs)
-    heat_set_screw_size = DEFAULT_HEAT_SET_SCREW_SIZE,
-    heat_set_thread_hole_adjust = 0,
-    heat_set_head_hole_adjust = 0,
+    // Heat-set peg screw holes, resolved from screw size / head style / user
+    // adjusts by the caller (ignored for printed pegs)
+    heat_set_thread_hole_dia = heat_set_thread_hole_dia(),
+    heat_set_head_hole_dia = heat_set_head_hole_dia(),
 
     // Text etching parameters
     enable_owner_name_etch,
@@ -369,9 +368,8 @@ module universal_carrier_assembly(
                     _peg_pos_x_param=peg_pos_x,
                     _peg_pos_y_param=peg_pos_y,
                     _peg_z_offset_param=peg_z_offset_calc,
-                    _heat_set_screw_size=heat_set_screw_size,
-                    _heat_set_thread_hole_adjust=heat_set_thread_hole_adjust,
-                    _heat_set_head_hole_adjust=heat_set_head_hole_adjust
+                    _heat_set_thread_hole_dia=heat_set_thread_hole_dia,
+                    _heat_set_head_hole_dia=heat_set_head_hole_dia
                 ) {
                     difference() {
                         // Generate base shape using provided module
@@ -391,7 +389,7 @@ module universal_carrier_assembly(
                         if (carrier_type == "beseler-45" && printed_or_heat_set_pegs == "heat_set")
                             for (xm = [-1, 1]) for (ym = [-1, 1])
                                 translate([xm * peg_pos_x, ym * peg_pos_y, 0])
-                                    cylinder(h=CARRIER_HEIGHT + 2, d=heat_set_thread_hole_dia(heat_set_screw_size, heat_set_thread_hole_adjust), center=true, $fn=32);
+                                    cylinder(h=CARRIER_HEIGHT + 2, d=heat_set_thread_hole_dia, center=true, $fn=32);
                     }
                 }
 
@@ -421,9 +419,8 @@ module universal_carrier_assembly(
                 _peg_pos_x_param=peg_pos_x,
                 _peg_pos_y_param=peg_pos_y,
                 _peg_z_offset_param=peg_z_offset_calc,
-                _heat_set_screw_size=heat_set_screw_size,
-                _heat_set_thread_hole_adjust=heat_set_thread_hole_adjust,
-                _heat_set_head_hole_adjust=heat_set_head_hole_adjust
+                _heat_set_thread_hole_dia=heat_set_thread_hole_dia,
+                _heat_set_head_hole_dia=heat_set_head_hole_dia
             ) {
                 difference() {
                     // Generate base shape using provided module

@@ -53,6 +53,10 @@ Flip_Bottom_For_Printing = true; // [true, false]
 Printed_or_Heat_Set_Pegs = "heat_set"; // ["printed", "heat_set"]
 // Heat-set pegs only: the machine screw (e.g. M2x4 socket head) that threads into the bottom carrier and whose head registers the top. Sizes both holes.
 Heat_Set_Screw_Size = "M2"; // ["M2", "M2.5", "M3"]
+// Heat-set pegs only: the screw's head style. The top carrier's hole clears the head (its diameter is the standard max for the size), so it must match the screws you actually use. "custom" uses Heat_Set_Screw_Head_Diameter.
+Heat_Set_Screw_Head = "socket"; // ["socket": Socket cap (ISO 4762), "button": Button (ISO 7380), "pan": Pan (ISO 7045), "cheese": Cheese (ISO 1207), "custom": Custom diameter]
+// Heat-set pegs only: the measured head diameter (mm, calipers across the head) when Heat_Set_Screw_Head is "custom". The top hole adds 0.5mm clearance.
+Heat_Set_Screw_Head_Diameter = 3.8;
 
 
 /* [Custom Film Format] */
@@ -141,7 +145,7 @@ Adjust_Film_Width = 0;
 Adjust_Film_Height = 0;
 // Heat-set pegs only. Added to the diameter (mm) of the bottom carrier's screw holes, which the screw threads into (default M2: 1.9mm). Use +0.1..0.2 if the screw won't start, negative if it spins freely.
 Heat_Set_Thread_Hole_Adjust = 0;
-// Heat-set pegs only. Added to the diameter (mm) of the top carrier's screw-head clearance holes (default M2: 4.3mm).
+// Heat-set pegs only. Added to the diameter (mm) of the top carrier's screw-head clearance holes (head diameter + 0.5; M2 socket cap: 4.3mm).
 Heat_Set_Head_Hole_Adjust = 0;
 
 /* [Render Quality] */
@@ -202,6 +206,11 @@ peg_positions = calculate_unified_peg_positions(
 peg_pos_x_calc = peg_positions[0];
 peg_pos_y_calc = peg_positions[1];
 
+// Heat-set peg screw holes, resolved once from the customizer settings
+// (bottom: thread-forming hole; top: head clearance). Ignored for printed pegs.
+heat_set_thread_hole_dia_calc = heat_set_thread_hole_dia(Heat_Set_Screw_Size, Heat_Set_Thread_Hole_Adjust);
+heat_set_head_hole_dia_calc = heat_set_head_hole_dia(Heat_Set_Screw_Size, Heat_Set_Screw_Head, Heat_Set_Screw_Head_Diameter, Heat_Set_Head_Hole_Adjust);
+
 // ============================================================================
 // CARRIER DISPATCH LOGIC
 // ============================================================================
@@ -224,9 +233,8 @@ module dispatch_to_universal_assembly(
         carrier_type=Carrier_Type,
         top_or_bottom=_top_or_bottom,
         printed_or_heat_set_pegs=_peg_style,
-        heat_set_screw_size=Heat_Set_Screw_Size,
-        heat_set_thread_hole_adjust=Heat_Set_Thread_Hole_Adjust,
-        heat_set_head_hole_adjust=Heat_Set_Head_Hole_Adjust,
+        heat_set_thread_hole_dia=heat_set_thread_hole_dia_calc,
+        heat_set_head_hole_dia=heat_set_head_hole_dia_calc,
         alignment_board=_alignment_board,
         alignment_board_type=_alignment_board_type,
         flip_bottom_for_printing=_flip_bottom,
