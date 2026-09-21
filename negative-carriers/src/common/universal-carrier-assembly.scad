@@ -142,10 +142,12 @@ module universal_carrier_assembly(
     // Extract film opening fillet from config (positions vary by carrier type)
     FILM_OPENING_FRAME_FILLET = get_film_opening_frame_fillet(carrier_type);
 
-    // Alignment screw parameters (positions vary by carrier type)
+    // Alignment screw parameters: the pattern follows the BOARD the carrier is
+    // screwed onto (the holes must land on its material), except for the glass
+    // carrier, which has its own.
     ALIGNMENT_SCREW_DIAMETER = get_alignment_screw_diameter(carrier_type);
-    ALIGNMENT_SCREW_PATTERN_DIST_X = get_alignment_screw_pattern_dist_x(carrier_type);
-    ALIGNMENT_SCREW_PATTERN_DIST_Y = get_alignment_screw_pattern_dist_y(carrier_type);
+    ALIGNMENT_SCREW_PATTERN_DIST_X = get_alignment_screw_pattern_dist_x(carrier_type, alignment_board_type);
+    ALIGNMENT_SCREW_PATTERN_DIST_Y = get_alignment_screw_pattern_dist_y(carrier_type, alignment_board_type);
 
     // Z-axis positioning calculations
     CARRIER_HALF_HEIGHT = CARRIER_HEIGHT / 2;
@@ -282,7 +284,7 @@ module universal_carrier_assembly(
      */
     module generate_universal_alignment_footprint_holes(is_dent_holes = false) {
         if (!alignment_board) {
-            if (alignment_board_type == "omega" || alignment_board_type == "lpl-saunders") {
+            if (alignment_board_has_screw_footprint(alignment_board_type)) {
                 alignment_footprint_holes(
                     _screw_dia=ALIGNMENT_SCREW_DIAMETER,
                     _dist_for_x_coords=ALIGNMENT_SCREW_PATTERN_DIST_X,

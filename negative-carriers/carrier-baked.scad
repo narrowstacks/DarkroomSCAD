@@ -111,8 +111,8 @@ peg_z_offset = IS_TOP ? (CARRIER_HEIGHT - get_top_peg_hole_z_offset(Carrier_Type
 
 // Alignment screw pattern (footprint holes when the board is NOT fused).
 SCREW_DIA = get_alignment_screw_diameter(Carrier_Type);
-SCREW_DIST_X = get_alignment_screw_pattern_dist_x(Carrier_Type);
-SCREW_DIST_Y = get_alignment_screw_pattern_dist_y(Carrier_Type);
+SCREW_DIST_X = get_alignment_screw_pattern_dist_x(Carrier_Type, Alignment_Board_Type);
+SCREW_DIST_Y = get_alignment_screw_pattern_dist_y(Carrier_Type, Alignment_Board_Type);
 
 // --- Native film opening: through-cut box with a 45° rim chamfer (reproduces
 //     BOSL2 cuboid(..., chamfer=frame_fillet) without BOSL2). --------------------
@@ -159,12 +159,12 @@ module baked_text_etches() {
     );
 }
 
-// Footprint holes appear only when the board is NOT fused, for omega/lpl board types
-// (matches generate_universal_alignment_footprint_holes). Dent (shallow) on top.
+// Footprint holes appear only when the board is NOT fused, for board types with a
+// screw pattern (matches generate_universal_alignment_footprint_holes). Dent (shallow) on top.
 // beseler-45 has no alignment board by design (carrier.scad forces board type "none"),
 // so it never gets footprint holes even though the web default board type is "omega".
 module baked_footprint_holes(is_dent) {
-    if (!Alignment_Board && Carrier_Type != "beseler-45" && (Alignment_Board_Type == "omega" || Alignment_Board_Type == "lpl-saunders"))
+    if (!Alignment_Board && Carrier_Type != "beseler-45" && alignment_board_has_screw_footprint(Alignment_Board_Type))
         alignment_footprint_holes(
             _screw_dia = SCREW_DIA, _dist_for_x_coords = SCREW_DIST_X, _dist_for_y_coords = SCREW_DIST_Y,
             _carrier_h = CARRIER_HEIGHT, _cut_ext = CUT_THROUGH_EXTENSION, _is_dent = is_dent, _dent_depth = 1

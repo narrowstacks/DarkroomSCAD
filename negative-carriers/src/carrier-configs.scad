@@ -29,8 +29,40 @@ function get_carrier_config(carrier_type) =
 UNIVERSAL_CARRIER_HEIGHT = 2;
 UNIVERSAL_FILM_OPENING_FRAME_FILLET = 0.5;
 UNIVERSAL_ALIGNMENT_SCREW_DIAMETER = 2;
-UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X = 82;
-UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y = 113;
+
+// ----------------------------------------------------------------------------
+// Alignment-board screw footprint: the four holes the carrier gets when the
+// board is NOT fused, so it can be screwed onto the separately printed board.
+// The screws have to land on the BOARD's material, so the pattern is a
+// property of the board type (dist = full center-to-center spacing; holes at
+// (±dist_x/2, ±dist_y/2)):
+//   omega:        127mm square frame. (±41, ±56.5) sits on its rails, inside
+//                 its own 4mm holes at (±42, ±57).
+//   lpl-saunders: two chord rails of a 161.5mm disc at |x| = 60.5..75.4 (the
+//                 121mm slot removes everything between them). x = ±68 is the
+//                 rail centre; the rail spans |y| <= 43.5 there, so y = ±35
+//                 leaves ~7mm to its (chamfered) edge.
+//   beseler-23c:  5mm-wide ring at r = 55..60 (torus, see
+//                 beseler-23c-alignment-board.scad). Holes on the ring's
+//                 centre-line (r = 57.5) on the diagonals, which keeps them
+//                 as far as possible from the film opening's corners in
+//                 either orientation.
+// ----------------------------------------------------------------------------
+OMEGA_BOARD_SCREW_PATTERN_DIST_X = 82;
+OMEGA_BOARD_SCREW_PATTERN_DIST_Y = 113;
+LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_X = 136;
+LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_Y = 70;
+BESELER_23C_BOARD_SCREW_RADIUS = 57.5; // = TORUS_MAJOR_RADIUS of the 23C board
+BESELER_23C_BOARD_SCREW_PATTERN_DIST = 2 * BESELER_23C_BOARD_SCREW_RADIUS * cos(45); // 81.32
+// Kept for callers that still read the old names (the omega pattern).
+UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X = OMEGA_BOARD_SCREW_PATTERN_DIST_X;
+UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y = OMEGA_BOARD_SCREW_PATTERN_DIST_Y;
+
+// Board types that get a screw footprint on the carrier when not fused.
+function alignment_board_has_screw_footprint(alignment_board_type) =
+    alignment_board_type == "omega"
+    || alignment_board_type == "lpl-saunders"
+    || alignment_board_type == "beseler-23c";
 
 // Getter functions maintained for backward compatibility (return universal values)
 function get_carrier_height(carrier_type) =
@@ -39,12 +71,19 @@ function get_carrier_height(carrier_type) =
     : UNIVERSAL_CARRIER_HEIGHT;
 function get_film_opening_frame_fillet(carrier_type) = UNIVERSAL_FILM_OPENING_FRAME_FILLET;
 function get_alignment_screw_diameter(carrier_type) = UNIVERSAL_ALIGNMENT_SCREW_DIAMETER;
-function get_alignment_screw_pattern_dist_x(carrier_type) =
+// The glass carrier has its own pattern (the omega one would land inside its
+// 4x5 opening); every other carrier takes the pattern of the board it's
+// screwed onto.
+function get_alignment_screw_pattern_dist_x(carrier_type, alignment_board_type = "omega") =
     (carrier_type == "omega-d-glass") ? OMEGA_D_GLASS_SCREW_PATTERN_DIST_X
-    : UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X;
-function get_alignment_screw_pattern_dist_y(carrier_type) =
+    : (alignment_board_type == "lpl-saunders") ? LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_X
+    : (alignment_board_type == "beseler-23c") ? BESELER_23C_BOARD_SCREW_PATTERN_DIST
+    : OMEGA_BOARD_SCREW_PATTERN_DIST_X;
+function get_alignment_screw_pattern_dist_y(carrier_type, alignment_board_type = "omega") =
     (carrier_type == "omega-d-glass") ? OMEGA_D_GLASS_SCREW_PATTERN_DIST_Y
-    : UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y;
+    : (alignment_board_type == "lpl-saunders") ? LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_Y
+    : (alignment_board_type == "beseler-23c") ? BESELER_23C_BOARD_SCREW_PATTERN_DIST
+    : OMEGA_BOARD_SCREW_PATTERN_DIST_Y;
 
 // Z offset for top peg holes (varies by carrier style)
 function get_top_peg_hole_z_offset(carrier_type) =
