@@ -41,8 +41,11 @@ UNIVERSAL_FILM_OPENING_FRAME_FILLET = 0.5;
 //                 as does the 95x120 film opening — so the 4x5 board uses
 //                 (±56, ±40): x = ±56 is between the opening (47.5) and the
 //                 board edge (63.5), clear of the cutout (|x| < 48.5); y = ±40
-//                 keeps clear of the board's corner cuts. (This is also the
-//                 glass carrier's pattern: it is an omega board with 4x5.)
+//                 keeps clear of the board's corner cuts. That is the
+//                 horizontal 4x5 (long edge along Y); a vertical 4x5 turns
+//                 the cutout and the pattern with it: (±40, ±56). (This is
+//                 also the glass carrier's pattern: it is an omega board
+//                 with 4x5.)
 //   lpl-saunders: two chord rails of a 161.5mm disc at |x| = 60.5..75.4 (the
 //                 121mm slot removes everything between them). x = ±68 is the
 //                 rail centre; the rail spans |y| <= 43.5 there, so y = ±35
@@ -55,13 +58,20 @@ UNIVERSAL_FILM_OPENING_FRAME_FILLET = 0.5;
 // ----------------------------------------------------------------------------
 OMEGA_BOARD_SCREW_PATTERN_DIST_X = 82;
 OMEGA_BOARD_SCREW_PATTERN_DIST_Y = 113;
+// Horizontal 4x5 (the default: long edge along Y); a vertical 4x5 swaps them.
 OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_X = 112;
 OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_Y = 80;
-// The omega board's pattern for a film format (the 4x5 board differs).
-function omega_board_screw_pattern_dist_x(film_format = "") =
-    film_format == "4x5" ? OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_X : OMEGA_BOARD_SCREW_PATTERN_DIST_X;
-function omega_board_screw_pattern_dist_y(film_format = "") =
-    film_format == "4x5" ? OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_Y : OMEGA_BOARD_SCREW_PATTERN_DIST_Y;
+// The omega board's pattern for a film format (the 4x5 board differs, and
+// turns with the sheet's EFFECTIVE orientation — see get_effective_orientation;
+// horizontal, the historical 4x5 layout, when omitted).
+function omega_board_screw_pattern_dist_x(film_format = "", orientation = "horizontal") =
+    film_format != "4x5" ? OMEGA_BOARD_SCREW_PATTERN_DIST_X
+    : orientation == "vertical" ? OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_Y
+    : OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_X;
+function omega_board_screw_pattern_dist_y(film_format = "", orientation = "horizontal") =
+    film_format != "4x5" ? OMEGA_BOARD_SCREW_PATTERN_DIST_Y
+    : orientation == "vertical" ? OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_X
+    : OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_Y;
 LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_X = 136;
 LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_Y = 70;
 BESELER_23C_BOARD_SCREW_RADIUS = 57.5; // = TORUS_MAJOR_RADIUS of the 23C board
@@ -89,18 +99,19 @@ function get_carrier_height(carrier_type) =
     : UNIVERSAL_CARRIER_HEIGHT;
 function get_film_opening_frame_fillet(carrier_type) = UNIVERSAL_FILM_OPENING_FRAME_FILLET;
 // Every carrier takes the pattern of the board it's screwed onto; the omega
-// board's depends on the film format (4x5 widens its cutout). The glass
-// carrier is always an omega board with 4x5, whatever Film_Format says.
-function get_alignment_screw_pattern_dist_x(carrier_type, alignment_board_type = "omega", film_format = "") =
-    (carrier_type == "omega-d-glass") ? OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_X
+// board's depends on the film format (4x5 widens its cutout) and, for 4x5, on
+// the EFFECTIVE orientation (get_effective_orientation) of the opening. The
+// glass carrier is always an omega board with 4x5, whatever Film_Format says.
+function get_alignment_screw_pattern_dist_x(carrier_type, alignment_board_type = "omega", film_format = "", orientation = "horizontal") =
+    (carrier_type == "omega-d-glass") ? omega_board_screw_pattern_dist_x("4x5", orientation)
     : (alignment_board_type == "lpl-saunders") ? LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_X
     : (alignment_board_type == "beseler-23c") ? BESELER_23C_BOARD_SCREW_PATTERN_DIST
-    : omega_board_screw_pattern_dist_x(film_format);
-function get_alignment_screw_pattern_dist_y(carrier_type, alignment_board_type = "omega", film_format = "") =
-    (carrier_type == "omega-d-glass") ? OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_Y
+    : omega_board_screw_pattern_dist_x(film_format, orientation);
+function get_alignment_screw_pattern_dist_y(carrier_type, alignment_board_type = "omega", film_format = "", orientation = "horizontal") =
+    (carrier_type == "omega-d-glass") ? omega_board_screw_pattern_dist_y("4x5", orientation)
     : (alignment_board_type == "lpl-saunders") ? LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_Y
     : (alignment_board_type == "beseler-23c") ? BESELER_23C_BOARD_SCREW_PATTERN_DIST
-    : omega_board_screw_pattern_dist_y(film_format);
+    : omega_board_screw_pattern_dist_y(film_format, orientation);
 
 // Z offset for top peg holes (varies by carrier style)
 function get_top_peg_hole_z_offset(carrier_type) =
@@ -144,8 +155,9 @@ function carrier_type_text_settings(carrier_type) = _get_text_settings(carrier_t
 // omega-d-glass-base-shape.scad). One slab as thick as a top+bottom pair.
 OMEGA_D_GLASS_THICKNESS = 2 * UNIVERSAL_CARRIER_HEIGHT;
 // Alignment-board screw footprint for the glass carrier: the omega board's 4x5
-// pattern (OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_*, ±56 / ±40), which also sits
-// between the pocket wall (±51) and clear of the finger notch at any corner.
+// pattern (OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_*: ±56 / ±40 horizontal, ±40 /
+// ±56 vertical), which also sits beyond the pocket wall (±51 across the
+// plate's short edge) and clear of the finger notch at any corner.
 // Clearance hole in the separately printed board (screws thread into the
 // carrier): heat_set_clearance_hole_dia (M2: 2.4).
 

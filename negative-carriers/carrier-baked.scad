@@ -17,7 +17,7 @@
 //
 // What is BAKED (offline, by scripts/gen-base-stls.ts in darkroomscad-web):
 //   - <carrier>-{top,bottom}.stl : the base body (output of <carrier>_base_shape(...)).
-//   - board-<type>[-4x5].stl     : the alignment board (output of the board module).
+//   - board-<type>[-4x5[-vertical]].stl : the alignment board (output of the board module).
 // What is CUT/ADDED here (cheap, native, parameter-dependent):
 //   - film opening (native rim chamfer), registration pegs/holes, owner/type text,
 //     alignment footprint holes, directional arrows.
@@ -91,8 +91,10 @@ IS_TOP = (Top_or_Bottom == "top");
 
 SELECTED_TYPE_NAME = get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format, Frame_Count);
 
-opening_height = get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Height, Frame_Count);
-opening_width  = get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width, Frame_Count);
+// 4x5 honours Orientation only on the Omega-D carriers (get_effective_orientation).
+effective_orientation = get_effective_orientation(Film_Format, Orientation, Carrier_Type);
+opening_height = get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Height, Frame_Count, Carrier_Type);
+opening_width  = get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width, Frame_Count, Carrier_Type);
 
 peg_diameter = DEFAULT_PEG_DIAMETER;
 peg_positions = calculate_unified_peg_positions(
@@ -103,16 +105,19 @@ peg_positions = calculate_unified_peg_positions(
     adjust_film_width_val = Adjust_Film_Width,
     adjust_film_height_val = Adjust_Film_Height,
     positioning_style = "omega",
-    film_peg_distance = get_film_format_peg_distance(Film_Format, Custom_Film_Width)
+    film_peg_distance = get_film_format_peg_distance(Film_Format, Custom_Film_Width),
+    carrier_type = Carrier_Type
 );
 peg_pos_x = peg_positions[0];
 peg_pos_y = peg_positions[1];
 peg_z_offset = IS_TOP ? (CARRIER_HEIGHT - get_top_peg_hole_z_offset(Carrier_Type)) : HALF_HEIGHT;
 
-// Alignment screw pattern (footprint holes when the board is NOT fused).
+// Alignment screw pattern (footprint holes when the board is NOT fused). The
+// omega board's 4x5 pattern turns with the sheet — as does the baked board STL
+// the web picks (board-omega-4x5[-vertical].stl).
 SCREW_DIA = heat_set_thread_hole_dia(Heat_Set_Screw_Size, Heat_Set_Thread_Hole_Adjust);
-SCREW_DIST_X = get_alignment_screw_pattern_dist_x(Carrier_Type, Alignment_Board_Type, Film_Format);
-SCREW_DIST_Y = get_alignment_screw_pattern_dist_y(Carrier_Type, Alignment_Board_Type, Film_Format);
+SCREW_DIST_X = get_alignment_screw_pattern_dist_x(Carrier_Type, Alignment_Board_Type, Film_Format, effective_orientation);
+SCREW_DIST_Y = get_alignment_screw_pattern_dist_y(Carrier_Type, Alignment_Board_Type, Film_Format, effective_orientation);
 
 // --- Native film opening: through-cut box with a 45° rim chamfer (reproduces
 //     BOSL2 cuboid(..., chamfer=frame_fillet) without BOSL2). --------------------
@@ -183,7 +188,8 @@ module baked_subtractions() {
         film_format_str = Film_Format, orientation_str = Orientation,
         opening_width = opening_width, opening_height = opening_height,
         arrow_length = ARROW_LENGTH, arrow_width = ARROW_WIDTH,
-        arrow_etch_depth = ARROW_ETCH_DEPTH, arrow_offset = 5
+        arrow_etch_depth = ARROW_ETCH_DEPTH, arrow_offset = 5,
+        carrier_type = Carrier_Type
     );
 }
 

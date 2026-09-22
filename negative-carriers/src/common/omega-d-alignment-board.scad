@@ -80,16 +80,20 @@ module board() {
     cuboid([BOARD_LENGTH_WIDTH, BOARD_LENGTH_WIDTH, BOARD_HEIGHT], anchor=CENTER, rounding=0.5);
 }
 
-// 4x5's effective orientation is "horizontal" (long 120mm edge along Y, see
-// get_effective_orientation), so the 4x5-widened opening — whose constants were
-// tuned for the long edge along X — is rotated 90° to match the film opening.
-function omega_opening_rotation(film_format) = film_format == "4x5" ? 90 : 0;
+// The 4x5-widened opening's constants are tuned for the sheet's long (120mm)
+// edge along X — a "vertical" 4x5. A horizontal 4x5 (long edge along Y, the
+// default; see get_effective_orientation) rotates the cutout 90° to match the
+// film opening. `orientation` is the EFFECTIVE orientation of the film opening;
+// it only matters for 4x5 (the other formats' cross-shaped cutout already
+// covers both orientations). Defaults to horizontal, the historical 4x5 layout.
+function omega_opening_rotation(film_format, orientation = "horizontal") =
+    (film_format == "4x5" && orientation == "horizontal") ? 90 : 0;
 
-module omega_d_alignment_board_screws(film_format = "") {
+module omega_d_alignment_board_screws(film_format = "", orientation = "horizontal") {
     render() difference() {
         board();
         omega_board_edge_cuts();
-        rotate([0, 0, omega_opening_rotation(film_format)]) opening_cutout(
+        rotate([0, 0, omega_opening_rotation(film_format, orientation)]) opening_cutout(
             updown_width = omega_updown_opening_width(film_format),
             updown_length = omega_updown_opening_length(film_format),
             leftright_height = omega_leftright_opening_height(film_format)
@@ -101,21 +105,22 @@ module omega_d_alignment_board_screws(film_format = "") {
 
 // pilot_holes: cut the carrier's screw footprint (omega_board_screw_pattern_dist_*,
 // carrier-configs.scad: (±41, ±56.5) on the rails inside this board's own 4mm
-// holes, or (±56, ±40) for the 4x5 board whose cutout swallows the former) as
-// thread-forming pilot holes of pilot_dia, for the separately printed board
-// that the carrier screws onto. Off for a fused board.
-module omega_d_alignment_board_no_screws(film_format = "", pilot_holes = false, pilot_dia = 1.9) {
+// holes, or (±56, ±40) / (±40, ±56) for the horizontal / vertical 4x5 board
+// whose cutout swallows the former) as thread-forming pilot holes of pilot_dia,
+// for the separately printed board that the carrier screws onto. Off for a
+// fused board.
+module omega_d_alignment_board_no_screws(film_format = "", orientation = "horizontal", pilot_holes = false, pilot_dia = 1.9) {
     render() difference() {
         board();
         omega_board_edge_cuts();
-        rotate([0, 0, omega_opening_rotation(film_format)]) opening_cutout(
+        rotate([0, 0, omega_opening_rotation(film_format, orientation)]) opening_cutout(
             updown_width = omega_updown_opening_width(film_format),
             updown_length = omega_updown_opening_length(film_format),
             leftright_height = omega_leftright_opening_height(film_format)
         );
         if (pilot_holes)
             for (xm = [-1, 1]) for (ym = [-1, 1])
-                translate([xm * omega_board_screw_pattern_dist_x(film_format) / 2, ym * omega_board_screw_pattern_dist_y(film_format) / 2, 0])
+                translate([xm * omega_board_screw_pattern_dist_x(film_format, orientation) / 2, ym * omega_board_screw_pattern_dist_y(film_format, orientation) / 2, 0])
                     cylinder(h=BOARD_HEIGHT + 2, d=pilot_dia, center=true, $fn=24);
     }
 }

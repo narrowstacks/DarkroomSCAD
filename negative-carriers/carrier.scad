@@ -33,6 +33,7 @@ include <src/test-frame-base-shape.scad>
 /* [Carrier Type] */
 // "omega-d-glass" is a single-piece Omega-D carrier with a pocket for a 4x5 glass plate (see the Glass Plate Carrier section)
 Carrier_Type = "omega-d"; // ["omega-d", "omega-d-glass", "lpl-saunders-45xx", "beseler-23c", "beseler-45", "frameAndPegTest"]
+// Orientation of the film in the carrier. A 4x5 sheet is locked to horizontal (long edge across the carrier) except on the Omega-D carriers, where the alignment board and its screw holes turn with it.
 Orientation = "vertical"; // ["vertical", "horizontal"]
 /* [Film Format Selection] */
 Film_Format = "35mm"; // ["35mm", "35mm filed", "half frame", "half frame filed", "6x4.5", "6x4.5 filed", "6x6", "6x6 filed", "6x7", "6x7 filed", "6x8", "6x8 filed", "6x9", "6x9 filed", "4x5", "custom"]
@@ -42,7 +43,6 @@ Frame_Count = 1; // [1, 2, 3, 4]
 /* [Carrier Options] */
 // Top or bottom of the carrier
 Top_or_Bottom = "bottom"; // ["top", "bottom"]
-// Orientation of the film in the carrier. Does nothing for 4x5.
 // Include the alignment board?
 Alignment_Board = true; // [true, false]
 Alignment_Board_Type = "omega"; // ["omega", "lpl-saunders", "beseler-23c"]
@@ -165,13 +165,18 @@ $fn = (Render_Quality == "final") ? 100 : 32;
 // Validate the selected carrier type
 validate_carrier_config(Carrier_Type);
 
+// 4x5 honours the Orientation toggle only on the carriers that can take the sheet turned (the Omega-D ones); elsewhere it is locked to horizontal
+effective_orientation = get_effective_orientation(Film_Format, Orientation, Carrier_Type);
+
 // Get configuration for the selected carrier type (now minimal; base geometry lives in carrier files)
-// The glass carrier's config carries its pocket/notch parameters from the customizer.
+// The glass carrier's config carries its pocket/notch parameters from the
+// customizer; its pocket turns with the sheet.
 carrier_config = (Carrier_Type == "omega-d-glass")
     ? omega_d_glass_config(
         Glass_Plate_Width, Glass_Plate_Length, Glass_Plate_Thickness,
         Glass_Plate_Side_Play, Glass_Plate_Depth_Play,
-        Glass_Notch_Diameter, Glass_Notch_Corner, Glass_Notch_Floor, Glass_Notch_Reach
+        Glass_Notch_Diameter, Glass_Notch_Corner, Glass_Notch_Floor, Glass_Notch_Reach,
+        effective_orientation
     )
     : get_carrier_config(Carrier_Type);
 
@@ -186,9 +191,8 @@ SELECTED_TYPE_NAME = (Carrier_Type == "omega-d-glass" && Type_Name != "Custom")
 // ============================================================================
 
 // Calculate film opening dimensions once for all carriers
-effective_orientation = get_effective_orientation(Film_Format, Orientation);
-adjusted_opening_height = get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Height, Frame_Count);
-adjusted_opening_width = get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width, Frame_Count);
+adjusted_opening_height = get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Height, Frame_Count, Carrier_Type);
+adjusted_opening_width = get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width, Frame_Count, Carrier_Type);
 
 // Get peg diameter from config (index varies by carrier type)
 peg_diameter = (Carrier_Type == "frameAndPegTest") ? carrier_config[1] : DEFAULT_PEG_DIAMETER;
@@ -202,7 +206,8 @@ peg_positions = calculate_unified_peg_positions(
     adjust_film_width_val=Adjust_Film_Width,
     adjust_film_height_val=Adjust_Film_Height,
     positioning_style="omega", // Use omega style for all carriers for consistency
-    film_peg_distance=get_film_format_peg_distance(Film_Format, Custom_Film_Width)
+    film_peg_distance=get_film_format_peg_distance(Film_Format, Custom_Film_Width),
+    carrier_type=Carrier_Type
 );
 
 peg_pos_x_calc = peg_positions[0];
@@ -266,16 +271,18 @@ module dispatch_to_universal_assembly(
 if (_Render_Alignment_Board_Only) {
     // Standalone alignment board: render just the board so it can be printed
     // separately (e.g. when using printed pegs, where it can't be fused).
-    // Film_Format is passed so 4x5 gets the widened board opening, as when fused.
+    // Film_Format (and, for 4x5, the effective orientation) is passed so the omega
+    // board gets the widened board opening, turned as when fused.
     if (Carrier_Type == "omega-d-glass") {
         // The glass carrier's board is screwed on: cut its clearance holes to match,
         // counterbored on the outer face for the screw heads.
         omega_d_glass_alignment_board(
-            Film_Format, heat_set_clearance_hole_dia(Heat_Set_Screw_Size), heat_set_head_hole_dia_calc, Glass_Board_Screw_Counterbore);
+            Film_Format, effective_orientation,
+            heat_set_clearance_hole_dia(Heat_Set_Screw_Size), heat_set_head_hole_dia_calc, Glass_Board_Screw_Counterbore);
     } else {
         // Screwed on through the carrier's footprint holes: give the board the
         // matching pilot holes, at the same thread-forming size as the peg holes.
-        instantiate_alignment_board_by_type(Alignment_Board_Type, Film_Format, pilot_holes=true, pilot_dia=heat_set_thread_hole_dia_calc);
+        instantiate_alignment_board_by_type(Alignment_Board_Type, Film_Format, effective_orientation, pilot_holes=true, pilot_dia=heat_set_thread_hole_dia_calc);
     }
 } else if (Carrier_Type == "omega-d" || Carrier_Type == "lpl-saunders-45xx" || Carrier_Type == "beseler-23c") {
     // Standard carriers use all user-specified options

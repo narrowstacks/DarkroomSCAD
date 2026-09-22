@@ -25,6 +25,8 @@ _GC_NOTCH_DIAMETER = 5;  // finger notch diameter (0 disables)
 _GC_NOTCH_CORNER = 6;    // which pocket corner gets the notch
 _GC_NOTCH_FLOOR = 7;     // material left under the notch (0 = through)
 _GC_NOTCH_REACH = 8;     // how far the notch extends under the plate edge
+_GC_ORIENTATION = 9;     // effective sheet orientation: the plate's long edge runs
+                         // along Y ("horizontal", the default) or X ("vertical")
 
 // Inside-corner radius of the pocket. A printed pocket can't hold a sharp
 // inside corner anyway; with the side play this still clears a square-cornered
@@ -33,8 +35,8 @@ OMEGA_D_GLASS_POCKET_CORNER_RADIUS = 1;
 
 /**
  * Build the config array the glass base shape reads.
- * @param plate_width - Plate dimension along X (mm), the short edge
- * @param plate_length - Plate dimension along Y (mm), the long edge
+ * @param plate_width - Plate dimension (mm) along its short edge
+ * @param plate_length - Plate dimension (mm) along its long edge
  * @param plate_thickness - Plate thickness the pocket is sized for (mm)
  * @param side_play - Per-side lateral clearance (mm)
  * @param depth_play - Extra pocket depth beyond plate_thickness (mm)
@@ -43,13 +45,21 @@ OMEGA_D_GLASS_POCKET_CORNER_RADIUS = 1;
  * @param notch_floor - Material left under the notch (mm); 0 cuts through
  * @param notch_reach - How far the notch extends under the plate edge (mm);
  *        keep it under the rim between pocket and film opening
+ * @param orientation - The sheet's EFFECTIVE orientation (get_effective_orientation):
+ *        "horizontal" (default) runs the plate's long edge along Y like the 4x5
+ *        film opening; "vertical" turns the pocket with it (long edge along X)
  */
-function omega_d_glass_config(plate_width, plate_length, plate_thickness, side_play, depth_play, notch_diameter, notch_corner, notch_floor, notch_reach) =
-    [plate_width, plate_length, plate_thickness, side_play, depth_play, notch_diameter, notch_corner, notch_floor, notch_reach];
+function omega_d_glass_config(plate_width, plate_length, plate_thickness, side_play, depth_play, notch_diameter, notch_corner, notch_floor, notch_reach, orientation = "horizontal") =
+    [plate_width, plate_length, plate_thickness, side_play, depth_play, notch_diameter, notch_corner, notch_floor, notch_reach, orientation];
 
-// Pocket footprint and depth derived from a glass config
-function omega_d_glass_pocket_width(config) = config[_GC_PLATE_WIDTH] + 2 * config[_GC_SIDE_PLAY];
-function omega_d_glass_pocket_length(config) = config[_GC_PLATE_LENGTH] + 2 * config[_GC_SIDE_PLAY];
+// Pocket footprint and depth derived from a glass config. The pocket turns
+// with the sheet: its X extent is the plate's short edge when horizontal and
+// its long edge when vertical (the config's orientation is the effective one).
+function omega_d_glass_is_vertical(config) = config[_GC_ORIENTATION] == "vertical";
+function omega_d_glass_pocket_width(config) =
+    (omega_d_glass_is_vertical(config) ? config[_GC_PLATE_LENGTH] : config[_GC_PLATE_WIDTH]) + 2 * config[_GC_SIDE_PLAY];
+function omega_d_glass_pocket_length(config) =
+    (omega_d_glass_is_vertical(config) ? config[_GC_PLATE_WIDTH] : config[_GC_PLATE_LENGTH]) + 2 * config[_GC_SIDE_PLAY];
 function omega_d_glass_pocket_depth(config) = config[_GC_PLATE_THICKNESS] + config[_GC_DEPTH_PLAY];
 
 // Sign vector [sx, sy] for a notch corner name. The Omega-D handle is on -X,
@@ -106,13 +116,15 @@ module omega_d_glass_base_shape(config, top_or_bottom = "bottom") {
 
     /**
      * Finger notch: a circle at one pocket corner, cut deeper than the pocket
-     * floor. It sits just outside the pocket's short (X) edge, tangent to the
-     * long edge, and reaches notch_reach under the plate: the part beside the
+     * floor. It sits just beyond the pocket's X extent, tangent to the pocket's
+     * Y edge, and reaches notch_reach under the plate: the part beside the
      * plate is where a fingertip presses down, the sliver under the plate lets
      * a nail hook its bottom edge. The reach is kept small so the notch never
      * runs into the film opening — the rim between pocket and 4x5 opening is
-     * only ~3.5mm — and it goes on the short edge because the carrier has only
-     * ~6mm of rail beyond the pocket on the long (Y) edges.
+     * only ~3.5mm (4mm turned) — and it goes beyond the X extent because the
+     * carrier has only ~6mm of rail beyond the (horizontal) pocket in Y; in X
+     * there is 20mm+ either way, so a vertical pocket keeps the same rule and
+     * the notch lands at the ends of the plate's long edge.
      */
     module finger_notch() {
         if (has_notch) {
@@ -136,7 +148,8 @@ module omega_d_glass_base_shape(config, top_or_bottom = "bottom") {
  * Separately printed Omega alignment board for the glass carrier, with
  * clearance holes matching the carrier's screw footprint so it can be screwed
  * on from below (M2 screws thread into the carrier's 2mm holes). Uses the
- * 4x5-widened board opening for the 4x5 film format like the fused board.
+ * 4x5-widened board opening for the 4x5 film format like the fused board,
+ * turned — with the screw pattern — for a vertical sheet.
  *
  * Each hole gets a counterbore on the board's top face (+Z, the face away from
  * the carrier, which the screws go in from) so the screw head sits mostly
@@ -147,24 +160,26 @@ module omega_d_glass_base_shape(config, top_or_bottom = "bottom") {
  * at hand-tight torque, so don't go much deeper.
  *
  * @param film_format - Film format string, selects the board opening variant
+ * @param orientation - The sheet's EFFECTIVE orientation (get_effective_orientation);
+ *                      turns the 4x5 opening and the screw pattern
  * @param screw_clearance_dia - Board hole diameter (default: M2 clearance; pass
  *                              heat_set_clearance_hole_dia(Heat_Set_Screw_Size))
  * @param head_hole_dia - Counterbore diameter (default: M2 socket head + 0.5;
  *                        pass the carrier's heat_set_head_hole_dia(...))
  * @param counterbore_depth - Counterbore depth from the top face (mm); 0 = none
  */
-module omega_d_glass_alignment_board(film_format = "4x5", screw_clearance_dia = heat_set_clearance_hole_dia(),
+module omega_d_glass_alignment_board(film_format = "4x5", orientation = "horizontal", screw_clearance_dia = heat_set_clearance_hole_dia(),
                                      head_hole_dia = heat_set_head_hole_dia(), counterbore_depth = 1) {
     assert(counterbore_depth >= 0 && counterbore_depth < BOARD_HEIGHT,
         str("GLASS CARRIER ERROR: board screw counterbore ", counterbore_depth, "mm must be between 0 and the ", BOARD_HEIGHT, "mm board thickness."));
     assert(head_hole_dia > screw_clearance_dia,
         "GLASS CARRIER ERROR: board screw counterbore is not wider than the clearance hole.");
 
-    dist_x = get_alignment_screw_pattern_dist_x("omega-d-glass");
-    dist_y = get_alignment_screw_pattern_dist_y("omega-d-glass");
+    dist_x = get_alignment_screw_pattern_dist_x("omega-d-glass", orientation = orientation);
+    dist_y = get_alignment_screw_pattern_dist_y("omega-d-glass", orientation = orientation);
 
     difference() {
-        omega_d_alignment_board_no_screws(film_format);
+        omega_d_alignment_board_no_screws(film_format, orientation);
         alignment_footprint_holes(
             _screw_dia=screw_clearance_dia,
             _dist_for_x_coords=dist_x,

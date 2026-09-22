@@ -96,7 +96,7 @@ All enlarger implementations share these core parameters:
 - `Carrier_Type`: Enlarger type selection ("omega-d", "omega-d-glass", "lpl-saunders-45xx", "beseler-23c", "beseler-45", "frameAndPegTest")
 - `Top_or_Bottom`: Carrier part selection
 - `Film_Format`: Supported formats from film-sizes.scad
-- `Orientation`: Film orientation (vertical/horizontal)
+- `Orientation`: Film orientation (vertical/horizontal). 4x5 is locked to horizontal (long edge along Y) except on the Omega-D carriers (`carrier_allows_4x5_orientation`), where the omega board's widened cutout and its screw pattern (±56/±40 → ±40/±56) turn with the sheet, as does the glass carrier's pocket; `get_effective_orientation(format, orientation, carrier_type)` resolves it
 - `Alignment_Board`: Enable/disable alignment board inclusion
 - `Alignment_Board_Type`: Alignment board style ("omega", "lpl-saunders", "beseler-23c")
 - `Printed_or_Heat_Set_Pegs`: Peg attachment method

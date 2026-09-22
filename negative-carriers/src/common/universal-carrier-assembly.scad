@@ -82,7 +82,12 @@ module beseler45_corner_peg_holes() {
  * @param opening_width - Pre-calculated film opening width
  * @param peg_pos_x - Pre-calculated peg X position
  * @param peg_pos_y - Pre-calculated peg Y position
- * @param film_format_for_arrows - Film format string (for directional arrows)
+ * @param film_format_for_arrows - Film format string (for directional arrows, and
+ *        the alignment board / screw footprint, which widen for 4x5)
+ * @param orientation_for_arrows - The film opening's orientation as the user set
+ *        it; resolved per carrier via get_effective_orientation (4x5 is locked
+ *        to horizontal except on the Omega-D carriers) for the arrows and for
+ *        the omega board's 4x5 cutout + screw pattern, which turn with the sheet
  */
 module universal_carrier_assembly(
     // Base shape generation
@@ -147,8 +152,10 @@ module universal_carrier_assembly(
     // carrier, which has its own.
     // Same screws as the heat-set pegs: same thread-forming hole.
     ALIGNMENT_SCREW_DIAMETER = heat_set_thread_hole_dia;
-    ALIGNMENT_SCREW_PATTERN_DIST_X = get_alignment_screw_pattern_dist_x(carrier_type, alignment_board_type, film_format_for_arrows);
-    ALIGNMENT_SCREW_PATTERN_DIST_Y = get_alignment_screw_pattern_dist_y(carrier_type, alignment_board_type, film_format_for_arrows);
+    // The omega board's 4x5 cutout and pattern follow the sheet's orientation.
+    EFFECTIVE_ORIENTATION = get_effective_orientation(film_format_for_arrows, orientation_for_arrows, carrier_type);
+    ALIGNMENT_SCREW_PATTERN_DIST_X = get_alignment_screw_pattern_dist_x(carrier_type, alignment_board_type, film_format_for_arrows, EFFECTIVE_ORIENTATION);
+    ALIGNMENT_SCREW_PATTERN_DIST_Y = get_alignment_screw_pattern_dist_y(carrier_type, alignment_board_type, film_format_for_arrows, EFFECTIVE_ORIENTATION);
 
     // Z-axis positioning calculations
     CARRIER_HALF_HEIGHT = CARRIER_HEIGHT / 2;
@@ -308,7 +315,7 @@ module universal_carrier_assembly(
             z_trans_val = get_alignment_board_z_offset(carrier_type, alignment_board_type, CARRIER_HEIGHT);
 
             translate([0, 0, z_trans_val])
-                instantiate_alignment_board_by_type(alignment_board_type, film_format_for_arrows);
+                instantiate_alignment_board_by_type(alignment_board_type, film_format_for_arrows, EFFECTIVE_ORIENTATION);
         }
     }
 
@@ -324,7 +331,8 @@ module universal_carrier_assembly(
             arrow_length=ARROW_LENGTH,
             arrow_width=ARROW_WIDTH,
             arrow_etch_depth=ARROW_ETCH_DEPTH,
-            arrow_offset=5
+            arrow_offset=5,
+            carrier_type=carrier_type
         );
     }
 

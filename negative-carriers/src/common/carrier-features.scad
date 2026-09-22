@@ -121,12 +121,23 @@ module text_solid(text_string, font, size, height, halign = "center", valign = "
     }
 }
 
+// Carriers on which a 4x5 sheet may run either way. The Omega-D body is
+// round enough, and its text sits out on the handle, that a "vertical" 4x5
+// opening (120mm along X) clears everything; its alignment board turns with
+// it (omega_opening_rotation / omega_board_screw_pattern_dist_* take the
+// orientation). The others stay locked to horizontal: e.g. the LPL's etched
+// text at x = -65 would run into a 120mm-wide opening.
+function carrier_allows_4x5_orientation(carrier_type) =
+    carrier_type == "omega-d" || carrier_type == "omega-d-glass";
+
 // Determine effective orientation, especially for "4x5".
-// 4x5 is always "horizontal": the sheet's long (5", 120mm) edge runs along Y,
-// perpendicular to the left (-X) handle, matching how the sheet sits in the
-// enlarger. The user-facing Orientation toggle has no effect for 4x5.
-function get_effective_orientation(film_format_str, orientation_str) =
-    (film_format_str == "4x5") ? "horizontal" : orientation_str;
+// 4x5 defaults to "horizontal": the sheet's long (5", 120mm) edge runs along
+// Y, perpendicular to the left (-X) handle, matching how the sheet sits in the
+// enlarger. Only the carriers in carrier_allows_4x5_orientation honour the
+// Orientation toggle for 4x5; with no carrier_type (the default) it is locked,
+// as it always was.
+function get_effective_orientation(film_format_str, orientation_str, carrier_type = "") =
+    (film_format_str == "4x5" && !carrier_allows_4x5_orientation(carrier_type)) ? "horizontal" : orientation_str;
 
 // Calculate base opening height based on effective orientation and film dimensions
 function get_calculated_opening_height(eff_orientation, film_actual_h, film_actual_w) =
@@ -149,33 +160,35 @@ function get_multi_frame_height(film_format_str, film_h_raw, frame_count = 1) =
 
 // Get final adjusted opening dimension
 // For custom formats, pass custom_film_height and custom_film_width to override defaults
-function get_final_opening_dimension(is_height, film_format_str, orientation_str, adjust_val, custom_film_height = undef, custom_film_width = undef, frame_count = 1) =
+// carrier_type: which carrier the opening is for — decides whether 4x5 honours
+// orientation_str (see get_effective_orientation); locked when omitted.
+function get_final_opening_dimension(is_height, film_format_str, orientation_str, adjust_val, custom_film_height = undef, custom_film_width = undef, frame_count = 1, carrier_type = "") =
     let (
         _film_h_raw = get_multi_frame_height(film_format_str, get_film_format_height(film_format_str, custom_film_height), frame_count),
         _film_w_raw = get_film_format_width(film_format_str, custom_film_width),
-        _eff_orientation = get_effective_orientation(film_format_str, orientation_str),
+        _eff_orientation = get_effective_orientation(film_format_str, orientation_str, carrier_type),
         _calc_opening_dim = is_height ?
             get_calculated_opening_height(_eff_orientation, _film_h_raw, _film_w_raw)
         : get_calculated_opening_width(_eff_orientation, _film_h_raw, _film_w_raw)
     ) get_adjusted_dimension(_calc_opening_dim, adjust_val);
 
 // Wrapper functions for backward compatibility and custom format support
-function get_final_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height = undef, custom_film_width = undef, frame_count = 1) =
-    get_final_opening_dimension(true, film_format_str, orientation_str, adjust_h_val, custom_film_height, custom_film_width, frame_count);
+function get_final_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height = undef, custom_film_width = undef, frame_count = 1, carrier_type = "") =
+    get_final_opening_dimension(true, film_format_str, orientation_str, adjust_h_val, custom_film_height, custom_film_width, frame_count, carrier_type);
 
-function get_final_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height = undef, custom_film_width = undef, frame_count = 1) =
-    get_final_opening_dimension(false, film_format_str, orientation_str, adjust_w_val, custom_film_height, custom_film_width, frame_count);
+function get_final_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height = undef, custom_film_width = undef, frame_count = 1, carrier_type = "") =
+    get_final_opening_dimension(false, film_format_str, orientation_str, adjust_w_val, custom_film_height, custom_film_width, frame_count, carrier_type);
 
 // For custom formats: use custom opening dimensions directly if provided, otherwise calculate from film stock 
-function get_custom_aware_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height = undef, custom_film_width = undef, custom_opening_height = undef, frame_count = 1) =
+function get_custom_aware_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height = undef, custom_film_width = undef, custom_opening_height = undef, frame_count = 1, carrier_type = "") =
     (film_format_str == "custom" && custom_opening_height != undef) ?
         custom_opening_height
-    : get_final_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height, custom_film_width, frame_count);
+    : get_final_opening_height(film_format_str, orientation_str, adjust_h_val, custom_film_height, custom_film_width, frame_count, carrier_type);
 
-function get_custom_aware_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height = undef, custom_film_width = undef, custom_opening_width = undef, frame_count = 1) =
+function get_custom_aware_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height = undef, custom_film_width = undef, custom_opening_width = undef, frame_count = 1, carrier_type = "") =
     (film_format_str == "custom" && custom_opening_width != undef) ?
         custom_opening_width
-    : get_final_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height, custom_film_width, frame_count);
+    : get_final_opening_width(film_format_str, orientation_str, adjust_w_val, custom_film_height, custom_film_width, frame_count, carrier_type);
 
 // Calculate Z offset for pegs/holes
 function get_peg_z_offset(is_top_piece, z_value_for_top, z_value_for_bottom) =
@@ -214,12 +227,13 @@ function calculate_unified_peg_positions(
     adjust_film_width_val = 0,
     adjust_film_height_val = 0,
     positioning_style = "omega", // ["omega", "lpl"]
-    film_peg_distance = undef // Required for omega style, ignored for lpl style
+    film_peg_distance = undef, // Required for omega style, ignored for lpl style
+    carrier_type = "" // Decides whether 4x5 honours orientation_str (get_effective_orientation)
 ) =
     let (
         film_height_raw = get_film_format_height(film_format_str) + adjust_film_height_val,
         film_width_raw = get_film_format_width(film_format_str) + adjust_film_width_val,
-        effective_orientation = get_effective_orientation(film_format_str, orientation_str),
+        effective_orientation = get_effective_orientation(film_format_str, orientation_str, carrier_type),
         peg_radius = peg_diameter / 2,
 
         // Calculate positions based on style
@@ -318,13 +332,16 @@ module generate_peg_features(
 }
 
 // Instantiate a specific alignment board based on type string
+// film_format / orientation: the EFFECTIVE orientation (get_effective_orientation)
+// of the film opening the board goes under — only the omega board cares, and
+// only for 4x5, where its widened cutout and screw pattern turn with the sheet.
 // pilot_holes: cut the carrier's screw footprint into the board as pilot holes
 // of pilot_dia (the heat-set thread-forming size, so the same screws as the
 // pegs bite), for the standalone, screwed-on board export; never for a fused
 // board.
-module instantiate_alignment_board_by_type(board_type_str, film_format = "", pilot_holes = false, pilot_dia = heat_set_thread_hole_dia()) {
+module instantiate_alignment_board_by_type(board_type_str, film_format = "", orientation = "horizontal", pilot_holes = false, pilot_dia = heat_set_thread_hole_dia()) {
     if (board_type_str == "omega") {
-        omega_d_alignment_board_no_screws(film_format, pilot_holes=pilot_holes, pilot_dia=pilot_dia);
+        omega_d_alignment_board_no_screws(film_format, orientation, pilot_holes=pilot_holes, pilot_dia=pilot_dia);
     } else if (board_type_str == "lpl-saunders") {
         lpl_saunders_alignment_board(pilot_holes=pilot_holes, pilot_dia=pilot_dia);
     } else if (board_type_str == "beseler-23c") {
@@ -519,9 +536,9 @@ function needs_directional_arrow(film_format_str) =
  * Calculates arrow position and rotation based on film format and orientation
  * Returns [x_pos, y_pos, rotation_angle]
  */
-function calculate_arrow_position(film_format_str, orientation_str, opening_width, opening_height, arrow_length = 8, arrow_offset = 5) =
+function calculate_arrow_position(film_format_str, orientation_str, opening_width, opening_height, arrow_length = 8, arrow_offset = 5, carrier_type = "") =
     let (
-        effective_orientation = get_effective_orientation(film_format_str, orientation_str)
+        effective_orientation = get_effective_orientation(film_format_str, orientation_str, carrier_type)
     )
     // Vertical: arrow points left (-X), positioned below opening
     // Horizontal: arrow points up (+Y), positioned to the right of opening
@@ -543,6 +560,7 @@ function calculate_arrow_position(film_format_str, orientation_str, opening_widt
  * @param arrow_width Width of the arrow (default: 5)
  * @param arrow_etch_depth Depth of the arrow etching (default: 0.5)
  * @param arrow_offset Distance from opening edge to arrow (default: 5)
+ * @param carrier_type Decides whether 4x5 honours orientation_str (get_effective_orientation)
  */
 module generate_directional_arrow_etch(
     film_format_str,
@@ -552,11 +570,12 @@ module generate_directional_arrow_etch(
     arrow_length = 8,
     arrow_width = 5,
     arrow_etch_depth = 0.5,
-    arrow_offset = 5
+    arrow_offset = 5,
+    carrier_type = ""
 ) {
     if (needs_directional_arrow(film_format_str)) {
         arrow_pos = calculate_arrow_position(
-            film_format_str, orientation_str, opening_width, opening_height, arrow_length, arrow_offset
+            film_format_str, orientation_str, opening_width, opening_height, arrow_length, arrow_offset, carrier_type
         );
 
         translate([arrow_pos[0], arrow_pos[1], 0])
