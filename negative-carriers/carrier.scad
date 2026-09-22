@@ -89,6 +89,8 @@ Glass_Notch_Corner = "handle-lower"; // ["handle-lower", "handle-upper", "far-lo
 Glass_Notch_Floor = 0.6;
 // How far the notch reaches under the plate edge (mm) for a nail to hook it; keep below the rim between pocket and opening (3.5mm for 4x5)
 Glass_Notch_Reach = 2.5;
+// Counterbore depth (mm) for the screw heads in the separately printed alignment board, cut from the face the screws go in from, so the heads sit mostly inside the 1.7mm board (0 = none). Sized for the peg screw head + 0.5mm. Leave at least ~0.7mm of board under the head.
+Glass_Board_Screw_Counterbore = 1; // [0:0.1:1.2]
 
 /* [Customization] */
 // Enable or disable the owner name etching
@@ -266,8 +268,10 @@ if (_Render_Alignment_Board_Only) {
     // separately (e.g. when using printed pegs, where it can't be fused).
     // Film_Format is passed so 4x5 gets the widened board opening, as when fused.
     if (Carrier_Type == "omega-d-glass") {
-        // The glass carrier's board is screwed on: cut its clearance holes to match.
-        omega_d_glass_alignment_board(Film_Format, heat_set_clearance_hole_dia(Heat_Set_Screw_Size));
+        // The glass carrier's board is screwed on: cut its clearance holes to match,
+        // counterbored on the outer face for the screw heads.
+        omega_d_glass_alignment_board(
+            Film_Format, heat_set_clearance_hole_dia(Heat_Set_Screw_Size), heat_set_head_hole_dia_calc, Glass_Board_Screw_Counterbore);
     } else {
         // Screwed on through the carrier's footprint holes: give the board the
         // matching pilot holes, at the same thread-forming size as the peg holes.

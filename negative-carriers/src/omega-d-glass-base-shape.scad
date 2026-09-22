@@ -138,21 +138,46 @@ module omega_d_glass_base_shape(config, top_or_bottom = "bottom") {
  * on from below (M2 screws thread into the carrier's 2mm holes). Uses the
  * 4x5-widened board opening for the 4x5 film format like the fused board.
  *
+ * Each hole gets a counterbore on the board's top face (+Z, the face away from
+ * the carrier, which the screws go in from) so the screw head sits mostly
+ * inside the 1.7mm board instead of standing its full height proud of it. The
+ * counterbore is the same diameter as the top carrier's head hole (head + 0.5)
+ * and must leave some floor for the head to bear on: at the default 1mm in a
+ * 1.7mm board that floor is 0.7mm (about three 0.2mm layers), enough for an M2
+ * at hand-tight torque, so don't go much deeper.
+ *
  * @param film_format - Film format string, selects the board opening variant
  * @param screw_clearance_dia - Board hole diameter (default: M2 clearance; pass
  *                              heat_set_clearance_hole_dia(Heat_Set_Screw_Size))
+ * @param head_hole_dia - Counterbore diameter (default: M2 socket head + 0.5;
+ *                        pass the carrier's heat_set_head_hole_dia(...))
+ * @param counterbore_depth - Counterbore depth from the top face (mm); 0 = none
  */
-module omega_d_glass_alignment_board(film_format = "4x5", screw_clearance_dia = heat_set_clearance_hole_dia()) {
+module omega_d_glass_alignment_board(film_format = "4x5", screw_clearance_dia = heat_set_clearance_hole_dia(),
+                                     head_hole_dia = heat_set_head_hole_dia(), counterbore_depth = 1) {
+    assert(counterbore_depth >= 0 && counterbore_depth < BOARD_HEIGHT,
+        str("GLASS CARRIER ERROR: board screw counterbore ", counterbore_depth, "mm must be between 0 and the ", BOARD_HEIGHT, "mm board thickness."));
+    assert(head_hole_dia > screw_clearance_dia,
+        "GLASS CARRIER ERROR: board screw counterbore is not wider than the clearance hole.");
+
+    dist_x = get_alignment_screw_pattern_dist_x("omega-d-glass");
+    dist_y = get_alignment_screw_pattern_dist_y("omega-d-glass");
+
     difference() {
         omega_d_alignment_board_no_screws(film_format);
         alignment_footprint_holes(
             _screw_dia=screw_clearance_dia,
-            _dist_for_x_coords=get_alignment_screw_pattern_dist_x("omega-d-glass"),
-            _dist_for_y_coords=get_alignment_screw_pattern_dist_y("omega-d-glass"),
+            _dist_for_x_coords=dist_x,
+            _dist_for_y_coords=dist_y,
             _carrier_h=BOARD_HEIGHT,
             _cut_ext=1,
             _is_dent=false,
             _dent_depth=0
         );
+        // Counterbores: cut down from the top face (+Z), oversize above it.
+        if (counterbore_depth > 0)
+            for (xm = [-1, 1]) for (ym = [-1, 1])
+                translate([xm * dist_x / 2, ym * dist_y / 2, BOARD_HEIGHT / 2 - counterbore_depth])
+                    cylinder(h=counterbore_depth + 1, d=head_hole_dia, $fn=24);
     }
 }
