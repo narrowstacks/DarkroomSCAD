@@ -33,9 +33,9 @@ module lpl_corner_cut_box() {
 BOARD_BODY_FN = 72;
 
 // pilot_holes: cut the carrier's screw footprint (LPL_SAUNDERS_BOARD_SCREW_PATTERN_*,
-// carrier-configs.scad) as thread-forming pilot holes, for the separately printed
+// carrier-configs.scad) as thread-forming pilot holes of pilot_dia, for the separately printed
 // board that the carrier screws onto. Off for a fused board.
-module lpl_saunders_alignment_board(pilot_holes = false) {
+module lpl_saunders_alignment_board(pilot_holes = false, pilot_dia = 1.9) {
     render() rotate([0, 180, 90]) difference() {
             cyl(l=BOARD_DEPTH + 0.1, d=CIRCLE_DIAMETER, chamfer=.9, chamfang=45, from_end=true, $fn=BOARD_BODY_FN);
             translate([0, 0, -BOARD_DEPTH / 2]) cuboid([CIRCLE_DIAMETER, CIRCLE_DIAMETER, BOARD_DEPTH + 0.1], anchor=CENTER);
@@ -48,6 +48,6 @@ module lpl_saunders_alignment_board(pilot_holes = false) {
             if (pilot_holes)
                 for (xm = [-1, 1]) for (ym = [-1, 1])
                     translate([xm * LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_Y / 2, ym * LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_X / 2, 0])
-                        cylinder(h=BOARD_DEPTH + 2, d=ALIGNMENT_BOARD_SCREW_PILOT_DIA, center=true, $fn=24);
+                        cylinder(h=BOARD_DEPTH + 2, d=pilot_dia, center=true, $fn=24);
         }
 }

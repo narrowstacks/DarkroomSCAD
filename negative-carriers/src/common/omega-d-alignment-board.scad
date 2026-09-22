@@ -4,6 +4,7 @@
 // add seconds per render. Uncomment both to render/preview this file by itself:
 // include <BOSL2/std.scad>
 // include <BOSL2/rounding.scad>
+// include <../carrier-configs.scad>  // pilot-hole pattern constants
 
 BOARD_LENGTH_WIDTH = 127; // Replaced by FRAME_OUTER_DIM
 BOARD_HEIGHT = 1.7; // Replaced by FRAME_THICKNESS
@@ -98,7 +99,12 @@ module omega_d_alignment_board_screws(film_format = "") {
     }
 }
 
-module omega_d_alignment_board_no_screws(film_format = "") {
+// pilot_holes: cut the carrier's screw footprint (omega_board_screw_pattern_dist_*,
+// carrier-configs.scad: (±41, ±56.5) on the rails inside this board's own 4mm
+// holes, or (±56, ±40) for the 4x5 board whose cutout swallows the former) as
+// thread-forming pilot holes of pilot_dia, for the separately printed board
+// that the carrier screws onto. Off for a fused board.
+module omega_d_alignment_board_no_screws(film_format = "", pilot_holes = false, pilot_dia = 1.9) {
     render() difference() {
         board();
         omega_board_edge_cuts();
@@ -107,6 +113,10 @@ module omega_d_alignment_board_no_screws(film_format = "") {
             updown_length = omega_updown_opening_length(film_format),
             leftright_height = omega_leftright_opening_height(film_format)
         );
+        if (pilot_holes)
+            for (xm = [-1, 1]) for (ym = [-1, 1])
+                translate([xm * omega_board_screw_pattern_dist_x(film_format) / 2, ym * omega_board_screw_pattern_dist_y(film_format) / 2, 0])
+                    cylinder(h=BOARD_HEIGHT + 2, d=pilot_dia, center=true, $fn=24);
     }
 }
 

@@ -267,11 +267,11 @@ if (_Render_Alignment_Board_Only) {
     // Film_Format is passed so 4x5 gets the widened board opening, as when fused.
     if (Carrier_Type == "omega-d-glass") {
         // The glass carrier's board is screwed on: cut its clearance holes to match.
-        omega_d_glass_alignment_board(Film_Format);
+        omega_d_glass_alignment_board(Film_Format, heat_set_clearance_hole_dia(Heat_Set_Screw_Size));
     } else {
         // Screwed on through the carrier's footprint holes: give the board the
-        // matching pilot holes (LPL / 23C; the omega board keeps its plain form).
-        instantiate_alignment_board_by_type(Alignment_Board_Type, Film_Format, pilot_holes=true);
+        // matching pilot holes, at the same thread-forming size as the peg holes.
+        instantiate_alignment_board_by_type(Alignment_Board_Type, Film_Format, pilot_holes=true, pilot_dia=heat_set_thread_hole_dia_calc);
     }
 } else if (Carrier_Type == "omega-d" || Carrier_Type == "lpl-saunders-45xx" || Carrier_Type == "beseler-23c") {
     // Standard carriers use all user-specified options

@@ -110,9 +110,9 @@ peg_pos_y = peg_positions[1];
 peg_z_offset = IS_TOP ? (CARRIER_HEIGHT - get_top_peg_hole_z_offset(Carrier_Type)) : HALF_HEIGHT;
 
 // Alignment screw pattern (footprint holes when the board is NOT fused).
-SCREW_DIA = get_alignment_screw_diameter(Carrier_Type);
-SCREW_DIST_X = get_alignment_screw_pattern_dist_x(Carrier_Type, Alignment_Board_Type);
-SCREW_DIST_Y = get_alignment_screw_pattern_dist_y(Carrier_Type, Alignment_Board_Type);
+SCREW_DIA = heat_set_thread_hole_dia(Heat_Set_Screw_Size, Heat_Set_Thread_Hole_Adjust);
+SCREW_DIST_X = get_alignment_screw_pattern_dist_x(Carrier_Type, Alignment_Board_Type, Film_Format);
+SCREW_DIST_Y = get_alignment_screw_pattern_dist_y(Carrier_Type, Alignment_Board_Type, Film_Format);
 
 // --- Native film opening: through-cut box with a 45° rim chamfer (reproduces
 //     BOSL2 cuboid(..., chamfer=frame_fillet) without BOSL2). --------------------

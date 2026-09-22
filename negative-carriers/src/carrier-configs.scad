@@ -28,7 +28,6 @@ function get_carrier_config(carrier_type) =
 
 UNIVERSAL_CARRIER_HEIGHT = 2;
 UNIVERSAL_FILM_OPENING_FRAME_FILLET = 0.5;
-UNIVERSAL_ALIGNMENT_SCREW_DIAMETER = 2;
 
 // ----------------------------------------------------------------------------
 // Alignment-board screw footprint: the four holes the carrier gets when the
@@ -37,7 +36,13 @@ UNIVERSAL_ALIGNMENT_SCREW_DIAMETER = 2;
 // property of the board type (dist = full center-to-center spacing; holes at
 // (±dist_x/2, ±dist_y/2)):
 //   omega:        127mm square frame. (±41, ±56.5) sits on its rails, inside
-//                 its own 4mm holes at (±42, ±57).
+//                 its own 4mm holes at (±42, ±57). For 4x5 the board's cutout
+//                 widens (and rotates) to 97x121, swallowing that pattern —
+//                 as does the 95x120 film opening — so the 4x5 board uses
+//                 (±56, ±40): x = ±56 is between the opening (47.5) and the
+//                 board edge (63.5), clear of the cutout (|x| < 48.5); y = ±40
+//                 keeps clear of the board's corner cuts. (This is also the
+//                 glass carrier's pattern: it is an omega board with 4x5.)
 //   lpl-saunders: two chord rails of a 161.5mm disc at |x| = 60.5..75.4 (the
 //                 121mm slot removes everything between them). x = ±68 is the
 //                 rail centre; the rail spans |y| <= 43.5 there, so y = ±35
@@ -50,16 +55,23 @@ UNIVERSAL_ALIGNMENT_SCREW_DIAMETER = 2;
 // ----------------------------------------------------------------------------
 OMEGA_BOARD_SCREW_PATTERN_DIST_X = 82;
 OMEGA_BOARD_SCREW_PATTERN_DIST_Y = 113;
+OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_X = 112;
+OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_Y = 80;
+// The omega board's pattern for a film format (the 4x5 board differs).
+function omega_board_screw_pattern_dist_x(film_format = "") =
+    film_format == "4x5" ? OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_X : OMEGA_BOARD_SCREW_PATTERN_DIST_X;
+function omega_board_screw_pattern_dist_y(film_format = "") =
+    film_format == "4x5" ? OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_Y : OMEGA_BOARD_SCREW_PATTERN_DIST_Y;
 LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_X = 136;
 LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_Y = 70;
 BESELER_23C_BOARD_SCREW_RADIUS = 57.5; // = TORUS_MAJOR_RADIUS of the 23C board
 BESELER_23C_BOARD_SCREW_PATTERN_DIST = 2 * BESELER_23C_BOARD_SCREW_RADIUS * cos(45); // 81.32
-// Pilot hole in a separately printed LPL / 23C board for the footprint screws
-// to thread into (the carrier's 2mm holes are on top of it): the same
-// thread-forming size as the M2 heat-set peg hole, tap drill + FDM
-// compensation = 1.9mm. Cut only for the standalone board export — a fused
-// board is one solid print with no screws.
-ALIGNMENT_BOARD_SCREW_PILOT_DIA = M2_HEAT_SET_HOLE_DIA + HEAT_SET_HOLE_FDM_COMPENSATION;
+// Hole sizes: the footprint screws are the same machine screws as the heat-set
+// pegs, so the carrier's footprint holes and the pilot holes in a separately
+// printed board are both the heat-set thread-forming size
+// (heat_set_thread_hole_dia: Heat_Set_Screw_Size + Heat_Set_Thread_Hole_Adjust;
+// M2: 1.9mm). Pilot holes are cut only for the standalone board export — a
+// fused board is one solid print with no screws.
 // Kept for callers that still read the old names (the omega pattern).
 UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X = OMEGA_BOARD_SCREW_PATTERN_DIST_X;
 UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y = OMEGA_BOARD_SCREW_PATTERN_DIST_Y;
@@ -76,20 +88,19 @@ function get_carrier_height(carrier_type) =
     : (carrier_type == "omega-d-glass") ? OMEGA_D_GLASS_THICKNESS
     : UNIVERSAL_CARRIER_HEIGHT;
 function get_film_opening_frame_fillet(carrier_type) = UNIVERSAL_FILM_OPENING_FRAME_FILLET;
-function get_alignment_screw_diameter(carrier_type) = UNIVERSAL_ALIGNMENT_SCREW_DIAMETER;
-// The glass carrier has its own pattern (the omega one would land inside its
-// 4x5 opening); every other carrier takes the pattern of the board it's
-// screwed onto.
-function get_alignment_screw_pattern_dist_x(carrier_type, alignment_board_type = "omega") =
-    (carrier_type == "omega-d-glass") ? OMEGA_D_GLASS_SCREW_PATTERN_DIST_X
+// Every carrier takes the pattern of the board it's screwed onto; the omega
+// board's depends on the film format (4x5 widens its cutout). The glass
+// carrier is always an omega board with 4x5, whatever Film_Format says.
+function get_alignment_screw_pattern_dist_x(carrier_type, alignment_board_type = "omega", film_format = "") =
+    (carrier_type == "omega-d-glass") ? OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_X
     : (alignment_board_type == "lpl-saunders") ? LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_X
     : (alignment_board_type == "beseler-23c") ? BESELER_23C_BOARD_SCREW_PATTERN_DIST
-    : OMEGA_BOARD_SCREW_PATTERN_DIST_X;
-function get_alignment_screw_pattern_dist_y(carrier_type, alignment_board_type = "omega") =
-    (carrier_type == "omega-d-glass") ? OMEGA_D_GLASS_SCREW_PATTERN_DIST_Y
+    : omega_board_screw_pattern_dist_x(film_format);
+function get_alignment_screw_pattern_dist_y(carrier_type, alignment_board_type = "omega", film_format = "") =
+    (carrier_type == "omega-d-glass") ? OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_Y
     : (alignment_board_type == "lpl-saunders") ? LPL_SAUNDERS_BOARD_SCREW_PATTERN_DIST_Y
     : (alignment_board_type == "beseler-23c") ? BESELER_23C_BOARD_SCREW_PATTERN_DIST
-    : OMEGA_BOARD_SCREW_PATTERN_DIST_Y;
+    : omega_board_screw_pattern_dist_y(film_format);
 
 // Z offset for top peg holes (varies by carrier style)
 function get_top_peg_hole_z_offset(carrier_type) =
@@ -132,16 +143,11 @@ function carrier_type_text_settings(carrier_type) = _get_text_settings(carrier_t
 // Omega-D glass plate carrier (single piece, base geometry in
 // omega-d-glass-base-shape.scad). One slab as thick as a top+bottom pair.
 OMEGA_D_GLASS_THICKNESS = 2 * UNIVERSAL_CARRIER_HEIGHT;
-// Alignment-board screw footprint for the glass carrier. The universal 82x113
-// pattern (±41, ±56.5) lands inside the 95x120 4x5 film opening — and inside
-// the 4x5 board's own cutout — so this carrier uses its own pattern that sits
-// on solid rail of both: x = ±56 is between the pocket wall (±51) and the
-// board edge (63.5), clear of the 4x5 board cutout (|x| < 52.5); y = ±40 keeps
-// clear of the finger notch at any corner and of the board's corner cuts.
-OMEGA_D_GLASS_SCREW_PATTERN_DIST_X = 112;
-OMEGA_D_GLASS_SCREW_PATTERN_DIST_Y = 80;
-// Clearance hole in the separately printed board (screws thread into the carrier)
-OMEGA_D_GLASS_BOARD_SCREW_CLEARANCE_DIA = 2.4;
+// Alignment-board screw footprint for the glass carrier: the omega board's 4x5
+// pattern (OMEGA_BOARD_4X5_SCREW_PATTERN_DIST_*, ±56 / ±40), which also sits
+// between the pocket wall (±51) and clear of the finger notch at any corner.
+// Clearance hole in the separately printed board (screws thread into the
+// carrier): heat_set_clearance_hole_dia (M2: 2.4).
 
 // Beseler 23C handle constants shared between base-shape and text positioning
 // (base geometry lives in beseler-23c-base-shape.scad)

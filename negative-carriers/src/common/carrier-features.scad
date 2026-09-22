@@ -18,12 +18,14 @@ DENT_TOLERANCE = 0.25; // Additional radius for dent holes
 // "Heat-set" pegs are really machine screws (e.g. M2x4 socket head) threaded
 // straight into the bottom carrier: the screw head is the peg, and the top
 // carrier's clearance hole registers on it. Per screw size:
-//   [name, thread-forming hole dia (ISO tap-drill size)]
+//   [name, thread-forming hole dia (ISO tap-drill size), nominal thread dia]
 HEAT_SET_SCREW_SIZES = [
-    ["M2",   M2_HEAT_SET_HOLE_DIA],
-    ["M2.5", 2.05],
-    ["M3",   2.5],
+    ["M2",   M2_HEAT_SET_HOLE_DIA, 2],
+    ["M2.5", 2.05, 2.5],
+    ["M3",   2.5, 3],
 ];
+// Clearance hole (the screw passes through, no thread): nominal + 0.4.
+HEAT_SET_CLEARANCE = 0.4;
 DEFAULT_HEAT_SET_SCREW_SIZE = "M2";
 // Head diameter (dk max) per head style, indexed like HEAT_SET_SCREW_SIZES
 // (M2, M2.5, M3). The top carrier's hole clears this, so it must match the
@@ -48,8 +50,14 @@ function _heat_set_size_index(screw_size) =
     assert(len(hits) == 1, str("Unknown heat-set screw size '", screw_size, "'. Supported: ", [for (s = HEAT_SET_SCREW_SIZES) s[0]]))
     hits[0];
 // Bottom carrier: the hole the screw threads into. `adjust` is a user diameter tweak (mm).
+// The same size is used for every hole the same screws thread into: the
+// alignment-board footprint holes in the carrier and the pilot holes in a
+// separately printed board.
 function heat_set_thread_hole_dia(screw_size = DEFAULT_HEAT_SET_SCREW_SIZE, adjust = 0) =
     HEAT_SET_SCREW_SIZES[_heat_set_size_index(screw_size)][1] + HEAT_SET_HOLE_FDM_COMPENSATION + adjust;
+// A plain clearance hole for the screw (the glass carrier's screw-on board).
+function heat_set_clearance_hole_dia(screw_size = DEFAULT_HEAT_SET_SCREW_SIZE) =
+    HEAT_SET_SCREW_SIZES[_heat_set_size_index(screw_size)][2] + HEAT_SET_CLEARANCE;
 // The screw head's own diameter: from the style table, or `custom_head_dia`
 // (a caliper measurement) when head_style is "custom".
 function heat_set_head_dia(screw_size = DEFAULT_HEAT_SET_SCREW_SIZE, head_style = DEFAULT_HEAT_SET_SCREW_HEAD, custom_head_dia = M2_SOCKET_HEAD_DIA) =
@@ -310,15 +318,17 @@ module generate_peg_features(
 }
 
 // Instantiate a specific alignment board based on type string
-// pilot_holes: cut the screw-footprint pilot holes into the LPL / 23C boards
-// (for the standalone, screwed-on board export; never for a fused board).
-module instantiate_alignment_board_by_type(board_type_str, film_format = "", pilot_holes = false) {
+// pilot_holes: cut the carrier's screw footprint into the board as pilot holes
+// of pilot_dia (the heat-set thread-forming size, so the same screws as the
+// pegs bite), for the standalone, screwed-on board export; never for a fused
+// board.
+module instantiate_alignment_board_by_type(board_type_str, film_format = "", pilot_holes = false, pilot_dia = heat_set_thread_hole_dia()) {
     if (board_type_str == "omega") {
-        omega_d_alignment_board_no_screws(film_format);
+        omega_d_alignment_board_no_screws(film_format, pilot_holes=pilot_holes, pilot_dia=pilot_dia);
     } else if (board_type_str == "lpl-saunders") {
-        lpl_saunders_alignment_board(pilot_holes=pilot_holes);
+        lpl_saunders_alignment_board(pilot_holes=pilot_holes, pilot_dia=pilot_dia);
     } else if (board_type_str == "beseler-23c") {
-        beseler_23c_alignment_board(pilot_holes=pilot_holes);
+        beseler_23c_alignment_board(pilot_holes=pilot_holes, pilot_dia=pilot_dia);
     } else {
         echo(str("Warning: Unknown alignment board type specified: ", board_type_str));
     }

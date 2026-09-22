@@ -4,7 +4,7 @@
 // pocket on the top face that locates the plate. There is no top half: the
 // rigid plate can't curl, so nothing needs to clamp it. The alignment board is
 // screwed on underneath rather than fused, so the pocket prints face-up without
-// supports (see OMEGA_D_GLASS_SCREW_PATTERN_* in carrier-configs.scad).
+// supports (see OMEGA_BOARD_4X5_SCREW_PATTERN_* in carrier-configs.scad).
 
 // BOSL2 is included once at the entry point (carrier.scad) — OpenSCAD re-parses
 // every include with no dedup, so re-including the ~80k-line library here would
@@ -139,9 +139,10 @@ module omega_d_glass_base_shape(config, top_or_bottom = "bottom") {
  * 4x5-widened board opening for the 4x5 film format like the fused board.
  *
  * @param film_format - Film format string, selects the board opening variant
- * @param screw_clearance_dia - Board hole diameter (default: M2 clearance)
+ * @param screw_clearance_dia - Board hole diameter (default: M2 clearance; pass
+ *                              heat_set_clearance_hole_dia(Heat_Set_Screw_Size))
  */
-module omega_d_glass_alignment_board(film_format = "4x5", screw_clearance_dia = OMEGA_D_GLASS_BOARD_SCREW_CLEARANCE_DIA) {
+module omega_d_glass_alignment_board(film_format = "4x5", screw_clearance_dia = heat_set_clearance_hole_dia()) {
     difference() {
         omega_d_alignment_board_no_screws(film_format);
         alignment_footprint_holes(

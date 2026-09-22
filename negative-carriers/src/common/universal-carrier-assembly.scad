@@ -145,9 +145,10 @@ module universal_carrier_assembly(
     // Alignment screw parameters: the pattern follows the BOARD the carrier is
     // screwed onto (the holes must land on its material), except for the glass
     // carrier, which has its own.
-    ALIGNMENT_SCREW_DIAMETER = get_alignment_screw_diameter(carrier_type);
-    ALIGNMENT_SCREW_PATTERN_DIST_X = get_alignment_screw_pattern_dist_x(carrier_type, alignment_board_type);
-    ALIGNMENT_SCREW_PATTERN_DIST_Y = get_alignment_screw_pattern_dist_y(carrier_type, alignment_board_type);
+    // Same screws as the heat-set pegs: same thread-forming hole.
+    ALIGNMENT_SCREW_DIAMETER = heat_set_thread_hole_dia;
+    ALIGNMENT_SCREW_PATTERN_DIST_X = get_alignment_screw_pattern_dist_x(carrier_type, alignment_board_type, film_format_for_arrows);
+    ALIGNMENT_SCREW_PATTERN_DIST_Y = get_alignment_screw_pattern_dist_y(carrier_type, alignment_board_type, film_format_for_arrows);
 
     // Z-axis positioning calculations
     CARRIER_HALF_HEIGHT = CARRIER_HEIGHT / 2;
